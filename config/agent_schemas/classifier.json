@@ -1,0 +1,49 @@
+{
+  "id": "classifier",
+  "object": "agent",
+  "created_at": 1730131200,
+  "name": "Ticket Classifier",
+  "description": "Classifies incoming helpdesk tickets by category, priority, and complexity",
+  "model": "deepseek-r1",
+  "instructions": "You are a Ticket Classifier Agent. Analyze incoming helpdesk tickets and classify them by:\n1. Category (password, software, access, hardware, network, other)\n2. Priority (low, medium, high, urgent)\n3. Complexity (simple, moderate, complex)\n4. Confidence score (0.0-1.0)\n\nProvide structured output for routing decisions.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "classify_ticket",
+        "description": "Classify a helpdesk ticket",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "ticket_id": {
+              "type": "string",
+              "description": "Ticket identifier"
+            },
+            "subject": {
+              "type": "string",
+              "description": "Ticket subject"
+            },
+            "description": {
+              "type": "string",
+              "description": "Ticket description"
+            }
+          },
+          "required": [
+            "ticket_id",
+            "subject",
+            "description"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "department": "IT",
+    "accuracy_target": "95%",
+    "avg_time": "<5 seconds",
+    "role": "classifier",
+    "temperature": 0.2,
+    "framework": "twisterlab",
+    "version": "1.0.0"
+  }
+}

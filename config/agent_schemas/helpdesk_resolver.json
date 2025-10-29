@@ -1,0 +1,95 @@
+{
+  "id": "helpdesk-resolver",
+  "object": "agent",
+  "created_at": 1730131200,
+  "name": "IT Helpdesk Resolver",
+  "description": "Resolves common IT helpdesk tickets automatically (password resets, software installs, access requests)",
+  "model": "llama-3.2",
+  "instructions": "You are an IT Helpdesk Agent specializing in resolving common IT support tickets. You can automatically handle password resets, software installations, access requests, and basic troubleshooting. For complex issues, escalate to human agents.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "reset_password",
+        "description": "Reset user password in Active Directory",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "username": {
+              "type": "string",
+              "description": "Username to reset password for"
+            },
+            "temporary_password": {
+              "type": "string",
+              "description": "Temporary password to set"
+            }
+          },
+          "required": [
+            "username"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "install_software",
+        "description": "Install software via Desktop Commander on user's machine",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "device_id": {
+              "type": "string",
+              "description": "Target device identifier"
+            },
+            "software_name": {
+              "type": "string",
+              "description": "Name of software to install"
+            },
+            "version": {
+              "type": "string",
+              "description": "Software version (optional)"
+            }
+          },
+          "required": [
+            "device_id",
+            "software_name"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "grant_access",
+        "description": "Grant user access to a resource or group",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "username": {
+              "type": "string",
+              "description": "Username to grant access to"
+            },
+            "resource": {
+              "type": "string",
+              "description": "Resource or group name"
+            }
+          },
+          "required": [
+            "username",
+            "resource"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "department": "IT",
+    "sla_target": "2 minutes",
+    "automation_rate": "60-70%",
+    "role": "helpdesk",
+    "temperature": 0.3,
+    "framework": "twisterlab",
+    "version": "1.0.0"
+  }
+}

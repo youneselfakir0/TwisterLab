@@ -1,0 +1,62 @@
+# Core dependencies for TwisterLab v1.0.0-alpha.1
+# AI-Powered IT Helpdesk Automation Platform
+
+# Web Framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.23.0
+
+# Data Models & Validation
+pydantic>=2.0.0
+
+# CLI Tools
+typer>=0.9.0
+rich>=13.0.0
+
+# AI/ML
+ollama>=0.1.0
+
+# Database & Caching
+redis>=4.5.0
+psycopg2-binary>=2.9.0
+asyncpg>=0.29.0
+sqlalchemy>=2.0.0
+
+# Database Migrations
+alembic>=1.12.0
+
+# File Uploads
+python-multipart>=0.0.6
+
+# Authentication & Security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.0
+
+# Environment & Configuration
+python-dotenv>=1.0.0
+
+# HTTP Client
+httpx>=0.25.0
+
+# Logging
+structlog>=23.0.0
+
+# Monitoring
+prometheus-client>=0.17.0
+
+# Development & Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+black>=23.0.0
+isort>=5.12.0
+flake8>=6.0.0
+mypy>=1.5.0
+pre-commit>=3.0.0
+
+# Optional: Azure Integration (uncomment if needed)
+# azure-identity>=1.12.0
+# azure-keyvault-secrets>=4.7.0
+# azure-storage-blob>=12.17.0
+# azure-cosmos>=4.5.0
+# azure-functions>=1.16.0
+# azure-monitor-opentelemetry>=1.0.0

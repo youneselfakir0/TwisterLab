@@ -1,0 +1,105 @@
+{
+  "id": "desktop-commander",
+  "object": "agent",
+  "created_at": 1730131200,
+  "name": "Desktop Commander",
+  "description": "Distributed agent system for remote desktop management and command execution",
+  "model": "llama-3.2",
+  "instructions": "You are a Desktop Commander Agent managing remote desktop clients. You can execute commands, deploy software, gather system information, and perform remote diagnostics on registered client machines. All operations are logged and secured with zero-trust architecture.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "execute_command",
+        "description": "Execute command on remote desktop client",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "device_id": {
+              "type": "string",
+              "description": "Target device identifier"
+            },
+            "command": {
+              "type": "string",
+              "description": "Command to execute (from whitelist only)"
+            },
+            "timeout": {
+              "type": "integer",
+              "description": "Command timeout in seconds (default: 300)"
+            }
+          },
+          "required": [
+            "device_id",
+            "command"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "deploy_package",
+        "description": "Deploy software package to remote device",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "device_id": {
+              "type": "string",
+              "description": "Target device identifier"
+            },
+            "package_url": {
+              "type": "string",
+              "description": "Package download URL"
+            },
+            "install_args": {
+              "type": "string",
+              "description": "Installation arguments"
+            }
+          },
+          "required": [
+            "device_id",
+            "package_url"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_system_info",
+        "description": "Gather system information from remote device",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "device_id": {
+              "type": "string",
+              "description": "Target device identifier"
+            },
+            "info_type": {
+              "type": "string",
+              "enum": [
+                "hardware",
+                "software",
+                "network",
+                "all"
+              ],
+              "description": "Type of information to gather"
+            }
+          },
+          "required": [
+            "device_id"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "department": "IT",
+    "security_level": "zero-trust",
+    "max_concurrent_commands": 10,
+    "role": "desktop-commander",
+    "temperature": 0.1,
+    "framework": "twisterlab",
+    "version": "1.0.0"
+  }
+}

@@ -1,0 +1,98 @@
+groups:
+  - name: twisterlab_alerts
+    rules:
+      # API Health Alerts
+      - alert: TwisterLabAPIHighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on TwisterLab API"
+          description: "TwisterLab API error rate is {{ $value }}%"
+
+      - alert: TwisterLabAPIDown
+        expr: up{job="twisterlab-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "TwisterLab API is down"
+          description: "TwisterLab API has been down for more than 2 minutes"
+
+      # Database Alerts
+      - alert: TwisterLabPostgresDown
+        expr: up{job="twisterlab-postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL has been down for more than 2 minutes"
+
+      - alert: TwisterLabRedisDown
+        expr: up{job="twisterlab-redis"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis has been down for more than 2 minutes"
+
+      # Resource Alerts
+      - alert: TwisterLabHighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on host"
+          description: "Memory usage is {{ $value }}%"
+
+      - alert: TwisterLabHighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on host"
+          description: "CPU usage is {{ $value }}%"
+
+      # Agent Performance Alerts
+      - alert: TwisterLabAgentSlowResponse
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="twisterlab-api"}[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow API response time"
+          description: "95th percentile response time is {{ $value }}s"
+
+      # TwisterLang Performance Alerts
+      - alert: TwisterLangHighCompressionRatio
+        expr: twisterlang_compression_ratio > 0.8
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "High TwisterLang compression achieved"
+          description: "Compression ratio is {{ $value }} - excellent performance!"
+
+      # Cost Monitoring (Azure)
+      - alert: AzureCostApproachingLimit
+        expr: azure_cost_total > 150
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Azure costs approaching $200 limit"
+          description: "Current Azure costs: ${{ $value }}"
+
+      - alert: AzureCostExceeded
+        expr: azure_cost_total > 200
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Azure costs exceeded $200 limit"
+          description: "Current Azure costs: ${{ $value }} - IMMEDIATE ACTION REQUIRED"

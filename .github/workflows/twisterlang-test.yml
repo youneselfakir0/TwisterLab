@@ -1,0 +1,125 @@
+name: TwisterLang Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'core/**'
+      - 'agents/**'
+      - 'tests/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'core/**'
+      - 'agents/**'
+      - 'tests/**'
+      - '.github/workflows/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10, 3.11]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-asyncio
+
+    - name: Run TwisterLang encoder/decoder tests
+      run: |
+        python -m pytest tests/test_twisterlang.py -v --cov=core --cov-report=xml
+
+    - name: Run TwisterLang sync tests
+      run: |
+        python -m pytest tests/test_twisterlang_sync.py -v --cov=core --cov-report=xml --cov-append
+
+    - name: Run agent integration tests
+      run: |
+        python -c "from agents.twisterlang_agent_integration import demonstrate_agent_communication; demonstrate_agent_communication()"
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run Bandit Security Scan
+      run: |
+        pip install bandit
+        bandit -r core/ agents/ -f json -o security-report.json || true
+
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-scan-report
+        path: security-report.json
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort flake8 mypy
+
+    - name: Run Black (code formatting)
+      run: black --check --diff core/ agents/ tests/
+
+    - name: Run isort (import sorting)
+      run: isort --check-only --diff core/ agents/ tests/
+
+    - name: Run Flake8 (linting)
+      run: flake8 core/ agents/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+
+    - name: Run MyPy (type checking)
+      run: mypy core/ agents/ --ignore-missing-imports
+
+  validate-vocab:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Validate TwisterLang vocabulary
+      run: |
+        python -c "
+        import json
+        with open('core/twisterlang_vocab.json', 'r') as f:
+            vocab = json.load(f)
+        print(f'Version: {vocab[\"version\"]}')
+        print(f'Total codes: {vocab[\"metadata\"][\"total_codes\"]}')
+        print(f'Categories: {list(vocab[\"categories\"].keys())}')
+        assert vocab['version'] == '1.0.0'
+        assert vocab['metadata']['total_codes'] > 0
+        print('✅ Vocabulary validation passed')
+        "

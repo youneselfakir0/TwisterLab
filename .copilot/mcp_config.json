@@ -1,0 +1,186 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PAT}"
+      },
+      "description": "GitHub repository management, commits, PRs, releases"
+    },
+    "azure": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-azure"],
+      "env": {
+        "AZURE_CLIENT_ID": "${AZURE_CLIENT_ID}",
+        "AZURE_CLIENT_SECRET": "${AZURE_CLIENT_SECRET}",
+        "AZURE_TENANT_ID": "${AZURE_TENANT_ID}",
+        "AZURE_SUBSCRIPTION_ID": "${AZURE_SUBSCRIPTION_ID}"
+      },
+      "description": "Azure infrastructure provisioning and resource management"
+    },
+    "local": {
+      "command": "python",
+      "args": ["-m", "mcp_server_local"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}",
+        "PATH": "${env:PATH}"
+      },
+      "description": "Local development tasks: testing, building, linting, security scanning"
+    },
+    "grafana": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-grafana"],
+      "env": {
+        "GRAFANA_URL": "${GRAFANA_URL}",
+        "GRAFANA_API_KEY": "${GRAFANA_API_KEY}"
+      },
+      "description": "Grafana monitoring, dashboards, and alerting"
+    }
+  },
+  "environmentVariables": {
+    "GITHUB_PAT": {
+      "description": "GitHub Personal Access Token with repo, workflow, and packages scopes",
+      "required": true,
+      "validation": "github_token"
+    },
+    "AZURE_CLIENT_ID": {
+      "description": "Azure Service Principal Application ID",
+      "required": true,
+      "validation": "uuid"
+    },
+    "AZURE_CLIENT_SECRET": {
+      "description": "Azure Service Principal Secret",
+      "required": true,
+      "sensitive": true
+    },
+    "AZURE_TENANT_ID": {
+      "description": "Azure Tenant ID",
+      "required": true,
+      "validation": "uuid"
+    },
+    "AZURE_SUBSCRIPTION_ID": {
+      "description": "Azure Subscription ID",
+      "required": true,
+      "validation": "uuid"
+    },
+    "GRAFANA_URL": {
+      "description": "Grafana instance URL (optional for Phase 2+)",
+      "required": false,
+      "default": "http://localhost:3000"
+    },
+    "GRAFANA_API_KEY": {
+      "description": "Grafana API key with Admin/Editor permissions",
+      "required": false,
+      "sensitive": true
+    }
+  },
+  "validationRules": {
+    "github_token": {
+      "pattern": "^ghp_[a-zA-Z0-9]{36}$",
+      "testCommand": "@mcp github list-user-repos"
+    },
+    "uuid": {
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "testCommand": "@mcp azure verify-credentials"
+    }
+  },
+  "commandMappings": {
+    "twisterlab": {
+      "status": "@mcp local run-tests && @mcp azure get-subscription-info && @mcp github get-repo-info youneselfakir0/twisterlab",
+      "metrics": "@mcp grafana get-dashboard-metrics && @mcp azure get-resource-usage",
+      "costs": "@mcp azure get-cost-analysis --timeframe=14d",
+      "Execute Phase 0": ".copilot/workflows/phase_0_preflight.yaml",
+      "Execute Phase 1": ".copilot/workflows/phase_1_deployment.yaml",
+      "Execute Phase 2": ".copilot/workflows/phase_2_grafana.yaml",
+      "Execute Phase 3": ".copilot/workflows/phase_3_autonomous.yaml",
+      "Execute Phase 4": ".copilot/workflows/phase_4_community.yaml"
+    }
+  },
+  "workflows": {
+    "phase_0_preflight": {
+      "description": "Pre-flight validation and system readiness checks",
+      "steps": [
+        "validate_environment",
+        "check_dependencies",
+        "test_mcp_servers",
+        "verify_budget",
+        "run_smoke_tests"
+      ]
+    },
+    "phase_1_deployment": {
+      "description": "GitHub repository setup and initial deployment",
+      "steps": [
+        "setup_github_repo",
+        "configure_ci_cd",
+        "deploy_to_azure",
+        "setup_monitoring",
+        "validate_deployment"
+      ]
+    },
+    "phase_2_grafana": {
+      "description": "Grafana monitoring and dashboard setup",
+      "steps": [
+        "provision_grafana",
+        "create_dashboards",
+        "setup_alerts",
+        "configure_data_sources",
+        "test_monitoring"
+      ]
+    },
+    "phase_3_autonomous": {
+      "description": "Autonomous operations and scaling",
+      "steps": [
+        "enable_auto_scaling",
+        "setup_self_healing",
+        "configure_backup",
+        "optimize_performance",
+        "enable_community_features"
+      ]
+    },
+    "phase_4_community": {
+      "description": "Community release and propagation",
+      "steps": [
+        "create_release",
+        "update_documentation",
+        "setup_community_tools",
+        "announce_release",
+        "monitor_adoption"
+      ]
+    }
+  },
+  "errorHandling": {
+    "retryPolicy": {
+      "maxRetries": 3,
+      "backoffMultiplier": 2,
+      "initialDelayMs": 1000
+    },
+    "fallbackCommands": {
+      "github_unavailable": "@mcp local git status",
+      "azure_unavailable": "@mcp local echo 'Azure unavailable - using local resources'",
+      "grafana_unavailable": "@mcp local echo 'Grafana unavailable - using console logging'"
+    }
+  },
+  "monitoring": {
+    "metrics": [
+      "mcp_command_execution_time",
+      "mcp_command_success_rate",
+      "azure_costs_total",
+      "system_health_score",
+      "phase_completion_percentage"
+    ],
+    "alerts": [
+      {
+        "condition": "azure_costs_total > 160",
+        "message": "Azure costs approaching $200 limit",
+        "action": "notify_user"
+      },
+      {
+        "condition": "mcp_command_success_rate < 0.95",
+        "message": "MCP command failure rate increasing",
+        "action": "retry_failed_commands"
+      }
+    ]
+  }
+}

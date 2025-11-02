@@ -4,9 +4,9 @@ TwisterLang Integration Example for TwisterLab Agents
 Shows how to integrate TwisterLang into existing agent communication
 """
 
-from twisterlang_encoder import encode, get_encoder
-from twisterlang_decoder import decode, get_decoder
-from twisterlang_sync import get_sync_manager
+from core.twisterlang_encoder import encode, get_encoder
+from core.twisterlang_decoder import decode, get_decoder
+from core.twisterlang_sync import get_sync_manager
 
 
 class TwisterLabAgent:

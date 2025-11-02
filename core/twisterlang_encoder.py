@@ -188,7 +188,7 @@ class TwisterLangEncoder:
         encoded = f"TLG::{code}::{message_hash}::{timestamp}"
 
         # Store in decoder's fallback for verification
-        from twisterlang_decoder import get_decoder
+        from .twisterlang_decoder import get_decoder
         decoder = get_decoder()
         decoder.store_fallback(encoded, original_message)
 

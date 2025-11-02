@@ -4,8 +4,8 @@ TwisterLang Test Script
 Test the encoder and decoder functionality
 """
 
-from twisterlang_encoder import encode
-from twisterlang_decoder import decode
+from core.twisterlang_encoder import encode
+from core.twisterlang_decoder import decode
 
 
 def test_twisterlang():

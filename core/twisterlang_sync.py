@@ -9,8 +9,8 @@ import hashlib
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Set
-from twisterlang_encoder import TwisterLangEncoder
-from twisterlang_decoder import TwisterLangDecoder
+from .twisterlang_encoder import TwisterLangEncoder
+from .twisterlang_decoder import TwisterLangDecoder
 
 class TwisterLangSync:
     def __init__(self, vocab_file: str = "twisterlang_vocab.json",

@@ -1,0 +1,514 @@
+# TwisterLab MCP Commands Library
+# Complete command reference for MCP + Copilot orchestration
+
+version: "1.0.0"
+description: "MCP command library for TwisterLab deployment and operations"
+
+# GitHub MCP Commands
+github:
+  repository:
+    - name: "list-user-repos"
+      description: "List all repositories for authenticated user"
+      syntax: "@mcp github list-user-repos"
+      output: "Array of repository objects"
+
+    - name: "get-repo-info"
+      description: "Get detailed information about a specific repository"
+      syntax: "@mcp github get-repo-info {owner}/{repo}"
+      parameters:
+        - name: "owner"
+          type: "string"
+          required: true
+          description: "Repository owner/organization"
+        - name: "repo"
+          type: "string"
+          required: true
+          description: "Repository name"
+      output: "Repository details including branches, issues, PRs"
+
+    - name: "create-branch"
+      description: "Create a new branch from specified base"
+      syntax: "@mcp github create-branch {repo} {branch-name} {base-branch}"
+      parameters:
+        - name: "repo"
+          type: "string"
+          required: true
+          description: "Repository in owner/repo format"
+        - name: "branch-name"
+          type: "string"
+          required: true
+          description: "Name of new branch"
+        - name: "base-branch"
+          type: "string"
+          required: false
+          default: "main"
+          description: "Base branch to create from"
+      output: "Branch creation confirmation"
+
+    - name: "create-pull-request"
+      description: "Create a pull request"
+      syntax: "@mcp github create-pull-request {repo} {title} {head} {base} {body}"
+      parameters:
+        - name: "repo"
+          type: "string"
+          required: true
+          description: "Repository in owner/repo format"
+        - name: "title"
+          type: "string"
+          required: true
+          description: "PR title"
+        - name: "head"
+          type: "string"
+          required: true
+          description: "Head branch"
+        - name: "base"
+          type: "string"
+          required: true
+          description: "Base branch"
+        - name: "body"
+          type: "string"
+          required: false
+          description: "PR description"
+      output: "PR creation details"
+
+    - name: "merge-pull-request"
+      description: "Merge a pull request"
+      syntax: "@mcp github merge-pull-request {repo} {pr-number} {merge-method}"
+      parameters:
+        - name: "repo"
+          type: "string"
+          required: true
+          description: "Repository in owner/repo format"
+        - name: "pr-number"
+          type: "integer"
+          required: true
+          description: "Pull request number"
+        - name: "merge-method"
+          type: "string"
+          required: false
+          default: "merge"
+          enum: ["merge", "squash", "rebase"]
+          description: "Merge method"
+      output: "Merge confirmation"
+
+    - name: "create-release"
+      description: "Create a GitHub release"
+      syntax: "@mcp github create-release {repo} {tag} {name} {body}"
+      parameters:
+        - name: "repo"
+          type: "string"
+          required: true
+          description: "Repository in owner/repo format"
+        - name: "tag"
+          type: "string"
+          required: true
+          description: "Release tag"
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Release name"
+        - name: "body"
+          type: "string"
+          required: false
+          description: "Release notes"
+      output: "Release creation details"
+
+  workflows:
+    - name: "list-workflows"
+      description: "List GitHub Actions workflows"
+      syntax: "@mcp github list-workflows {repo}"
+      parameters:
+        - name: "repo"
+          type: "string"
+          required: true
+          description: "Repository in owner/repo format"
+      output: "Array of workflow objects"
+
+    - name: "run-workflow"
+      description: "Trigger a GitHub Actions workflow"
+      syntax: "@mcp github run-workflow {repo} {workflow-id} {branch}"
+      parameters:
+        - name: "repo"
+          type: "string"
+          required: true
+          description: "Repository in owner/repo format"
+        - name: "workflow-id"
+          type: "string"
+          required: true
+          description: "Workflow ID or filename"
+        - name: "branch"
+          type: "string"
+          required: false
+          default: "main"
+          description: "Branch to run workflow on"
+      output: "Workflow run details"
+
+# Azure MCP Commands
+azure:
+  resources:
+    - name: "get-subscription-info"
+      description: "Get Azure subscription details"
+      syntax: "@mcp azure get-subscription-info"
+      output: "Subscription information including quotas and limits"
+
+    - name: "list-resource-groups"
+      description: "List all resource groups in subscription"
+      syntax: "@mcp azure list-resource-groups"
+      output: "Array of resource group objects"
+
+    - name: "create-resource-group"
+      description: "Create a new resource group"
+      syntax: "@mcp azure create-resource-group {name} {location}"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Resource group name"
+        - name: "location"
+          type: "string"
+          required: true
+          description: "Azure region (e.g., 'eastus', 'westeurope')"
+      output: "Resource group creation confirmation"
+
+    - name: "deploy-arm-template"
+      description: "Deploy Azure Resource Manager template"
+      syntax: "@mcp azure deploy-arm-template {resource-group} {template-file} {parameters-file}"
+      parameters:
+        - name: "resource-group"
+          type: "string"
+          required: true
+          description: "Target resource group"
+        - name: "template-file"
+          type: "string"
+          required: true
+          description: "Path to ARM template JSON file"
+        - name: "parameters-file"
+          type: "string"
+          required: false
+          description: "Path to parameters JSON file"
+      output: "Deployment status and outputs"
+
+  costs:
+    - name: "get-cost-analysis"
+      description: "Get Azure cost analysis for specified timeframe"
+      syntax: "@mcp azure get-cost-analysis --timeframe={timeframe} --group-by={group-by}"
+      parameters:
+        - name: "timeframe"
+          type: "string"
+          required: false
+          default: "30d"
+          description: "Timeframe (e.g., '7d', '30d', '90d')"
+        - name: "group-by"
+          type: "string"
+          required: false
+          default: "service"
+          enum: ["service", "resource-group", "location", "resource-type"]
+          description: "Grouping dimension"
+      output: "Cost analysis data"
+
+    - name: "get-budget-status"
+      description: "Check budget status and alerts"
+      syntax: "@mcp azure get-budget-status {budget-name}"
+      parameters:
+        - name: "budget-name"
+          type: "string"
+          required: false
+          description: "Budget name (optional - shows all if not specified)"
+      output: "Budget status and utilization"
+
+  compute:
+    - name: "create-vm"
+      description: "Create an Azure Virtual Machine"
+      syntax: "@mcp azure create-vm {resource-group} {vm-name} {image} {size}"
+      parameters:
+        - name: "resource-group"
+          type: "string"
+          required: true
+          description: "Resource group name"
+        - name: "vm-name"
+          type: "string"
+          required: true
+          description: "Virtual machine name"
+        - name: "image"
+          type: "string"
+          required: true
+          description: "VM image (e.g., 'Ubuntu2204', 'Win2022Datacenter')"
+        - name: "size"
+          type: "string"
+          required: true
+          description: "VM size (e.g., 'Standard_B2s', 'Standard_D2_v3')"
+      output: "VM creation details and connection info"
+
+    - name: "create-aci"
+      description: "Create Azure Container Instance"
+      syntax: "@mcp azure create-aci {resource-group} {container-name} {image} {cpu} {memory}"
+      parameters:
+        - name: "resource-group"
+          type: "string"
+          required: true
+          description: "Resource group name"
+        - name: "container-name"
+          type: "string"
+          required: true
+          description: "Container instance name"
+        - name: "image"
+          type: "string"
+          required: true
+          description: "Container image"
+        - name: "cpu"
+          type: "number"
+          required: false
+          default: 1
+          description: "CPU cores"
+        - name: "memory"
+          type: "number"
+          required: false
+          default: 1.5
+          description: "Memory in GB"
+      output: "Container instance details"
+
+# Local MCP Commands
+local:
+  testing:
+    - name: "run-tests"
+      description: "Run test suite"
+      syntax: "@mcp local run-tests {test-pattern} {coverage}"
+      parameters:
+        - name: "test-pattern"
+          type: "string"
+          required: false
+          default: "test_*.py"
+          description: "Test file pattern"
+        - name: "coverage"
+          type: "boolean"
+          required: false
+          default: true
+          description: "Generate coverage report"
+      output: "Test results and coverage report"
+
+    - name: "run-linting"
+      description: "Run code linting"
+      syntax: "@mcp local run-linting {files}"
+      parameters:
+        - name: "files"
+          type: "string"
+          required: false
+          default: "."
+          description: "Files/directories to lint"
+      output: "Linting results and suggestions"
+
+  building:
+    - name: "build-docker"
+      description: "Build Docker images"
+      syntax: "@mcp local build-docker {service}"
+      parameters:
+        - name: "service"
+          type: "string"
+          required: false
+          description: "Specific service to build (builds all if not specified)"
+      output: "Build status and image details"
+
+    - name: "run-compose"
+      description: "Run Docker Compose commands"
+      syntax: "@mcp local run-compose {command} {services}"
+      parameters:
+        - name: "command"
+          type: "string"
+          required: true
+          enum: ["up", "down", "build", "restart", "logs"]
+          description: "Compose command"
+        - name: "services"
+          type: "string"
+          required: false
+          description: "Specific services (all if not specified)"
+      output: "Compose command results"
+
+  security:
+    - name: "security-scan"
+      description: "Run security vulnerability scan"
+      syntax: "@mcp local security-scan {target}"
+      parameters:
+        - name: "target"
+          type: "string"
+          required: false
+          default: "."
+          description: "Target to scan"
+      output: "Security scan results and vulnerabilities"
+
+    - name: "dependency-check"
+      description: "Check for outdated dependencies"
+      syntax: "@mcp local dependency-check"
+      output: "Dependency status and update recommendations"
+
+# Grafana MCP Commands
+grafana:
+  dashboards:
+    - name: "list-dashboards"
+      description: "List all Grafana dashboards"
+      syntax: "@mcp grafana list-dashboards"
+      output: "Array of dashboard objects"
+
+    - name: "create-dashboard"
+      description: "Create a new Grafana dashboard"
+      syntax: "@mcp grafana create-dashboard {title} {folder-id}"
+      parameters:
+        - name: "title"
+          type: "string"
+          required: true
+          description: "Dashboard title"
+        - name: "folder-id"
+          type: "integer"
+          required: false
+          description: "Folder ID to place dashboard in"
+      output: "Dashboard creation details"
+
+    - name: "get-dashboard-metrics"
+      description: "Get dashboard metrics and panels"
+      syntax: "@mcp grafana get-dashboard-metrics {dashboard-id}"
+      parameters:
+        - name: "dashboard-id"
+          type: "string"
+          required: true
+          description: "Dashboard ID or UID"
+      output: "Dashboard metrics and panel data"
+
+  alerts:
+    - name: "list-alerts"
+      description: "List all Grafana alerts"
+      syntax: "@mcp grafana list-alerts"
+      output: "Array of alert rule objects"
+
+    - name: "create-alert"
+      description: "Create a new alert rule"
+      syntax: "@mcp grafana create-alert {name} {query} {condition} {folder-id}"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Alert rule name"
+        - name: "query"
+          type: "string"
+          required: true
+          description: "Prometheus query"
+        - name: "condition"
+          type: "string"
+          required: true
+          description: "Alert condition"
+        - name: "folder-id"
+          type: "integer"
+          required: false
+          description: "Folder ID"
+      output: "Alert creation details"
+
+  data_sources:
+    - name: "list-data-sources"
+      description: "List configured data sources"
+      syntax: "@mcp grafana list-data-sources"
+      output: "Array of data source objects"
+
+    - name: "create-data-source"
+      description: "Create a new data source"
+      syntax: "@mcp grafana create-data-source {name} {type} {url}"
+      parameters:
+        - name: "name"
+          type: "string"
+          required: true
+          description: "Data source name"
+        - name: "type"
+          type: "string"
+          required: true
+          enum: ["prometheus", "influxdb", "elasticsearch", "postgres"]
+          description: "Data source type"
+        - name: "url"
+          type: "string"
+          required: true
+          description: "Data source URL"
+      output: "Data source creation details"
+
+# TwisterLab Specific Commands
+twisterlab:
+  orchestration:
+    - name: "status"
+      description: "Get overall system status"
+      syntax: "@twisterlab status"
+      output: "Comprehensive system health report"
+
+    - name: "Execute Phase 0"
+      description: "Run pre-flight validation"
+      syntax: "@twisterlab Execute Phase 0"
+      output: "Pre-flight check results"
+
+    - name: "Execute Phase 1"
+      description: "Deploy to GitHub and Azure"
+      syntax: "@twisterlab Execute Phase 1"
+      output: "Deployment status and results"
+
+    - name: "Execute Phase 2"
+      description: "Setup Grafana monitoring"
+      syntax: "@twisterlab Execute Phase 2"
+      output: "Monitoring setup status"
+
+    - name: "Execute Phase 3"
+      description: "Enable autonomous operations"
+      syntax: "@twisterlab Execute Phase 3"
+      output: "Autonomous mode activation status"
+
+    - name: "Execute Phase 4"
+      description: "Release to community"
+      syntax: "@twisterlab Execute Phase 4"
+      output: "Community release status"
+
+  monitoring:
+    - name: "metrics"
+      description: "Show real-time metrics"
+      syntax: "@twisterlab metrics"
+      output: "Live performance and usage metrics"
+
+    - name: "costs"
+      description: "Show Azure spending"
+      syntax: "@twisterlab costs"
+      output: "Cost analysis and budget status"
+
+    - name: "logs"
+      description: "Show recent activity logs"
+      syntax: "@twisterlab logs"
+      output: "Recent system logs and events"
+
+  utilities:
+    - name: "help"
+      description: "Show available commands"
+      syntax: "@twisterlab help"
+      output: "Command reference and usage examples"
+
+    - name: "validate"
+      description: "Validate system configuration"
+      syntax: "@twisterlab validate"
+      output: "Configuration validation results"
+
+    - name: "backup"
+      description: "Create system backup"
+      syntax: "@twisterlab backup"
+      output: "Backup creation status"
+
+# Error Handling
+error_handling:
+  retry_logic:
+    description: "Automatic retry for failed commands"
+    max_retries: 3
+    backoff_strategy: "exponential"
+    retryable_errors:
+      - "timeout"
+      - "rate_limit"
+      - "temporary_failure"
+
+  fallback_commands:
+    github_down: "@mcp local git status"
+    azure_down: "@mcp local echo 'Azure services unavailable'"
+    grafana_down: "@mcp local echo 'Grafana monitoring unavailable'"
+
+  escalation:
+    critical_errors:
+      - "budget_exceeded"
+      - "security_breach"
+      - "data_loss"
+    escalation_action: "notify_user_immediately"

@@ -3,7 +3,7 @@
 Test TwisterLang Sync Module
 """
 
-from twisterlang_sync import get_sync_manager, sync_vocabularies
+from core.twisterlang_sync import get_sync_manager, sync_vocabularies
 import json
 import time
 

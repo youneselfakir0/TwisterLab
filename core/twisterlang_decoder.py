@@ -8,7 +8,7 @@ import hashlib
 import time
 from pathlib import Path
 from typing import Dict, Optional, Tuple
-from twisterlang_encoder import TwisterLangEncoder
+from .twisterlang_encoder import TwisterLangEncoder
 
 
 class TwisterLangDecoder:

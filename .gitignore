@@ -51,6 +51,22 @@ logs/
 .env.local
 .env.production
 
+# Credentials & Secrets (CRITICAL - NEVER COMMIT!)
+CREDENTIALS.md
+CREDENTIALS.encrypted
+CREDENTIALS.pdf
+credentials/
+*.csv
+*passwords*.csv
+*Passwords*.csv
+Microsoft*Passwords*.csv
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.gpg
+
 # Docker volumes (if any)
 data/
 

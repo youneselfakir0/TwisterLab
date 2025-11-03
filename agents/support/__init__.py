@@ -13,8 +13,12 @@ License: Apache 2.0
 """
 
 from agents.support.sync_agent import SyncAgent, SyncStatus
+from agents.support.backup_agent import BackupAgent, BackupType, BackupStatus
 
 __all__ = [
     "SyncAgent",
     "SyncStatus",
+    "BackupAgent",
+    "BackupType",
+    "BackupStatus",
 ]

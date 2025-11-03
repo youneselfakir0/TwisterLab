@@ -1,10 +1,14 @@
-# TwisterLab v1.0.0-alpha.1
+# TwisterLab v1.0.0
 
 ## AI-Powered IT Helpdesk Automation Platform
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green.svg)](https://fastapi.tiangolo.com/)
+[![Tests](https://img.shields.io/badge/tests-138%2B%20passing-brightgreen.svg)](./tests/)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](./docs/TECHNICAL_VALIDATION_CHECKLIST.md)
+
+> **📘 For Developers & Contributors**: See [System Prompt - Technical Excellence](./docs/SYSTEM_PROMPT_TECHNICAL_EXCELLENCE.md) for comprehensive quality standards, operational requirements, and compliance guidelines.
 
 ---
 

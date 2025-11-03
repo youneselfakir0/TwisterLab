@@ -161,8 +161,26 @@ def test_create_ticket() -> Optional[str]:
 
 ---
 
-**Last Updated**: 2025-10-28
-**Version**: 1.0.0-alpha.1
+## Technical Excellence Standards
+
+For comprehensive quality gates, operational requirements, and production-readiness criteria, refer to:
+
+📘 **[System Prompt - Technical Excellence](../docs/SYSTEM_PROMPT_TECHNICAL_EXCELLENCE.md)**
+
+This document defines:
+- ✅ **Quality Gates**: Linting, tests (≥80% coverage), performance benchmarks, security scans
+- ✅ **Observability**: Metrics exposure, monitoring integration, alert configuration
+- ✅ **Robustness**: Error handling, retry logic, health checks, failure testing
+- ✅ **Traceability**: Structured logging, audit trails, diagnostic context
+- ✅ **Deployment**: Automated pipelines, rollback procedures, smoke tests
+- ✅ **Continuous Improvement**: Post-mortems, performance optimization, permanent fixes
+
+**All code MUST comply with these standards before merging/deploying.**
+
+---
+
+**Last Updated**: 2025-02-11
+**Version**: 1.0.0
 **License**: Apache 2.0
 
 **This document is the SINGLE SOURCE OF TRUTH for TwisterLab v1.0 development.**

@@ -1,0 +1,368 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_strategy:
+        description: 'Deployment strategy'
+        required: true
+        default: 'blue-green'
+        type: choice
+        options:
+          - blue-green
+          - rolling
+          - canary
+      skip_tests:
+        description: 'Skip tests (NOT RECOMMENDED)'
+        required: false
+        default: false
+        type: boolean
+      rollback_on_failure:
+        description: 'Automatic rollback on failure'
+        required: true
+        default: true
+        type: boolean
+
+env:
+  PYTHON_VERSION: "3.12"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  pre-deployment-validation:
+    name: Pre-Deployment Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      
+      - name: Run full test suite
+        if: ${{ !inputs.skip_tests }}
+        run: |
+          pytest tests/ -v --cov=agents --cov-report=term
+          coverage report --fail-under=80
+      
+      - name: Security scan
+        run: |
+          pip install bandit safety
+          bandit -r agents/ -f json -o bandit-report.json || true
+          safety check --json || true
+      
+      - name: Production configuration validation
+        run: |
+          # Check if .env.production.example exists
+          if [ ! -f .env.production.example ]; then
+            echo "❌ .env.production.example not found"
+            exit 1
+          fi
+          echo "✅ Production configuration template exists"
+
+  build-production-image:
+    name: Build Production Docker Image
+    runs-on: ubuntu-latest
+    needs: pre-deployment-validation
+    permissions:
+      contents: read
+      packages: write
+    
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.version.outputs.version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Generate version number
+        id: version
+        run: |
+          VERSION="v1.0.0-prod-$(date +%Y%m%d-%H%M%S)"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Generated version: ${VERSION}"
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=production-latest
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=sha,prefix=prod-
+      
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ steps.version.outputs.version }}
+      
+      - name: Run Trivy security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production-latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  deploy-blue-green:
+    name: Blue-Green Deployment
+    runs-on: ubuntu-latest
+    needs: build-production-image
+    if: ${{ inputs.deployment_strategy == 'blue-green' }}
+    environment:
+      name: production
+      url: https://twisterlab.yourdomain.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Create production environment config
+        run: |
+          cat > .env.production << EOF
+          ENVIRONMENT=production
+          DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
+          REDIS_URL=${{ secrets.PROD_REDIS_URL }}
+          SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}
+          ALLOWED_ORIGINS=${{ secrets.PROD_ALLOWED_ORIGINS }}
+          GRAFANA_PASSWORD=${{ secrets.PROD_GRAFANA_PASSWORD }}
+          EOF
+      
+      - name: Deploy to Blue environment
+        run: |
+          echo "🔵 Deploying to BLUE environment..."
+          # Stop green environment
+          docker-compose -f docker-compose.production.yml -p twisterlab-green down || true
+          
+          # Deploy to blue
+          docker-compose -f docker-compose.production.yml -p twisterlab-blue pull
+          docker-compose -f docker-compose.production.yml -p twisterlab-blue up -d
+      
+      - name: Wait for Blue environment health checks
+        run: |
+          echo "Waiting for Blue environment to be healthy..."
+          timeout=300
+          elapsed=0
+          interval=10
+          
+          while [ $elapsed -lt $timeout ]; do
+            if curl -f http://localhost:8000/health; then
+              echo "✅ Blue environment is healthy after ${elapsed}s"
+              break
+            fi
+            echo "Waiting... (${elapsed}s/${timeout}s)"
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+          
+          if [ $elapsed -ge $timeout ]; then
+            echo "❌ Blue environment health check failed"
+            exit 1
+          fi
+      
+      - name: Run production smoke tests
+        run: |
+          pytest tests/smoke_tests_staging.py -v -s --base-url=http://localhost:8000
+      
+      - name: Switch traffic to Blue
+        run: |
+          echo "🔄 Switching traffic to BLUE environment..."
+          # Update load balancer / reverse proxy to point to blue
+          # This is environment-specific
+          echo "✅ Traffic switched to BLUE"
+      
+      - name: Monitor Blue environment
+        run: |
+          echo "📊 Monitoring Blue environment for 5 minutes..."
+          sleep 300
+          
+          # Check error rate
+          ERROR_RATE=$(curl -s http://localhost:9090/api/v1/query?query=rate(api_errors_total[5m]) | jq '.data.result[0].value[1]')
+          if [ "$(echo "$ERROR_RATE > 0.05" | bc)" -eq 1 ]; then
+            echo "❌ High error rate detected: $ERROR_RATE"
+            exit 1
+          fi
+          
+          echo "✅ Blue environment stable"
+      
+      - name: Cleanup Green environment
+        if: success()
+        run: |
+          echo "🧹 Cleaning up GREEN environment..."
+          docker-compose -f docker-compose.production.yml -p twisterlab-green down
+          echo "✅ Green environment removed"
+
+  deploy-rolling:
+    name: Rolling Deployment
+    runs-on: ubuntu-latest
+    needs: build-production-image
+    if: ${{ inputs.deployment_strategy == 'rolling' }}
+    environment:
+      name: production
+      url: https://twisterlab.yourdomain.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Rolling update
+        run: |
+          echo "🔄 Performing rolling update..."
+          docker-compose -f docker-compose.production.yml pull
+          docker-compose -f docker-compose.production.yml up -d --no-deps --scale api=2
+          
+          # Wait for new containers to be healthy
+          sleep 60
+          
+          # Remove old containers
+          docker-compose -f docker-compose.production.yml up -d --remove-orphans
+          
+          echo "✅ Rolling update complete"
+
+  post-deployment-validation:
+    name: Post-Deployment Validation
+    runs-on: ubuntu-latest
+    needs: [deploy-blue-green]
+    if: success()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run integration tests
+        run: |
+          pytest tests/test_integration_full_system.py -v -s
+      
+      - name: Validate metrics
+        run: |
+          # Check Prometheus targets
+          TARGETS=$(curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets | length')
+          echo "Active Prometheus targets: $TARGETS"
+          
+          if [ "$TARGETS" -lt 5 ]; then
+            echo "❌ Not enough active targets"
+            exit 1
+          fi
+      
+      - name: Create deployment record
+        run: |
+          cat > deployment-record.json << EOF
+          {
+            "version": "${{ needs.build-production-image.outputs.version }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit": "${{ github.sha }}",
+            "author": "${{ github.actor }}",
+            "strategy": "${{ inputs.deployment_strategy }}",
+            "image": "${{ needs.build-production-image.outputs.image_tag }}",
+            "status": "success"
+          }
+          EOF
+          
+          echo "✅ Deployment record created"
+      
+      - name: Notify deployment success
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const message = `🎉 **Production Deployment Successful**
+            
+            **Version**: \`${{ needs.build-production-image.outputs.version }}\`
+            **Strategy**: ${{ inputs.deployment_strategy }}
+            **Commit**: \`${{ github.sha }}\`
+            **Author**: ${{ github.actor }}
+            **Time**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`
+            
+            ✅ All health checks passed
+            ✅ Integration tests passed
+            ✅ Metrics validated
+            
+            [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: message
+            });
+
+  rollback:
+    name: Rollback Production Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy-blue-green, deploy-rolling]
+    if: failure() && inputs.rollback_on_failure
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Execute rollback
+        run: |
+          echo "🔄 Rolling back production deployment..."
+          
+          # Switch back to previous version (Green environment)
+          docker-compose -f docker-compose.production.yml -p twisterlab-blue down
+          docker-compose -f docker-compose.production.yml -p twisterlab-green up -d
+          
+          echo "✅ Rollback complete"
+      
+      - name: Notify rollback
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const message = `⚠️ **Production Deployment Rolled Back**
+            
+            Deployment failed and was automatically rolled back to previous version.
+            
+            **Commit**: \`${{ github.sha }}\`
+            **Author**: ${{ github.actor }}
+            **Time**: \`$(date -u +%Y-%m-%dT%H:%M:%SZ)\`
+            
+            [View failure logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: message
+            });

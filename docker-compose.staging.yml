@@ -50,10 +50,7 @@ services:
   # ============================================================================
   
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
+    image: twisterlab-api:staging
     container_name: twisterlab-api-staging
     restart: unless-stopped
     environment:
@@ -121,7 +118,7 @@ services:
       OLLAMA_NUM_PARALLEL: 2
       OLLAMA_MAX_LOADED_MODELS: 3
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD", "ollama", "list"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -167,10 +164,10 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-staging_grafana_password}
-      GF_SERVER_ROOT_URL: http://localhost:3001
+      GF_SERVER_ROOT_URL: http://localhost:3003
       GF_INSTALL_PLUGINS: grafana-piechart-panel
     ports:
-      - "3001:3000"  # Different port for staging
+      - "3003:3000"  # Different port for staging
     volumes:
       - grafana_staging_data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro

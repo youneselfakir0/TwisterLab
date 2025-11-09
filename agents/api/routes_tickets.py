@@ -31,7 +31,9 @@ class TicketCreate(BaseModel):
         description="Ticket priority"
     )
     category: str = Field("general", description="Ticket category")
-    requestor_email: str = Field(..., description="Requestor email address")
+    requestor_email: Optional[str] = Field(None, description="Requestor email address")
+    user_email: Optional[str] = Field(None, description="User email address (alias for requestor_email)")
+    ticket_number: Optional[str] = Field(None, description="Custom ticket number")
 
 
 class TicketUpdate(BaseModel):
@@ -77,6 +79,11 @@ async def create_ticket(ticket: TicketCreate) -> TicketResponse:
     ticket_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
 
+    # Use requestor_email or user_email (for compatibility with Night Shift)
+    email = ticket.requestor_email or ticket.user_email
+    if not email:
+        raise HTTPException(status_code=400, detail="Either requestor_email or user_email is required")
+
     ticket_data = {
         "id": ticket_id,
         "subject": ticket.subject,
@@ -84,7 +91,7 @@ async def create_ticket(ticket: TicketCreate) -> TicketResponse:
         "priority": ticket.priority,
         "category": ticket.category,
         "status": "new",
-        "requestor_email": ticket.requestor_email,
+        "requestor_email": email,
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
         "assigned_agent": None,
@@ -125,6 +132,16 @@ async def list_tickets(
     tickets = tickets[offset:offset + limit]
 
     return [TicketResponse.model_validate(ticket) for ticket in tickets]
+
+
+@router.get("/count")
+async def get_tickets_count() -> dict:
+    """
+    Get the total count of tickets.
+
+    Returns the total number of tickets in the system.
+    """
+    return {"count": len(tickets_db)}
 
 
 @router.get("/{ticket_id}", response_model=TicketResponse)

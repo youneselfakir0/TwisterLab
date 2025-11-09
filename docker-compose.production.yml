@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Traefik Load Balancer
+  # Traefik Load Balancer with Monitoring
   traefik:
     image: traefik:v2.10
     command:
@@ -10,13 +10,29 @@ services:
       - "--providers.docker.swarmMode=true"
       - "--providers.docker.watch=true"
       - "--providers.docker.exposedbydefault=false"
+
+      # Metrics (Prometheus)
+      - "--metrics=true"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
+      - "--metrics.prometheus.addEntryPointsLabels=true"
+      - "--metrics.prometheus.addServicesLabels=true"
+
+      # Access Logs
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"
+      - "--accesslog.format=json"
+
+      # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--log.level=INFO"
     ports:
       - "80:80"
-      - "8080:8080"
+      - "8080:8080"  # Dashboard
+      - "9090:9090"  # Metrics
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_logs:/var/log/traefik
     networks:
       - twisterlab_prod
     deploy:
@@ -156,6 +172,8 @@ volumes:
   postgres_prod_data:
     external: true
   ollama_data:
+    external: true
+  traefik_logs:
     external: true
 
 networks:

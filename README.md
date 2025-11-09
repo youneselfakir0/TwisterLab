@@ -305,6 +305,29 @@ docker stack deploy -c docker-compose.production.yml twisterlab
 └─────────────────┘    └─────────────────┘
 ```
 
+### 🔍 Monitoring & Observability
+
+**Traefik Dashboard**: `http://192.168.0.30:8080`
+- Configuration visualization
+- Real-time routing status
+- Service health monitoring
+
+**Prometheus Metrics**: `http://192.168.0.30:8080/metrics`
+- HTTP request metrics (count, duration, status codes)
+- Entry point statistics
+- Service performance data
+- Go runtime metrics
+
+**Access Logs**: JSON format in `traefik_logs` volume
+- Structured logging for all requests
+- Request/response details
+- Performance timing data
+
+**Test Monitoring**: `.\test_traefik_monitoring.ps1`
+- Automated monitoring verification
+- Metrics validation
+- Logs volume inspection
+
 ### Deployment Scripts
 
 - **`deploy_final.ps1`** - Complete deployment with verification

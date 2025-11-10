@@ -1,4 +1,4 @@
-# 🚀 TwisterLab v1.0.0-alpha.1
+# 🚀 TwisterLab v1.0.0
 
 ## Multi-Agent AI Orchestration System for Autonomous IT Helpdesk Automation with Swarm Intelligence
 
@@ -7,11 +7,16 @@
 [![Docker](https://img.shields.io/badge/docker-compose-blue.svg)](https://docs.docker.com/compose/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+> **🎉 NEW in v1.0.0**: Complete infrastructure reorganization! See [REORGANISATION_COMPLETE.md](REORGANISATION_COMPLETE.md) and [CHANGELOG.md](CHANGELOG.md) for details.
+>
+> **Quick Start**: All deployment files are now in `infrastructure/` directory. Use `.\infrastructure\scripts\deploy.ps1` for production deployment.
+
 ## 📋 Project Status
 
-- **Status**: ✅ **FULLY OPERATIONAL** - Swarm IA running in production
-- **Version**: v1.0.0-alpha.1
-- **Environment**: Production-ready with Swarm IA (Manager: 192.168.0.30, Worker: 192.168.0.20)
+- **Status**: ✅ **PRODUCTION READY** - All 6/6 services operational
+- **Version**: v1.0.0 (Released 2025-11-10)
+- **Infrastructure**: Unified deployment system (`infrastructure/` directory)
+- **Environment**: Production on Docker Swarm (edgeserver.twisterlab.local)
 - **Repository**: [https://github.com/youneselfakir0/TwisterLab](https://github.com/youneselfakir0/TwisterLab)
 
 ## 🏗️ Architecture Overview

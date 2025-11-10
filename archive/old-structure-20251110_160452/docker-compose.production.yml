@@ -1,0 +1,196 @@
+version: '3.8'
+
+services:
+  # Traefik Load Balancer
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.traefik.address=:8080"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+      - "8084:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik-net
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik.rule=Host(`traefik.twisterlab.local`)"
+        - "traefik.http.routers.traefik.service=api@internal"
+        - "traefik.http.routers.traefik.entrypoints=web"
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: twisterlab_prod
+      POSTGRES_USER: twisterlab
+      POSTGRES_PASSWORD: twisterlab_prod_db_password_2024!
+    volumes:
+      - postgres_prod_data_v2:/var/lib/postgresql/data
+    networks:
+      - twisterlab_prod
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+      labels:
+        - "traefik.enable=false"  # Database should not be exposed via Traefik
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: twisterlab_prod_redis_password_2024!
+    command: redis-server --appendonly yes --requirepass twisterlab_prod_redis_password_2024!
+    volumes:
+      - redis_prod_data:/data
+    networks:
+      - twisterlab_prod
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+      labels:
+        - "traefik.enable=false"  # Cache should not be exposed via Traefik
+
+  # Ollama AI Inference
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - ollama_prod_data:/root/.ollama
+    networks:
+      - twisterlab_prod
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '2.0'
+        reservations:
+          memory: 4G
+          cpus: '1.0'
+      labels:
+        - "traefik.enable=false"  # AI inference should not be exposed via Traefik
+
+  # TwisterLab API - Autonomous Agents
+  api:
+    image: twisterlab/api:latest
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://twisterlab:twisterlab_prod_db_password_2024!@postgres:5432/twisterlab_prod
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "8000:8000"
+    networks:
+      - twisterlab_prod
+      - traefik-net
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      placement:
+        constraints:
+          - node.labels.os == linux
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.api.rule=Host(`api.twisterlab.local`)"
+        - "traefik.http.routers.api.entrypoints=web"
+        - "traefik.http.services.api.loadbalancer.server.port=8000"
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # OpenWebUI Interface
+  webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "8083:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY=twisterlab_webui_secret_2024!
+      - WEBUI_NAME=TwisterLab AI Assistant
+      # ✅ Désactiver l'authentification obligatoire
+      - WEBUI_AUTH=False
+      - WEBUI_AUTH_TRUSTED_EMAIL_HEADER=
+      - WEBUI_AUTH_TRUSTED_NAME_HEADER=
+      # ✅ Configuration optionnelle pour éviter les avertissements
+      - WEBUI_DEFAULT_USER_ROLE=user
+      - WEBUI_ENABLE_SIGNUP=False
+      - WEBUI_ENABLE_API_KEY=False
+      - WEBUI_ENABLE_OAUTH_SIGNUP=False
+    volumes:
+      - webui_prod_data:/app/backend/data
+    networks:
+      - twisterlab_prod
+      - traefik-net
+    depends_on:
+      - ollama
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.webui.rule=Host(`webui.twisterlab.local`)"
+        - "traefik.http.routers.webui.entrypoints=web"
+        - "traefik.http.routers.webui.service=webui"
+        - "traefik.http.services.webui.loadbalancer.server.port=8080"
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+secrets:
+  postgres_password:
+    external: true
+  redis_password:
+    external: true
+
+volumes:
+  postgres_prod_data:
+    external: true
+  postgres_prod_data_v2:
+    external: true
+  redis_prod_data:
+    external: true
+  ollama_prod_data:
+    external: true
+  webui_prod_data:
+    external: true
+
+networks:
+  twisterlab_prod:
+    external: true
+  traefik-net:
+    external: true
+
+

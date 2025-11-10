@@ -1,0 +1,16 @@
+FROM python:3.10-slim
+
+# Install dependencies
+RUN pip install --no-cache-dir fastapi uvicorn pydantic
+
+# Set working directory
+WORKDIR /app
+
+# Copy API code
+COPY api/ ./api/
+
+# Expose port
+EXPOSE 8000
+
+# Start command
+CMD ["python", "api/main.py"]

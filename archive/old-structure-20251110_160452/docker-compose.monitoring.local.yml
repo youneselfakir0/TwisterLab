@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == CoreServer-RTX
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9092:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - prometheus_data:/prometheus
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == CoreServer-RTX
+
+configs:
+  prometheus_config:
+    file: ./monitoring/prometheus/config/prometheus.yml
+
+volumes:
+  prometheus_data:

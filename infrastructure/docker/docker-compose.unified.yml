@@ -1,0 +1,307 @@
+version: '3.8'
+
+# =============================================================================
+# TWISTERLAB UNIFIED DOCKER COMPOSE
+# Version: 1.0.0
+# Date: 2025-11-10
+#
+# UN SEUL fichier pour staging ET production
+# Utilise .env.staging OU .env.production pour différencier
+# =============================================================================
+
+# Variables communes réutilisables
+x-common-env: &common-env
+  ENVIRONMENT: ${ENVIRONMENT:-production}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-twisterlab}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-twisterlab_prod}
+  REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+  OLLAMA_BASE_URL: http://ollama:11434
+  SECRET_KEY: ${SECRET_KEY}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+# Healthcheck réutilisable pour l'API
+x-healthcheck-api: &healthcheck-api
+  test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+
+# Healthcheck pour PostgreSQL
+x-healthcheck-postgres: &healthcheck-postgres
+  test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-twisterlab}"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 10s
+
+# Healthcheck pour Redis
+x-healthcheck-redis: &healthcheck-redis
+  test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 10s
+
+# Logging configuration commune
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # ===========================================================================
+  # TRAEFIK - Load Balancer & Reverse Proxy
+  # ===========================================================================
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.traefik.address=:8080"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.addEntryPointsLabels=true"
+      - "--accesslog=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik-public
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN:-twisterlab.local}`)"
+        - "traefik.http.routers.traefik.service=api@internal"
+        - "traefik.http.routers.traefik.entrypoints=web"
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+    logging: *default-logging
+
+  # ===========================================================================
+  # POSTGRESQL - Database
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-twisterlab_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-twisterlab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck: *healthcheck-postgres
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+      labels:
+        - "traefik.enable=false"
+    logging: *default-logging
+
+  # ===========================================================================
+  # REDIS - Cache & Session Store
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck: *healthcheck-redis
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+      labels:
+        - "traefik.enable=false"
+    logging: *default-logging
+
+  # ===========================================================================
+  # OLLAMA - AI Inference Engine
+  # ===========================================================================
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_KEEP_ALIVE=24h
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - backend
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 8G
+          cpus: '2.0'
+        reservations:
+          memory: 4G
+          cpus: '1.0'
+      labels:
+        - "traefik.enable=false"
+    logging: *default-logging
+
+  # ===========================================================================
+  # TWISTERLAB API - Autonomous Agents Core
+  # ===========================================================================
+  api:
+    image: twisterlab/api:${VERSION:-latest}
+    environment:
+      <<: *common-env
+    ports:
+      - "8000:8000"
+    networks:
+      - backend
+      - traefik-public
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+    # Healthcheck désactivé temporairement (curl non installé dans l'image)
+    # healthcheck: *healthcheck-api
+    deploy:
+      replicas: ${API_REPLICAS:-1}
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.api.rule=Host(`api.${DOMAIN:-twisterlab.local}`)"
+        - "traefik.http.routers.api.entrypoints=web"
+        - "traefik.http.services.api.loadbalancer.server.port=8000"
+        - "traefik.http.services.api.loadbalancer.healthcheck.path=/health"
+        - "traefik.http.services.api.loadbalancer.healthcheck.interval=10s"
+    logging: *default-logging
+
+  # ===========================================================================
+  # OPEN WEBUI - AI Assistant Interface
+  # ===========================================================================
+  webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "${WEBUI_PORT:-8083}:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - WEBUI_NAME=TwisterLab AI Assistant
+      - WEBUI_AUTH=False
+      - WEBUI_DEFAULT_USER_ROLE=user
+      - WEBUI_ENABLE_SIGNUP=False
+    volumes:
+      - webui_data:/app/backend/data
+    networks:
+      - backend
+      - traefik-public
+    depends_on:
+      - ollama
+    # Healthcheck désactivé (le téléchargement du modèle embedding prend trop de temps)
+    healthcheck:
+      disable: true
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.webui.rule=Host(`webui.${DOMAIN:-twisterlab.local}`)"
+        - "traefik.http.routers.webui.entrypoints=web"
+        - "traefik.http.services.webui.loadbalancer.server.port=8080"
+    logging: *default-logging
+
+# =============================================================================
+# VOLUMES - Persistent Data Storage
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+
+  redis_data:
+    driver: local
+
+  ollama_data:
+    driver: local
+
+  webui_data:
+    driver: local
+
+# =============================================================================
+# NETWORKS - Container Communication
+# =============================================================================
+networks:
+  backend:
+    driver: overlay
+    attachable: true
+    driver_opts:
+      encrypted: "true"
+
+  traefik-public:
+    driver: overlay
+    attachable: true
+    driver_opts:
+      encrypted: "true"

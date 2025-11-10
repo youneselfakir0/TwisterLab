@@ -1,0 +1,24 @@
+# Dockerfile pour rebuild API avec image de base LOCALE
+# Plus de dépendance à Docker Hub - 100% souverain
+# Utilise l'ancienne image twisterlab/api comme base
+
+FROM twisterlab/api:latest AS base
+
+# Supprimer l'ancien code
+RUN rm -rf /app/api /app/agents
+
+# Copier le nouveau code
+WORKDIR /app
+COPY api/ ./api/
+COPY agents/ ./agents/
+
+# S'assurer que les permissions sont correctes
+USER root
+RUN chown -R app:app /app
+USER app
+
+# Exposer le port
+EXPOSE 8000
+
+# Commande de démarrage
+CMD ["python", "api/main.py"]

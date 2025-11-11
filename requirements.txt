@@ -30,6 +30,7 @@ python-multipart>=0.0.6
 # Authentication & Security
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.0
+msal>=1.31.1  # Microsoft Authentication Library for Azure AD OAuth2
 
 # Environment & Configuration
 python-dotenv>=1.0.0

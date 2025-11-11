@@ -1,8 +1,25 @@
 # Phase 1 : Authentification Azure AD - Guide d'Implémentation
 
-**Status** : 🚧 EN COURS  
+**Status** : 🚧 EN COURS (Jour 6-7/10)  
 **Branche** : `feature/azure-ad-auth`  
 **Durée estimée** : 2 semaines (10 jours ouvrés)
+
+## 📊 Statut Actuel (2025-11-11)
+
+### ✅ Terminé
+- **Module auth** : `agents/auth/azure_ad_auth.py` (179 lignes, production-ready)
+- **Tests unitaires** : 12/12 tests passing (100% success rate)
+- **Couverture** : 91% (objectif ≥80% atteint ✅)
+- **Dependencies** : msal>=1.31.1 installé
+- **Configuration** : Template `.env.azure_ad.template` créé
+- **Git** : 2 commits sur feature/azure-ad-auth
+
+### ⏳ Prochaines Étapes
+1. **Azure Portal** : Créer App Registration (Jour 1-2 restant)
+2. **API Integration** : Endpoints OAuth2 dans api/main.py (Jour 5)
+3. **Tests d'intégration** : Flux complet auth (Jour 6-7)
+4. **Déploiement staging** : Validation sur edgeserver (Jour 8-9)
+5. **Production** : Go-live (Jour 10)
 
 ---
 
@@ -121,13 +138,18 @@ README.md                                    # Documentation auth
 
 ### Tests
 ```powershell
-# Tests unitaires auth uniquement
-pytest tests/test_azure_ad_auth.py -v
+# Tests unitaires auth uniquement (12 tests)
+C:/TwisterLab/.venv/Scripts/python.exe -m pytest tests/test_azure_ad_auth.py -v
+# ✅ Résultat actuel: 12/12 passed (100%)
 
-# Tous les tests avec coverage
+# Coverage report (cible: ≥80%)
+C:/TwisterLab/.venv/Scripts/python.exe -m pytest tests/test_azure_ad_auth.py --cov=agents.auth --cov-report=term-missing
+# ✅ Couverture actuelle: 91% (55 stmts, 5 miss)
+
+# Tous les tests avec HTML report
 pytest tests/ -v --cov=agents/auth --cov-report=html
 
-# Tests d'intégration
+# Tests d'intégration (à créer)
 pytest tests/integration/test_auth_flow.py -v
 ```
 

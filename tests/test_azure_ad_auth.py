@@ -216,8 +216,9 @@ def test_validate_token_structure_invalid(mock_env, mock_msal_app):
     """Test token structure validation with invalid token"""
     auth = AzureADAuth()
     
-    # Invalid tokens
+    # Invalid tokens (not 3 parts or empty parts)
     assert auth.validate_token_structure("not-a-jwt-token") is False
-    assert auth.validate_token_structure("only.two.parts") is False
+    assert auth.validate_token_structure("only.two") is False  # Only 2 parts
     assert auth.validate_token_structure("") is False
-    assert auth.validate_token_structure("too.many.parts.here.invalid") is False
+    assert auth.validate_token_structure("too.many.parts.here.invalid") is False  # More than 3 parts
+    assert auth.validate_token_structure("..") is False  # 3 parts but all empty

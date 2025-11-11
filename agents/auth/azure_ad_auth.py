@@ -191,10 +191,10 @@ class AzureADAuth:
             token: JWT token to validate
             
         Returns:
-            bool: True if token structure is valid
+            bool: True if token structure is valid (3 parts separated by dots)
         """
         try:
             parts = token.split(".")
-            return len(parts) == 3
+            return len(parts) == 3 and all(len(part) > 0 for part in parts)
         except Exception:
             return False

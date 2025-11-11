@@ -2,7 +2,18 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Depends
+
+# Azure AD Authentication
+try:
+    from api.auth import router as auth_router, get_current_user
+    AUTH_AVAILABLE = True
+except ImportError:
+    AUTH_AVAILABLE = False
+    auth_router = None
+    get_current_user = None
+    logger = logging.getLogger(__name__)
+    logger.warning("Azure AD auth module not available; authentication disabled")
 
 # Prometheus metrics
 try:
@@ -23,24 +34,24 @@ try:
         "Total HTTP requests",
         ["method", "endpoint", "status"],
     )
-    
+
     agent_operations_total = Counter(
         "agent_operations_total",
         "Total agent operations executed",
         ["agent", "operation", "status"],
     )
-    
+
     active_agents = Gauge(
         "active_agents_count",
         "Number of active agents",
     )
-    
+
     http_request_duration_seconds = Histogram(
         "http_request_duration_seconds",
         "HTTP request duration in seconds",
         ["method", "endpoint"],
     )
-    
+
     agent_execution_duration_seconds = Histogram(
         "agent_execution_duration_seconds",
         "Agent execution duration in seconds",
@@ -58,6 +69,13 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="TwisterLab API", version="1.0.0", description="Autonomous IT Helpdesk API"
 )
+
+# Include authentication routes if available
+if AUTH_AVAILABLE and auth_router:
+    app.include_router(auth_router, prefix="/auth", tags=["authentication"])
+    logger.info("Azure AD authentication enabled")
+else:
+    logger.warning("Authentication disabled - Azure AD module not available")
 
 # Mock data for agents
 AGENTS = [
@@ -128,7 +146,7 @@ async def get_autonomous_status():
     if PROMETHEUS_AVAILABLE:
         http_requests_total.labels(method="GET", endpoint="/api/v1/autonomous/status", status="200").inc()
         active_agents.set(len([a for a in AGENTS if a["status"] == "active"]))
-    
+
     return {
         "status": "operational",
         "timestamp": datetime.now().isoformat(),
@@ -156,10 +174,32 @@ async def get_agent(agent_name: str):
 
 
 @app.post("/api/v1/autonomous/agents/{agent_name}/execute")
-async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
+async def execute_agent_operation(
+    agent_name: str,
+    payload: Dict[str, Any],
+    user: Dict[str, Any] = Depends(get_current_user) if AUTH_AVAILABLE else None
+):
+    """
+    Execute agent operation (PROTECTED ROUTE - requires authentication).
+    
+    Requires valid Azure AD JWT token in Authorization header:
+        Authorization: Bearer <access_token>
+    
+    Args:
+        agent_name: Name of the agent to execute
+        payload: Operation parameters
+        user: Current authenticated user (auto-injected if auth enabled)
+    
+    Returns:
+        Agent execution result with status and metrics
+    """
     import time
     start_time = time.time()
     
+    # Log authenticated user if available
+    if user:
+        logger.info(f"User {user.get('name')} executing {agent_name}")
+
     agent = next((a for a in AGENTS if a["name"].lower() == agent_name.lower()), None)
     if not agent:
         raise HTTPException(status_code=404, detail=f"Agent {agent_name} not found")
@@ -181,7 +221,7 @@ async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
                 "timestamp": datetime.now().isoformat(),
                 "result": f"Mock execution completed for {agent_name}",
             }
-        
+
         # Track metrics
         if PROMETHEUS_AVAILABLE:
             operation = payload.get("operation", "unknown")
@@ -191,15 +231,15 @@ async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
                 operation=operation,
                 status=status
             ).inc()
-            
+
             duration = time.time() - start_time
             agent_execution_duration_seconds.labels(
                 agent=agent_name,
                 operation=operation
             ).observe(duration)
-        
+
         return result
-        
+
     except Exception as e:
         # Track error
         if PROMETHEUS_AVAILABLE:
@@ -366,7 +406,7 @@ async def get_monitoring_health():
 async def metrics():
     """
     Prometheus metrics endpoint.
-    
+
     Exposes metrics in Prometheus format for scraping:
     - http_requests_total: Total HTTP requests by method, endpoint, and status
     - agent_operations_total: Total agent operations by agent, operation, and status
@@ -379,10 +419,10 @@ async def metrics():
             status_code=503,
             detail="Prometheus metrics not available (prometheus_client not installed)",
         )
-    
+
     # Update current active agents count
     active_agents.set(len([a for a in AGENTS if a["status"] == "active"]))
-    
+
     return Response(
         content=generate_latest(REGISTRY),
         media_type=CONTENT_TYPE_LATEST,

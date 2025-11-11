@@ -162,6 +162,59 @@ services:
     logging: *default-logging
 
   # ===========================================================================
+  # REDIS EXPORTER - Prometheus Metrics for Redis
+  # ===========================================================================
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    command:
+      - --redis.addr=redis:6379
+      - --redis.password=twisterlab_prod_redis_password_2024!
+    ports:
+      - "9121:9121"
+    networks:
+      - backend
+      - prod
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+      labels:
+        - "traefik.enable=false"
+        - "prometheus.scrape=true"
+        - "prometheus.port=9121"
+    logging: *default-logging
+
+  # ===========================================================================
+  # POSTGRES EXPORTER - Prometheus Metrics for PostgreSQL
+  # ===========================================================================
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    environment:
+      - DATA_SOURCE_NAME=postgresql://twisterlab:twisterlab_secure_db_password_2024!@postgres:5432/twisterlab_prod?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      - backend
+      - prod
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+      labels:
+        - "traefik.enable=false"
+        - "prometheus.scrape=true"
+        - "prometheus.port=9187"
+    logging: *default-logging
+
+  # ===========================================================================
   # OLLAMA - AI Inference Engine
   # ===========================================================================
   ollama:
@@ -201,6 +254,15 @@ services:
     image: twisterlab/api:${VERSION:-latest}
     environment:
       <<: *common-env
+      # Azure AD OAuth2 Authentication
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET}
+      AZURE_REDIRECT_URI: ${AZURE_REDIRECT_URI:-http://192.168.0.30:8000/auth/callback}
+      # Redis connection for session management
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - "8000:8000"
     networks:

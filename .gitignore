@@ -73,3 +73,7 @@ data/
 # Temporary files
 *.tmp
 *.temp
+paste*.txt
+NUL
+*.swp
+*.swo

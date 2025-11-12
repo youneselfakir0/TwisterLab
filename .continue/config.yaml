@@ -1,0 +1,84 @@
+# Configuration Continue.dev pour TwisterLab
+# Documentation: https://docs.continue.dev/reference
+
+name: "TwisterLab Assistant"
+version: "1.0.0"
+schema: "v1"
+
+# Define which models can be used
+# https://docs.continue.dev/customization/models
+models:
+  - name: "TwisterLab DeepSeek R1"
+    provider: "ollama"
+    model: "deepseek-r1"
+    apiBase: "http://localhost:11434"
+    defaultCompletionOptions:
+      temperature: 0.7
+      maxTokens: 2048
+
+  - name: "TwisterLab Llama 3"
+    provider: "ollama"
+    model: "llama3"
+    apiBase: "http://localhost:11434"
+    defaultCompletionOptions:
+      temperature: 0.8
+      maxTokens: 1024
+
+  - name: "TwisterLab CodeLlama"
+    provider: "ollama"
+    model: "codellama"
+    apiBase: "http://localhost:11434"
+    defaultCompletionOptions:
+      temperature: 0.3
+      maxTokens: 2048
+
+# NOTE: Pour configurer l'autocomplétion et l'édition, voir:
+# https://docs.continue.dev/ide-extensions/autocomplete/model-setup
+# https://docs.continue.dev/ide-extensions/edit/model-setup
+# Utilisez l'interface VS Code Continue.dev pour ces paramètres avancés
+
+# MCP Servers that Continue can access
+# https://docs.continue.dev/customization/mcp-tools
+mcpServers:
+  - name: "twisterlab-mcp"
+    command: "python"
+    args: ["mcp_server_launcher.py"]
+    cwd: "C:\\TwisterLab"
+    env:
+      PYTHONPATH: "C:\\TwisterLab"
+
+  - name: "twisterlab-desktop-commander"
+    command: "python"
+    args: ["vsc_bridge_cmd.py"]
+    cwd: "C:\\TwisterLab"
+    env:
+      PYTHONPATH: "C:\\TwisterLab"
+      MCP_TOOLS_ENABLED: "run_cmd,system_info"
+
+  - name: "twisterlab-webcam"
+    command: "python"
+    args: ["vsc_bridge_webcam.py"]
+    cwd: "C:\\TwisterLab"
+    env:
+      PYTHONPATH: "C:\\TwisterLab"
+      CAMERA_INDEX: "0"
+
+  - name: "deepwiki-mcp"
+    type: "streamable-http"
+    url: "https://hub.continue.dev/deepwiki/deepwiki-mcp"
+
+  - name: "context7-mcp"
+    type: "streamable-http"
+    url: "https://hub.continue.dev/upstash/context7-mcp"
+
+# Custom rules for TwisterLab development
+rules:
+  - "Utiliser toujours le modèle deepseek-r1 pour les tâches complexes"
+  - "Préférer les solutions asynchrones avec FastAPI"
+  - "Implémenter la logique métier dans les agents, pas dans l'API"
+  - "Utiliser le système de messaging Redis pour la communication inter-agents"
+  - "Valider toutes les entrées utilisateur"
+  - "Logger les actions importantes pour le debugging"
+  - "Consulter les règles d'architecture dans .continue/rules/twisterlab-architecture.md"
+  - "Suivre les standards de codage dans .continue/rules/twisterlab-coding-standards.md"
+  - "Référencer la documentation externe dans .continue/rules/twisterlab-documentation-links.md"

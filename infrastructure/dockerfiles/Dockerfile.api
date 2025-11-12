@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 # Installer les dépendances système
 RUN apt-get update && apt-get install -y \
@@ -19,13 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY api/ ./api/
 COPY agents/ ./agents/
 
-# Créer un utilisateur non-root
-RUN useradd --create-home --shell /bin/bash app \
-    && chown -R app:app /app
-USER app
-
-# Exposer le port
-EXPOSE 8000
+# Ajouter le répertoire courant au PYTHONPATH
+ENV PYTHONPATH=/app
 
 # Commande de démarrage
-CMD ["python", "api/main.py"]
+CMD ["python", "-m", "api.main"]

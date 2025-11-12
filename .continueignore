@@ -1,0 +1,116 @@
+# Continue IDE - Files to ignore for codebase indexing
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+.dockerignore
+
+# Git
+.git/
+.gitignore
+
+# Large files
+*.tar.gz
+*.zip
+*.db
+*.sqlite
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+NUL
+
+# Backups
+backup/
+backups/
+*.bak
+
+# Test outputs
+test_backups/
+debug_report_*.json
+*_results_*.json
+audit_*.txt
+security_audit_*.txt
+
+# Documentation (too large)
+docs/archive/
+*.md.backup
+
+# Large data files
+twisterlab-repo/
+agents_real.tar.gz
+agents_real_final.tar.gz
+twisterlab-deploy.zip
+
+# SSL certs
+*.pem
+*.key
+*.crt
+deployment/nginx/ssl/
+
+# Monitoring data
+monitoring/prometheus/data/
+monitoring/grafana/data/
+monitoring/alertmanager/data/
+
+# Deployment artifacts
+deploy/
+.env.prod
+.env.auth.*
+
+# Coverage reports
+.coverage.*
+coverage.xml
+
+# IMPORTANT: Do NOT ignore these (needed for MCP/Continue)
+!agents/
+!agents/base.py
+!agents/real/
+!agents/mcp/
+!.continue/
+!.github/copilot-instructions.md

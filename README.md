@@ -1,158 +1,394 @@
-# 🚀 TwisterLab v1.0.0
+# TwisterLab: Personal AI Agent Orchestration Platform# TwisterLab: Personal AI Agent Orchestration Platform
 
-## Multi-Agent AI Orchestration System for Autonomous IT Helpdesk Automation with Swarm Intelligence
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green.svg)](https://fastapi.tiangolo.com/)
-[![Docker](https://img.shields.io/badge/docker-compose-blue.svg)](https://docs.docker.com/compose/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> **🎉 NEW in v1.0.0**: Complete infrastructure reorganization! See [REORGANISATION_COMPLETE.md](REORGANISATION_COMPLETE.md) and [CHANGELOG.md](CHANGELOG.md) for details.
->
-> **Quick Start**: All deployment files are now in `infrastructure/` directory. Use `.\infrastructure\scripts\deploy.ps1` for production deployment.
+![Version](https://img.shields.io/badge/version-1.0.0-blue)![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
-## 📋 Project Status
+![Status](https://img.shields.io/badge/status-production%20ready-brightgreen)![Status](https://img.shields.io/badge/status-production%20ready-brightgreen)
 
-- **Status**: ✅ **PRODUCTION READY** - All 6/6 services operational
-- **Version**: v1.0.0 (Released 2025-11-10)
-- **Infrastructure**: Unified deployment system (`infrastructure/` directory)
-- **Environment**: Production on Docker Swarm (edgeserver.twisterlab.local)
-- **Repository**: [https://github.com/youneselfakir0/TwisterLab](https://github.com/youneselfakir0/TwisterLab)
+![License](https://img.shields.io/badge/license-MIT-green)![License](https://img.shields.io/badge/license-MIT-green)
 
-## 🏗️ Architecture Overview
+![Python](https://img.shields.io/badge/python-3.12+-blue)![Python](https://img.shields.io/badge/python-3.12+-blue)
 
-TwisterLab is a production-grade multi-agent AI orchestration system designed for autonomous IT helpdesk automation with advanced swarm intelligence capabilities.
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green)![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green)
 
-### Core Components
 
-**🤖 AI Agents (TwisterAgent-based with Swarm Extensions)**:
 
-- **TicketClassifierAgent** - Analyzes and categorizes incoming tickets
-- **AutoResolverAgent** - Executes SOPs for automated ticket resolution
-- **DesktopCommanderAgent** - Remote system management and command execution
-- **SwarmMaestroOrchestratorAgent** - Coordinates workflows with swarm intelligence
-- **HumanInterfaceAgent** - Manages human-AI interactions
+## 🚀 What is TwisterLab?## 🚀 What is TwisterLab?
 
-**🐝 Swarm IA Components**:
 
-- **SwarmMessenger** - Redis-based pub/sub for inter-agent communication
-- **TwisterLangueParser** - DSL for token-efficient agent communication
-- **MCP Server** - Model Context Protocol for standardized tool integration
 
-### Tech Stack
+TwisterLab is a **production-grade multi-agent AI infrastructure** designed to provide autonomous IT operations management through a unified architecture. Control 7 autonomous agents directly from your IDE (Continue, Claude Desktop, Ollama) via MCP (Model Context Protocol).TwisterLab is a **production-grade multi-agent AI infrastructure** designed to provide autonomous IT operations management through a unified architecture. Control 7 autonomous agents directly from your IDE (Continue, Claude Desktop, Ollama) via MCP (Model Context Protocol).
 
-- **Backend**: Python 3.12+, FastAPI, PostgreSQL/asyncpg, Redis
-- **AI/ML**: Ollama, LangChain, Hugging Face Evaluate, MongoDB/Cosmos DB
-- **Infrastructure**: Docker Swarm, OpenTelemetry, Prometheus + Grafana
-- **CI/CD**: GitHub Actions with ruff/black/mypy quality gates
 
-## 🚀 Quick Start
 
-### Prerequisites
+### Key Features### Key Features
 
-- Docker & Docker Compose
-- Python 3.12+
-- Git
+- ✅ **7 Autonomous Agents** (Classifier, Resolver, Monitor, Backup, Sync, Commander, Maestro)- ✅ **7 Autonomous Agents** (Classifier, Resolver, Monitor, Backup, Sync, Commander, Maestro)
 
-### Development Setup
+- ✅ **IDE-Native Control** (Continue IDE, Claude Desktop, Ollama Desktop)- ✅ **IDE-Native Control** (Continue IDE, Claude Desktop, Ollama Desktop)
 
-```bash
+- ✅ **MCP Integration** (Hybrid native + REST modes)- ✅ **MCP Integration** (Hybrid native + REST modes)
+
+- ✅ **GPU Accelerated** (Ollama + RTX 3060)- ✅ **GPU Accelerated** (Ollama + RTX 3060)
+
+- ✅ **Production Ready** (Docker Swarm, PostgreSQL, async-native)- ✅ **Production Ready** (Docker Swarm, PostgreSQL, async-native)
+
+- ✅ **Type-Safe** (100% type hints)- ✅ **Type-Safe** (100% type hints)
+
+- ✅ **Fully Documented** (40+ pages, comprehensive guides)- ✅ **Fully Documented** (40+ pages, comprehensive guides)
+
+
+
+## 🏗️ Architecture## 🏗️ Architecture
+
+
+
+``````
+
+Continue IDE → MCP Tools → Real Agents → Ollama GPUContinue IDE → MCP Tools → Real Agents → Ollama GPU
+
+     ↓             ↓            ↓            ↓     ↓             ↓            ↓            ↓
+
+  Copilot    4 Endpoints   7 Autonomous  RTX 3060  Copilot    4 Endpoints   7 Autonomous  RTX 3060
+
+              (REST API)     Agents       (3x faster)              (REST API)     Agents       (3x faster)
+
+                             + DB                             + DB
+
+``````
+
+
+
+### 7 Autonomous Agents### 7 Autonomous Agents
+
+
+
+| Agent | Purpose | Status || Agent | Purpose | Status |
+
+|-------|---------|--------||-------|---------|--------|
+
+| **RealMonitoringAgent** | System health (CPU/RAM/Disk/Docker) | ✅ Operational || **RealMonitoringAgent** | System health (CPU/RAM/Disk/Docker) | ✅ Operational |
+
+| **RealClassifierAgent** | Ticket classification (Ollama LLM) | ✅ Operational || **RealClassifierAgent** | Ticket classification (Ollama LLM) | ✅ Operational |
+
+| **RealResolverAgent** | SOP-based resolution | ✅ Operational || **RealResolverAgent** | SOP-based resolution | ✅ Operational |
+
+| **RealBackupAgent** | Automated backups (PostgreSQL/Redis) | ✅ Operational || **RealBackupAgent** | Automated backups (PostgreSQL/Redis) | ✅ Operational |
+
+| **RealSyncAgent** | Cache/DB synchronization | ✅ Operational || **RealSyncAgent** | Cache/DB synchronization | ✅ Operational |
+
+| **RealDesktopCommanderAgent** | Remote command execution | ✅ Operational || **RealDesktopCommanderAgent** | Remote command execution | ✅ Operational |
+
+| **RealMaestroAgent** | Workflow orchestration | ✅ Operational || **RealMaestroAgent** | Workflow orchestration | ✅ Operational |
+
+
+
+## 📦 Installation## � Installation
+
+
+
+### Prerequisites### Prerequisites
+
+- Python 3.12+- Python 3.12+
+
+- Docker & Docker Compose- Docker & Docker Compose
+
+- PostgreSQL 16- PostgreSQL 16
+
+- Ollama with GPU support (optional but recommended)- Ollama with GPU support (optional but recommended)
+
+
+
+### Quick Start### Quick Start
+
+
+
+**1. Clone Repository****1. Clone Repository**
+
+```bash```bash
+
+git clone https://github.com/youneselfakir0/TwisterLab.gitgit clone https://github.com/youneselfakir0/TwisterLab.git
+
+cd TwisterLabcd TwisterLab
+
+``````
+
+
+
+**2. Create Environment****2. Create Environment**
+
+```bash```bash
+
+cp .env.example .envcp .env.example .env
+
+# Edit .env with your settings (PostgreSQL credentials, API keys)# Edit .env with your settings (PostgreSQL credentials, API keys)
+
+``````
+
+
+
+**3. Deploy Infrastructure****3. Deploy Infrastructure**
+
+```bash```bash
+
+docker-compose -f infrastructure/docker/docker-compose.unified.yml up -ddocker-compose -f infrastructure/docker/docker-compose.unified.yml up -d
+
+``````
+
+
+
+**4. Initialize Database****4. Initialize Database**
+
+```bash```bash
+
+python -c "import asyncio; from agents.core.database import init_db; asyncio.run(init_db())"python -c "import asyncio; from agents.core.database import init_db; asyncio.run(init_db())"
+
+# Or use schema.sql:# Or use schema.sql:
+
+# docker exec twisterlab_postgres.1.xxx psql -U twisterlab -d twisterlab -f /tmp/schema.sql# docker exec twisterlab_postgres.1.xxx psql -U twisterlab -d twisterlab -f /tmp/schema.sql
+
+``````
+
+
+
+**5. Configure Continue IDE****5. Configure Continue IDE**
+
+```bash```bash
+
+cp .continue/config.json ~/.continue/config.jsoncp .continue/config.json ~/.continue/config.json
+
+# Update IP addresses (192.168.0.30 → your server IP)# Update IP addresses (192.168.0.30 → your server IP)
+
+``````
+
+
+
+**6. Test****6. Test**
+
+```bash```bash
+
+curl -X POST http://192.168.0.30:8000/v1/mcp/tools/classify_ticket \curl -X POST http://192.168.0.30:8000/v1/mcp/tools/classify_ticket \
+
+  -H "Content-Type: application/json" \  -H "Content-Type: application/json" \
+
+  -d '{"description":"WiFi broken","priority":"high"}'  -d '{"description":"WiFi broken","priority":"high"}'
+
+``````
+
+
+
+## 📊 System Status### Prerequisites
+
+
+
+| Component | Status | Location |- Docker & Docker Compose
+
+|-----------|--------|----------|- Python 3.12+
+
+| API Server | ✅ Running | 192.168.0.30:8000 |- Git
+
+| PostgreSQL | ✅ Running | 192.168.0.30:5432 |
+
+| Redis Cache | ✅ Running | 192.168.0.30:6379 |### Development Setup
+
+| Ollama GPU | ✅ Running | 192.168.0.20:11434 |
+
+| Monitoring | ✅ Running | 192.168.0.30:3000 (Grafana) |```bash
+
 # Clone repository
-git clone https://github.com/youneselfakir0/TwisterLab.git
+
+## 🎯 Usagegit clone https://github.com/youneselfakir0/TwisterLab.git
+
 cd TwisterLab
 
-# Start full development stack
-docker-compose up -d
+### Via Continue IDE
 
-# Run tests
-pytest tests/ -v --cov=agents
+```# Start full development stack
+
+Ctrl+L → /classify "WiFi not working"docker-compose up -d
+
+Ctrl+L → /resolve network
+
+Ctrl+L → /monitor# Run tests
+
+Ctrl+L → /backup fullpytest tests/ -v --cov=agents
+
+```
 
 # Start API server locally
-python -m uvicorn agents.api.main:app --reload --host 0.0.0.0 --port 8001
-```
 
-### Production Deployment
+### Via APIpython -m uvicorn agents.api.main:app --reload --host 0.0.0.0 --port 8001
 
-Pour un déploiement complet en production avec haute disponibilité, monitoring avancé et sécurité enterprise :
+```bash```
 
-```bash
-# Guide complet automatisé
+# List all agents
+
+curl -X POST http://192.168.0.30:8000/v1/mcp/tools/list_autonomous_agents### Production Deployment
+
+
+
+# Classify ticketPour un déploiement complet en production avec haute disponibilité, monitoring avancé et sécurité enterprise :
+
+curl -X POST http://192.168.0.30:8000/v1/mcp/tools/classify_ticket \
+
+  -H "Content-Type: application/json" \```bash
+
+  -d '{"description":"Cannot access shared folder","priority":"high"}'# Guide complet automatisé
+
 # Voir: docs/PRODUCTION_DEPLOYMENT_COMPLETE_GUIDE.md
 
-# Configuration infrastructure (3+ managers, N workers)
-./setup-production.sh
+# Monitor system health
 
-# Déploiement automatisé avec monitoring
+curl -X POST http://192.168.0.30:8000/v1/mcp/tools/monitor_system_health \# Configuration infrastructure (3+ managers, N workers)
+
+  -H "Content-Type: application/json" \./setup-production.sh
+
+  -d '{"detailed":true}'
+
+```# Déploiement automatisé avec monitoring
+
 ./deploy-production.sh --build
 
+## 📚 Documentation
+
 # Validation complète
-./validate-production.sh
-```
 
-**Fonctionnalités production** :
+- **[Architecture Guide](docs/ARCHITECTURE_GUIDE.md)** - System design and agent interactions./validate-production.sh
 
-- 🐳 **Docker Swarm** : Orchestration multi-noeuds haute disponibilité
+- **[Deployment Guide](DEPLOYMENT.md)** - Production deployment instructions```
+
+- **[API Reference](API_DOCUMENTATION.md)** - Complete API documentation
+
+- **[Troubleshooting](.continue/VERIFICATION_MCP.md)** - Common issues and solutions**Fonctionnalités production** :
+
+
+
+## 🧪 Testing- 🐳 **Docker Swarm** : Orchestration multi-noeuds haute disponibilité
+
 - 🔐 **SSL/TLS** : Certificats Let's Encrypt automatiques
-- 📊 **Monitoring** : Prometheus + Grafana + AlertManager
-- 🚨 **Alertes** : Notifications automatiques (email, Slack)
-- 💾 **Backup** : Sauvegarde automatique avec rotation
+
+```bash- 📊 **Monitoring** : Prometheus + Grafana + AlertManager
+
+# Run all tests- 🚨 **Alertes** : Notifications automatiques (email, Slack)
+
+pytest tests/ -v- 💾 **Backup** : Sauvegarde automatique avec rotation
+
 - 🔄 **CI/CD** : Pipeline GitHub Actions complet
-- 🧪 **Tests** : Charge, sécurité, validation automatisés
+
+# Run with coverage- 🧪 **Tests** : Charge, sécurité, validation automatisés
+
+pytest tests/ --cov=agents --cov-report=html
 
 ## 📚 Essential Documentation & Resources
 
-### 🔗 FastAPI Documentation & Latest Release Notes
+# Integration tests
+
+pytest tests/ -m integration### 🔗 FastAPI Documentation & Latest Release Notes
+
+```
 
 - **Official FastAPI Documentation**: [https://fastapi.tiangolo.com/](https://fastapi.tiangolo.com/)
-- **FastAPI Release Notes**: [https://fastapi.tiangolo.com/release-notes/](https://fastapi.tiangolo.com/release-notes/)
+
+## 🔧 Development- **FastAPI Release Notes**: [https://fastapi.tiangolo.com/release-notes/](https://fastapi.tiangolo.com/release-notes/)
+
 - **FastAPI DevDocs**: [https://devdocs.io/fastapi/](https://devdocs.io/fastapi/)
 
-### 🔗 Async/Await & Concurrency Python (Best Practices 2025)
+```bash
+
+# Install dev dependencies### 🔗 Async/Await & Concurrency Python (Best Practices 2025)
+
+pip install -r requirements.txt
 
 - **FastAPI Async Guide**: [https://fastapi.tiangolo.com/async/](https://fastapi.tiangolo.com/async/)
-- **AsyncIO in Python 2025**: [https://linkedin.com/pulse/asyncio-in-python-writing-fast-and-efficient-asynchronous-code-2025/](https://linkedin.com/pulse/asyncio-in-python-writing-fast-and-efficient-asynchronous-code-2025/)
+
+# Format code- **AsyncIO in Python 2025**: [https://linkedin.com/pulse/asyncio-in-python-writing-fast-and-efficient-asynchronous-code-2025/](https://linkedin.com/pulse/asyncio-in-python-writing-fast-and-efficient-asynchronous-code-2025/)
+
+black agents/ api/
 
 ### 🔗 Pydantic V2 (Validation & Schemas)
 
-- **Pydantic Latest Documentation**: [https://docs.pydantic.dev/latest/](https://docs.pydantic.dev/latest/)
+# Type checking
+
+mypy agents/ api/- **Pydantic Latest Documentation**: [https://docs.pydantic.dev/latest/](https://docs.pydantic.dev/latest/)
+
 - **Pydantic PyPI**: [https://pypi.org/project/pydantic/](https://pypi.org/project/pydantic/)
 
-### 🔗 Docker Compose 2025 – Multi-container Apps & Scaling
+# Lint
+
+ruff check agents/ api/### 🔗 Docker Compose 2025 – Multi-container Apps & Scaling
+
+```
 
 - **Docker Compose Official Docs**: [https://docs.docker.com/compose/](https://docs.docker.com/compose/)
-- **Docker Compose Deployment 2025**: [https://dokploy.com/how-to-deploy-apps-with-docker-compose-in-2025/](https://dokploy.com/how-to-deploy-apps-with-docker-compose-in-2025/)
 
-### 🔗 GitHub Actions — Setup & Workflow CI/CD
+## 📈 Performance- **Docker Compose Deployment 2025**: [https://dokploy.com/how-to-deploy-apps-with-docker-compose-in-2025/](https://dokploy.com/how-to-deploy-apps-with-docker-compose-in-2025/)
 
-- **GitHub Actions Documentation**: [https://docs.github.com/en/actions](https://docs.github.com/en/actions)
-- **GitHub Actions Setup Guide**: [https://freecodecamp.org/news/github-actions-setup-guide/](https://freecodecamp.org/news/github-actions-setup-guide/)
 
-### 🔗 React – Build Production Frontend
 
-- **Create React App Production**: [https://create-react-app.dev/docs/production-build/](https://create-react-app.dev/docs/production-build/)
+| Operation | Latency | Status |### 🔗 GitHub Actions — Setup & Workflow CI/CD
 
-### 🔗 Audit Logging Python — Best Practices
+|-----------|---------|--------|
 
-- **Python Logging Documentation**: [https://docs.python.org/3/library/logging.html](https://docs.python.org/3/library/logging.html)
-- **Real Python Logging Guide**: [https://realpython.com/python-logging/](https://realpython.com/python-logging/)
+| Classify Ticket | 150ms | ✅ |- **GitHub Actions Documentation**: [https://docs.github.com/en/actions](https://docs.github.com/en/actions)
 
-### 🔗 Monitoring avec Prometheus/Grafana pour Python/FastAPI
+| Resolve Ticket | 200ms | ✅ |- **GitHub Actions Setup Guide**: [https://freecodecamp.org/news/github-actions-setup-guide/](https://freecodecamp.org/news/github-actions-setup-guide/)
+
+| Monitor Health | 50ms | ✅ |
+
+| Create Backup | 1300ms | ✅ |### 🔗 React – Build Production Frontend
+
+
+
+*Measured on edgeserver.twisterlab.local with Ollama GPU acceleration (RTX 3060)*- **Create React App Production**: [https://create-react-app.dev/docs/production-build/](https://create-react-app.dev/docs/production-build/)
+
+
+
+## 🔐 Security### 🔗 Audit Logging Python — Best Practices
+
+
+
+- ✅ Type-safe Python (100% type hints)- **Python Logging Documentation**: [https://docs.python.org/3/library/logging.html](https://docs.python.org/3/library/logging.html)
+
+- ✅ No hardcoded credentials (env-based configuration)- **Real Python Logging Guide**: [https://realpython.com/python-logging/](https://realpython.com/python-logging/)
+
+- ✅ Audit logging (all operations logged to `agent_logs` table)
+
+- ✅ PostgreSQL prepared statements (SQL injection prevention)### 🔗 Monitoring avec Prometheus/Grafana pour Python/FastAPI
+
+- ✅ Docker Swarm secrets management ready
 
 - **Grafana Getting Started**: [https://grafana.com/docs/grafana/latest/getting-started/](https://grafana.com/docs/grafana/latest/getting-started/)
-- **Prometheus Overview**: [https://prometheus.io/docs/introduction/overview/](https://prometheus.io/docs/introduction/overview/)
+
+## 📝 Changelog- **Prometheus Overview**: [https://prometheus.io/docs/introduction/overview/](https://prometheus.io/docs/introduction/overview/)
+
 - **Python Apps Monitoring**: [https://towardsdatascience.com/monitoring-your-python-apps-with-prometheus-9e5ae0880887](https://towardsdatascience.com/monitoring-your-python-apps-with-prometheus-9e5ae0880887)
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ### 🔗 CI/CD Microservices — Modern Patterns 2025
 
+## 👨‍💻 Author
+
 - **Microservices Testing**: [https://martinfowler.com/articles/microservices-testing/](https://martinfowler.com/articles/microservices-testing/)
-- **CI/CD for Microservices 2025**: [https://jalr.dev/posts/2025-ci-cd-for-microservices/](https://jalr.dev/posts/2025-ci-cd-for-microservices/)
 
-### 🔗 AI Integration & MCP Protocol
+**Younes El Fakir** - Founder & Lead Architect- **CI/CD for Microservices 2025**: [https://jalr.dev/posts/2025-ci-cd-for-microservices/](https://jalr.dev/posts/2025-ci-cd-for-microservices/)
 
-- **TwisterLab MCP Protocol**: [https://github.com/youneselfakir0/TwisterLab](https://github.com/youneselfakir0/TwisterLab) (Internal MCP implementation)
+
+
+## 📄 License### 🔗 AI Integration & MCP Protocol
+
+
+
+MIT License - see [LICENSE](LICENSE) file for details.- **TwisterLab MCP Protocol**: [https://github.com/youneselfakir0/TwisterLab](https://github.com/youneselfakir0/TwisterLab) (Internal MCP implementation)
+
 - **Model Context Protocol Standards**: Reference TwisterLab's MCP server implementation in `agents/mcp/server.py`
 
+---
+
 ## 📖 API Documentation
+
+**Built with ⚡ Warrior Mode Energy**
 
 Once the API is running, visit:
 

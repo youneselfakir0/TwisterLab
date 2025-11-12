@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "twisterlab": {
+      "command": "python",
+      "args": [
+        "-m",
+        "agents.mcp.mcp_server"
+      ],
+      "cwd": "C:\\TwisterLab",
+      "env": {
+        "PYTHONPATH": "C:\\TwisterLab",
+        "LOG_LEVEL": "INFO"
+      },
+      "description": "TwisterLab Multi-Agent IT Helpdesk System",
+      "capabilities": {
+        "tools": true,
+        "resources": true,
+        "prompts": true
+      }
+    }
+  },
+  "globalShortcut": "CommandOrControl+Shift+Space"
+}

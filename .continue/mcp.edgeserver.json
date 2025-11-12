@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "twisterlab-mcp": {
+      "command": "python3",
+      "args": ["/home/twister/TwisterLab/agents/mcp/mcp_server_continue_sync.py"],
+      "env": {
+        "API_URL": "http://localhost:8000",
+        "PYTHONPATH": "/home/twister/TwisterLab"
+      }
+    }
+  }
+}

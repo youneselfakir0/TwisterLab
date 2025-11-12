@@ -8,10 +8,10 @@ import os
 # OLLAMA CONFIGURATION
 # ===========================
 
-# Ollama URL - use environment variable or default to native Ollama on localhost
+# Ollama URL - use environment variable or default to corertx Ollama
 # For local testing: export OLLAMA_URL=http://localhost:11434
-# For production (native Ollama): uses localhost:11434 (Ollama native on edgeserver)
-OLLAMA_URL = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_URL", "http://localhost:11434")
+# For production: uses corertx (192.168.0.20:11434) with GPU acceleration
+OLLAMA_URL = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_URL", "http://192.168.0.20:11434")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "60"))
 
 # Model Selection Strategy

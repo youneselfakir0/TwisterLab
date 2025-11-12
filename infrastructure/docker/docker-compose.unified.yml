@@ -215,13 +215,7 @@ services:
   # TWISTERLAB API - Autonomous Agents Core
   # ===========================================================================
   api:
-    image: python:3.11-slim
-    working_dir: /app
-    command: ["/bin/sh", "/app/start-api.sh"]
-    volumes:
-      - type: bind
-        source: /home/twister/TwisterLab
-        target: /app
+    image: twisterlab-api:latest
     environment:
       <<: *common-env
       # Hybrid Authentication (Azure AD + Local fallback)
@@ -247,7 +241,6 @@ services:
     depends_on:
       - postgres
       - redis
-      - ollama
     # Healthcheck désactivé temporairement (curl non installé dans l'image)
     # healthcheck: *healthcheck-api
     deploy:

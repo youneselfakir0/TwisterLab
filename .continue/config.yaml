@@ -88,7 +88,7 @@ models:
 # MCP Servers - TwisterLab Agents Integration
 # API TwisterLab maintenant accessible sur http://192.168.0.30:8000
 # Déployement propre v1.0.1 en production
-# Configuration des outils: .continue/mcp-tools-config.json
+# Format Continue strict: name, command, args, env, cwd (pas de metadata complexe)
 mcpServers:
   - name: "TwisterLab MCP"
     command: "python"
@@ -97,7 +97,6 @@ mcpServers:
     env:
       API_URL: "http://192.168.0.30:8000"
       PYTHONPATH: "C:\\TwisterLab"
-      MCP_TOOLS_CONFIG: "C:\\TwisterLab\\.continue\\mcp-tools-config.json"
     cwd: "C:\\TwisterLab"
     connectionTimeout: 10000
 

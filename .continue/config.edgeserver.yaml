@@ -9,7 +9,7 @@ schema: "v1"
 # Note: edgeserver utilise l'instance Ollama de CoreServer
 models:
   # === MODÈLES LOCAUX OLLAMA (CoreServer) ===
-  
+
   - name: "Llama 3.2 (1B) - Chat Rapide"
     provider: "ollama"
     model: "llama3.2:1b"

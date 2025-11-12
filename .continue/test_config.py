@@ -14,13 +14,13 @@ def test_yaml_config():
         import yaml
         with open('.continue/config.yaml', encoding='utf-8') as f:
             config = yaml.safe_load(f)
-        
+
         assert 'name' in config, "name manquant"
         assert 'version' in config, "version manquante"
         assert 'schema' in config, "schema manquant"
         assert 'models' in config, "models manquant"
         # MCP est optionnel (peut être commenté)
-        
+
         print(f"   ✅ YAML valide")
         print(f"   ✅ {len(config['models'])} modèles configurés")
         if 'mcpServers' in config:
@@ -40,7 +40,7 @@ def test_ollama_models():
     try:
         result = subprocess.run(['ollama', 'list'], capture_output=True, text=True)
         lines = result.stdout.strip().split('\n')[1:]  # Skip header
-        
+
         expected_models = [
             'llama3.2:1b',
             'llama3:latest',
@@ -49,15 +49,15 @@ def test_ollama_models():
             'qwen3:8b',
             'gpt-oss:120b-cloud'
         ]
-        
+
         installed = [line.split()[0] for line in lines if line.strip()]
-        
+
         for model in expected_models:
             if model in installed:
                 print(f"   ✅ {model}")
             else:
                 print(f"   ⚠️  {model} - NON INSTALLÉ (ollama pull {model})")
-        
+
         return len([m for m in expected_models if m in installed]) >= 4
     except Exception as e:
         print(f"   ❌ Erreur: {e}")
@@ -112,7 +112,7 @@ def test_continue_files():
         '.continue/SETUP_GUIDE_v1.0.1.md',
         '.continue/README_MCP_TROUBLESHOOTING.md'
     ]
-    
+
     all_ok = True
     for filepath in files:
         if Path(filepath).exists():
@@ -120,7 +120,7 @@ def test_continue_files():
         else:
             print(f"   ❌ {filepath} manquant")
             all_ok = False
-    
+
     return all_ok
 
 def main():
@@ -128,7 +128,7 @@ def main():
     print("╔════════════════════════════════════════════════════════════╗")
     print("║     TEST CONFIGURATION CONTINUE v1.0.1                     ║")
     print("╚════════════════════════════════════════════════════════════╝\n")
-    
+
     results = []
     results.append(("YAML Config", test_yaml_config()))
     results.append(("Modèles Ollama", test_ollama_models()))
@@ -136,20 +136,20 @@ def main():
     results.append(("Script MCP", test_mcp_script()))
     results.append(("API TwisterLab", test_twisterlab_api()))
     results.append(("Fichiers Continue", test_continue_files()))
-    
+
     print("\n╔════════════════════════════════════════════════════════════╗")
     print("║                        RÉSULTAT                            ║")
     print("╚════════════════════════════════════════════════════════════╝\n")
-    
+
     for test_name, passed in results:
         status = "✅ PASS" if passed else "❌ FAIL"
         print(f"   {test_name:20} {status}")
-    
+
     passed_count = sum(1 for _, p in results if p)
     total = len(results)
-    
+
     print(f"\n   Total: {passed_count}/{total} tests réussis")
-    
+
     if passed_count >= 4:
         print("\n✅ Configuration OPÉRATIONNELLE")
         print("   Redémarrer VS Code: Ctrl+Shift+P → 'Reload Window'")

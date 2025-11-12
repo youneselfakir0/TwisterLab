@@ -47,7 +47,7 @@ models:
 ### MCP Servers
 **STATUS**: ❌ Pas encore configuré dans Continue
 
-**Prochaine étape**: 
+**Prochaine étape**:
 1. Créer `mcp_server_launcher.py` pour Continue
 2. Configurer `mcpServers` dans `config.yaml`
 3. Tester connexion avec TwisterLab API
@@ -106,6 +106,6 @@ Continue IDE suivra automatiquement ces règles:
 
 ---
 
-**Dernière mise à jour**: 2025-11-12  
-**Version Continue**: Utilise Ollama local uniquement  
+**Dernière mise à jour**: 2025-11-12
+**Version Continue**: Utilise Ollama local uniquement
 **MCP Status**: Pas encore configuré

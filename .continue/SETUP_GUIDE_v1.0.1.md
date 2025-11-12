@@ -1,6 +1,6 @@
 # TwisterLab - Guide Configuration Continue IDE v1.0.1
 
-**Date** : 2025-11-12  
+**Date** : 2025-11-12
 **Statut** : ✅ 6 modèles Ollama + Cloud gratuit + MCP activé
 
 ---
@@ -367,6 +367,6 @@ curl http://192.168.0.30:8000/health
 
 ---
 
-**Version** : 1.0.1  
-**Dernière mise à jour** : 2025-11-12  
+**Version** : 1.0.1
+**Dernière mise à jour** : 2025-11-12
 **Statut** : ✅ Production ready

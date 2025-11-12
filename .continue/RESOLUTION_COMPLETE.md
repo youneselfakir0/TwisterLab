@@ -1,7 +1,7 @@
 # Continue IDE v1.0.1 - Résolution Complète ✅
 
-**Date** : 2025-11-12  
-**Commit** : e0a403c  
+**Date** : 2025-11-12
+**Commit** : e0a403c
 **Status** : ✅ 6/6 tests PASS - Production Ready
 
 ---
@@ -43,7 +43,7 @@
 |---|--------|------|---------|-------|-------|
 | 6 | GPT-OSS (120B) | Cloud | ☁️ | chat, edit | Tâches très complexes |
 
-**Total stockage local** : ~21 GB  
+**Total stockage local** : ~21 GB
 **Coût total** : 0€
 
 ---
@@ -65,7 +65,7 @@ mcpServers:
 
 **Agents disponibles** : 7
 - MonitoringAgent
-- ClassifierAgent  
+- ClassifierAgent
 - ResolverAgent
 - DesktopCommanderAgent
 - MaestroOrchestratorAgent
@@ -215,21 +215,21 @@ Ctrl+L → Sélectionner modèle → Poser question
 
 ## 🎯 Récapitulatif Final
 
-**Configuration** : ✅ Opérationnelle  
-**Tests** : ✅ 6/6 PASS  
-**Documentation** : ✅ Complète  
-**MCP** : ✅ 7 agents configurés  
-**Modèles** : ✅ 7 gratuits (6 local + 1 cloud)  
+**Configuration** : ✅ Opérationnelle
+**Tests** : ✅ 6/6 PASS
+**Documentation** : ✅ Complète
+**MCP** : ✅ 7 agents configurés
+**Modèles** : ✅ 7 gratuits (6 local + 1 cloud)
 
-**Commit** : `e0a403c`  
-**Branch** : `feature/azure-ad-auth`  
+**Commit** : `e0a403c`
+**Branch** : `feature/azure-ad-auth`
 
 ---
 
 ## 📞 Support
 
-**Erreur MCP** : Voir `.continue/README_MCP_TROUBLESHOOTING.md`  
-**Workflows** : Voir `.continue/SETUP_GUIDE_v1.0.1.md`  
+**Erreur MCP** : Voir `.continue/README_MCP_TROUBLESHOOTING.md`
+**Workflows** : Voir `.continue/SETUP_GUIDE_v1.0.1.md`
 **Tests** : Lancer `.continue/test_config.py`
 
 ---

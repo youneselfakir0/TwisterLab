@@ -1,129 +1,179 @@
-# INSTRUCTIONS COPILOTE - SÉQUENCE D'EXÉCUTION TWISTERLAB
-# Date: 1 novembre 2025
-# Contexte: Implémentation finale TwisterLab v1.0.0 avec MCP + Copilot
+# INSTRUCTIONS POUR COPILOT VS CODE
+## Actions Claude (Desktop Commander MCP) disponibles
 
-## 🎯 MISSION CRITIQUE
-Exécuter la séquence complète d'implémentation TwisterLab avec délégation totale au Copilote VS Code.
-
-## 📋 SÉQUENCE D'EXÉCUTION (ORDRE IMPÉRATIF)
-
-### PHASE 1: AUDIT ET VALIDATION
-**Objectif**: Auditer l'état actuel du système TwisterLab
-**Actions**:
-- Vérifier l'intégrité de tous les modules TwisterLang (encoder, decoder, sync)
-- Valider la structure des agents (Classifier, Resolver, Desktop Commander)
-- Contrôler la configuration FastAPI et SQLAlchemy
-- Tester les connexions base de données (PostgreSQL, Redis)
-- Vérifier les dépendances et requirements.txt
-- Auditer la sécurité (authentification, autorisations)
-- Contrôler les tests unitaires et d'intégration
-
-### PHASE 2-3: MODIFICATION DES CONFIGURATIONS
-**Objectif**: Adapter les configurations pour les phases 2 et 3
-**Actions Phase 2 (Grafana)**:
-- Modifier docker-compose.yml pour inclure Grafana + Prometheus
-- Créer configurations Grafana (datasources, dashboards)
-- Ajouter métriques d'observabilité aux agents
-- Configurer alertes et monitoring
-
-**Actions Phase 3 (Autonome)**:
-- Implémenter auto-scaling des agents
-- Configurer self-healing et failover
-- Ajouter optimisations de performance
-- Préparer mode communautaire
-
-### PHASE 4: CRÉATION DU SCRIPT DE RELEASE
-**Objectif**: Créer le script complet de déploiement communautaire
-**Actions**:
-- Créer script `deploy_community.py` avec installation automatisée
-- Générer documentation de déploiement
-- Préparer exemples d'usage communautaire
-- Créer guides de contribution
-- Configurer CI/CD pour releases automatiques
-
-### PHASE 5: TESTS MCP ISOLÉS
-**Objectif**: Valider chaque serveur MCP indépendamment
-**Actions**:
-- Tester MCP GitHub (connexion repo, commits, PRs)
-- Tester MCP Azure (ressources, coûts, déploiement)
-- Tester MCP Local (tests, builds, sécurité)
-- Tester MCP Grafana (dashboards, alertes)
-- Valider intégration Copilot + MCP
-
-### PHASE 6: RAPPORT FINAL
-**Objectif**: Produire rapport complet d'implémentation
-**Actions**:
-- Compiler résultats de tous les audits
-- Documenter modifications apportées
-- Reporter statut de chaque MCP
-- Fournir métriques de performance
-- Créer plan d'actions suivant
-
-## 🔧 CONTRAINTES TECHNIQUES
-
-### Budget Azure
-- **Limite absolue**: $200 total sur 14 jours
-- Monitoring continu des coûts
-- Optimisations automatiques si approche limite
-
-### Sécurité
-- Authentification sécurisée pour tous les MCP
-- Validation des entrées/sorties
-- Audit des opérations sensibles
-
-### Performance
-- Tests de charge avant déploiement
-- Optimisations TwisterLang (50-70% réduction tokens)
-- Monitoring des métriques critiques
-
-## 🎮 MODE OPÉRATOIRE COPILOTE
-
-### Communication
-- Utiliser exclusivement les commandes MCP: `@mcp github`, `@mcp azure`, `@mcp local`, `@mcp grafana`
-- Rapporter progrès après chaque phase majeure
-- Demander confirmation pour opérations critiques
-
-### Gestion d'Erreurs
-- Retry automatique (3 tentatives max)
-- Fallback vers opérations locales si services cloud indisponibles
-- Escalade immédiate pour erreurs critiques
-
-### Validation
-- Tests automatisés après chaque modification
-- Vérification des déploiements
-- Audit de sécurité continu
-
-## 📊 LIVRABLES ATTENDUS
-
-1. **Rapport d'audit Phase 1** - État détaillé du système
-2. **Configurations modifiées** - Fichiers adaptés pour Phase 2-3
-3. **Script de déploiement** - `deploy_community.py` complet
-4. **Rapport de tests MCP** - Statut de chaque serveur
-5. **Rapport final** - Synthèse complète avec métriques
-
-## 🚀 EXÉCUTION IMMÉDIATE
-
-**COMMANDES DE DÉMARRAGE**:
-```
-@twisterlab Execute Phase 1  # Audit initial
-@twisterlab Execute Phase 2  # Modifications configs
-@twisterlab Execute Phase 3  # Adaptations autonomes
-@twisterlab Execute Phase 4  # Script release
-@mcp local run-tests         # Tests MCP isolés
-@twisterlab status          # Rapport final
-```
-
-## ⚡ DÉLÉGATION COMPLÈTE
-
-Le Copilote VS Code a **autorité totale** pour:
-- Modifier tous les fichiers du projet
-- Exécuter toutes les commandes nécessaires
-- Prendre des décisions d'optimisation
-- Gérer les erreurs et retry
-- Reporter automatiquement les progrès
-
-**Priorité absolue**: Maintenir le système sous $200 Azure tout en atteignant les objectifs de déploiement communautaire.
+**Date**: 2025-11-11 18:45  
+**Status**: ✅ Claude prêt à collaborer
 
 ---
 
-**Exécution immédiate demandée. Commencer par Phase 1.**
+## ✅ CE QUE CLAUDE PEUT FAIRE
+
+### 1. Déploiement & Infrastructure
+- ✅ Déployer sur edgeserver (192.168.0.30) via SSH
+- ✅ Build images Docker
+- ✅ Update services Docker Swarm
+- ✅ Gérer secrets/credentials
+- ✅ Configurer monitoring (Prometheus/Grafana)
+
+### 2. Tests & Validation
+- ✅ Exécuter pytest localement
+- ✅ Tests d'intégration API
+- ✅ Load testing
+- ✅ Validation endpoints
+
+### 3. Configuration
+- ✅ Modifier fichiers .env
+- ✅ Configurer databases (PostgreSQL/Redis)
+- ✅ Setup DNS/networking
+- ✅ Certificates SSL/TLS
+
+### 4. Monitoring & Debug
+- ✅ Analyser logs Docker
+- ✅ Diagnostiquer erreurs
+- ✅ Vérifier métriques Prometheus
+- ✅ Alerting configuration
+
+---
+
+## 🤝 WORKFLOW DE COLLABORATION
+
+### Quand tu as besoin de Claude:
+
+**1. Déploiement**
+```markdown
+@claude Peux-tu déployer la branche feature/azure-ad-auth sur staging ?
+```
+Claude va:
+- Pull la branche
+- Build l'image Docker
+- Deploy sur edgeserver
+- Tester les endpoints
+- Rapporter résultats
+
+**2. Tests Infrastructure**
+```markdown
+@claude Teste l'intégration auth sur edgeserver
+```
+Claude va:
+- Vérifier service API up
+- Tester /auth/login endpoint
+- Valider redirection Azure AD
+- Checker logs erreurs
+
+**3. Configuration**
+```markdown
+@claude Configure les credentials Azure AD dans .env.production
+```
+Claude va:
+- Éditer .env.production sécurisé
+- Redémarrer services nécessaires
+- Valider configuration chargée
+
+---
+
+## 📋 PROCHAINES TÂCHES PROPOSÉES
+
+### Pour Copilot (Code):
+1. Créer endpoints `/auth/*` dans api/main.py
+2. Créer middleware JWT verification
+3. Tests intégration OAuth2 flow
+
+### Pour Claude (Infra):
+1. Finaliser déploiement agents réels
+2. Configurer Azure AD credentials sur serveur
+3. Setup monitoring auth (dashboards Grafana)
+4. Tests end-to-end auth flow
+
+---
+
+## 🔄 SYNCHRONISATION
+
+**Méthode actuelle**:
+- Copilot commit → Claude pull → Deploy → Test → Report
+
+**Fichiers de communication**:
+- `.copilot/session_*.md` ← Rapports Claude
+- `docs/PHASE1_*.md` ← Docs Copilot
+- Git commits ← Code changes
+
+---
+
+## 💡 COMMENT M'UTILISER
+
+**Dans VS Code, tape**:
+```
+Rien à taper ! Je (Claude) surveille le repo C:\twisterlab
+Quand tu commits, je peux automatiquement:
+- Déployer si commit tag [deploy]
+- Tester si commit tag [test]
+- Rapporter résultats dans .copilot/reports/
+```
+
+**Ou manuellement via chat**:
+L'utilisateur peut me demander via chat Claude Desktop:
+- "Deploy feature/azure-ad-auth"
+- "Test auth integration"
+- "Check edgeserver status"
+
+---
+
+## ⚡ ACTIONS RAPIDES DISPONIBLES
+
+### Deploy Latest
+```powershell
+# Claude peut exécuter:
+git pull origin feature/azure-ad-auth
+docker build -t twisterlab-api:auth-test .
+ssh edgeserver "docker service update --image twisterlab-api:auth-test twisterlab_api"
+```
+
+### Test Auth Endpoints
+```powershell
+# Claude peut exécuter:
+curl http://192.168.0.30:8000/auth/login
+curl http://192.168.0.30:8000/health
+pytest tests/test_azure_ad_auth.py -v
+```
+
+### Check Logs
+```powershell
+# Claude peut exécuter:
+ssh edgeserver "docker service logs twisterlab_api --tail 100"
+ssh edgeserver "docker service ps twisterlab_api"
+```
+
+---
+
+## 📊 ÉTAT ACTUEL
+
+**Phase 1 Auth Progress**: 20% (Backend ✅, Infra ⏳)
+
+**Tâche en cours** (Claude):
+- Déploiement agents réels (en pause pour l'auth)
+
+**Tâche suggérée** (Copilot):
+- Créer endpoints /auth/* dans api/main.py
+
+**Bloqueurs**:
+- [ ] Azure AD App Registration (besoin credentials)
+- [ ] Client Secret (besoin génération Azure Portal)
+
+---
+
+## 🎯 NEXT STEPS
+
+**Immédiat** (aujourd'hui):
+1. Copilot crée endpoints auth
+2. Claude teste localement
+3. Claude deploy sur staging si OK
+
+**Demain**:
+1. Configuration Azure Portal (manuel)
+2. Tests intégration complets
+3. Deploy production
+
+---
+
+**Maintenu par**: Claude (Desktop Commander MCP)  
+**Dernière sync**: 2025-11-11 18:45  
+**Status**: ✅ Prêt à collaborer

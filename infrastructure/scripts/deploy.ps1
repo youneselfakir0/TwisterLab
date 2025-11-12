@@ -49,7 +49,7 @@ $COMPOSE_FILE = Join-Path $DOCKER_DIR "docker-compose.unified.yml"
 $ENV_FILE = Join-Path $CONFIGS_DIR ".env.$Environment"
 $STACK_NAME = "twisterlab"
 
-$REQUIRED_SERVICES = @("api", "postgres", "redis", "ollama", "webui", "traefik")
+$REQUIRED_SERVICES = @("api", "postgres", "redis", "webui", "traefik")
 
 # =============================================================================
 # FONCTIONS UTILITAIRES
@@ -124,7 +124,7 @@ function Test-DataDirectories {
     }
 
     # Créer répertoires si nécessaire (via SSH sur edgeserver)
-    $directories = @("postgres", "redis", "ollama", "webui")
+    $directories = @("postgres", "redis", "webui")
 
     foreach ($dir in $directories) {
         $fullPath = "$dataPath/$dir"

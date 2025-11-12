@@ -14,7 +14,6 @@ x-common-env: &common-env
   ENVIRONMENT: ${ENVIRONMENT:-production}
   DATABASE_URL: postgresql://${POSTGRES_USER:-twisterlab}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-twisterlab_prod}
   REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-  OLLAMA_BASE_URL: http://ollama:11434
   SECRET_KEY: ${SECRET_KEY}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
 
@@ -173,7 +172,6 @@ services:
       - "9121:9121"
     networks:
       - backend
-      - prod
     deploy:
       replicas: 1
       restart_policy:
@@ -199,7 +197,6 @@ services:
       - "9187:9187"
     networks:
       - backend
-      - prod
     deploy:
       replicas: 1
       restart_policy:
@@ -215,43 +212,16 @@ services:
     logging: *default-logging
 
   # ===========================================================================
-  # OLLAMA - AI Inference Engine
-  # ===========================================================================
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    environment:
-      - OLLAMA_HOST=0.0.0.0:11434
-      - OLLAMA_KEEP_ALIVE=24h
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - backend
-      - traefik-public
-    deploy:
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          memory: 8G
-          cpus: '2.0'
-        reservations:
-          memory: 4G
-          cpus: '1.0'
-      labels:
-        - "traefik.enable=false"
-    logging: *default-logging
-
-  # ===========================================================================
   # TWISTERLAB API - Autonomous Agents Core
   # ===========================================================================
   api:
-    image: twisterlab/api:${VERSION:-latest}
+    image: python:3.11-slim
+    working_dir: /app
+    command: ["/bin/sh", "/app/start-api.sh"]
+    volumes:
+      - type: bind
+        source: /home/twister/TwisterLab
+        target: /app
     environment:
       <<: *common-env
       # Hybrid Authentication (Azure AD + Local fallback)
@@ -312,7 +282,6 @@ services:
     ports:
       - "${WEBUI_PORT:-8083}:8080"
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
       - WEBUI_NAME=TwisterLab AI Assistant
       - WEBUI_AUTH=False
@@ -357,9 +326,6 @@ volumes:
     driver: local
 
   redis_data:
-    driver: local
-
-  ollama_data:
     driver: local
 
   webui_data:

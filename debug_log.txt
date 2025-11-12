@@ -1,0 +1,218 @@
+[2025-11-09 16:36:34] [INFO] Starting complete TwisterLab system diagnostic...
+[2025-11-09 16:36:34] [INFO] Testing Docker status...
+[2025-11-09 16:36:34] [SUCCESS] Docker is running - Version: 28.5.2
+[2025-11-09 16:36:34] [INFO] Testing Docker Swarm status...
+[2025-11-09 16:36:34] [SUCCESS] Swarm active - 3/3 nodes ready
+[2025-11-09 16:36:34] [INFO] Testing TwisterLab services...
+[2025-11-09 16:36:34] [WARN] api - 0/5 tasks running
+[2025-11-09 16:36:35] [WARN] postgres - /5 tasks running
+[2025-11-09 16:36:35] [WARN] redis - /5 tasks running
+[2025-11-09 16:36:35] [WARN] traefik - /5 tasks running
+[2025-11-09 16:36:35] [WARN] webui - /2 tasks running
+[2025-11-09 16:36:35] [WARN] ollama - /2 tasks running
+[2025-11-09 16:36:35] [INFO] Testing API endpoints...
+[2025-11-09 16:36:37] [SUCCESS] API Health - HTTP 200 (0ms)
+[2025-11-09 16:36:37] [SUCCESS] Autonomous Status - HTTP 200 (0ms)
+[2025-11-09 16:36:37] [SUCCESS] Agents List - HTTP 200 (0ms)
+[2025-11-09 16:36:38] [SUCCESS] WebUI - HTTP 200 (0ms)
+[2025-11-09 16:36:38] [SUCCESS] Traefik Dashboard - HTTP 200 (0ms)
+[2025-11-09 16:36:38] [SUCCESS] Grafana - HTTP 200 (0ms)
+[2025-11-09 16:36:38] [SUCCESS] Prometheus - HTTP 200 (0ms)
+[2025-11-09 16:36:38] [INFO] Testing autonomous agents...
+[2025-11-09 16:36:38] [SUCCESS] monitoring agent - Status: completed
+[2025-11-09 16:36:38] [ERROR] backup agent failed: The remote server returned an error: (404) Not Found.
+[2025-11-09 16:36:38] [ERROR] sync agent failed: The remote server returned an error: (404) Not Found.
+[2025-11-09 16:36:38] [INFO] Testing DNS resolution...
+[2025-11-09 16:36:39] [ERROR] Test  failed: The property 'api.twisterlab.local' cannot be found on this object. Verify that the property exists and can be set.
+[2025-11-09 16:36:39] [INFO] Testing database connectivity...
+[2025-11-09 16:36:39] [ERROR] PostgreSQL connection failed: PostgreSQL container not found
+[2025-11-09 16:36:39] [ERROR] Redis connection failed: Redis container not found
+[2025-11-09 16:36:39] [INFO] Generating recommendations...
+[2025-11-09 16:36:39] [SUCCESS] Results exported to: debug_report_20251109_163634.json
+[2025-11-09 16:36:39] [INFO] Complete diagnostic finished
+[2025-11-09 17:18:56] [INFO] Starting complete TwisterLab system diagnostic...
+[2025-11-09 17:18:57] [INFO] Testing Docker status...
+[2025-11-09 17:18:57] [SUCCESS] Docker is running - Version: 28.5.2
+[2025-11-09 17:18:57] [INFO] Testing Docker Swarm status...
+[2025-11-09 17:18:57] [SUCCESS] Swarm active - 3/3 nodes ready
+[2025-11-09 17:18:57] [INFO] Testing TwisterLab services...
+[2025-11-09 17:18:57] [WARN] api - 0/5 tasks running
+[2025-11-09 17:18:57] [WARN] postgres - /5 tasks running
+[2025-11-09 17:18:58] [WARN] redis - /5 tasks running
+[2025-11-09 17:18:58] [WARN] traefik - /5 tasks running
+[2025-11-09 17:18:58] [WARN] webui - /2 tasks running
+[2025-11-09 17:18:58] [WARN] ollama - /2 tasks running
+[2025-11-09 17:18:58] [INFO] Testing API endpoints...
+[2025-11-09 17:19:00] [SUCCESS] API Health - HTTP 200 (0ms)
+[2025-11-09 17:19:00] [SUCCESS] Autonomous Status - HTTP 200 (0ms)
+[2025-11-09 17:19:00] [SUCCESS] Agents List - HTTP 200 (0ms)
+[2025-11-09 17:19:01] [SUCCESS] WebUI - HTTP 200 (0ms)
+[2025-11-09 17:19:01] [SUCCESS] Traefik Dashboard - HTTP 200 (0ms)
+[2025-11-09 17:19:01] [SUCCESS] Grafana - HTTP 200 (0ms)
+[2025-11-09 17:19:01] [SUCCESS] Prometheus - HTTP 200 (0ms)
+[2025-11-09 17:19:01] [INFO] Testing autonomous agents...
+[2025-11-09 17:19:01] [SUCCESS] monitoring agent - Status: completed
+[2025-11-09 17:19:01] [ERROR] backup agent failed: The remote server returned an error: (404) Not Found.
+[2025-11-09 17:19:01] [ERROR] sync agent failed: The remote server returned an error: (404) Not Found.
+[2025-11-09 17:19:01] [INFO] Testing DNS resolution...
+[2025-11-09 17:19:01] [ERROR] Test  failed: The property 'api.twisterlab.local' cannot be found on this object. Verify that the property exists and can be set.
+[2025-11-09 17:19:01] [INFO] Testing database connectivity...
+[2025-11-09 17:19:02] [ERROR] PostgreSQL connection failed: PostgreSQL container not found
+[2025-11-09 17:19:02] [ERROR] Redis connection failed: Redis container not found
+[2025-11-09 17:19:02] [INFO] Generating recommendations...
+[2025-11-09 17:19:02] [SUCCESS] Results exported to: debug_report_20251109_171856.json
+[2025-11-09 17:19:02] [INFO] Complete diagnostic finished
+[2025-11-09 17:20:43] [INFO] Starting complete TwisterLab system diagnostic...
+[2025-11-09 17:20:43] [INFO] Testing Docker status...
+[2025-11-09 17:20:44] [SUCCESS] Docker is running - Version: 28.5.2
+[2025-11-09 17:20:44] [INFO] Testing Docker Swarm status...
+[2025-11-09 17:20:44] [SUCCESS] Swarm active - 3/3 nodes ready
+[2025-11-09 17:20:44] [INFO] Testing TwisterLab services...
+[2025-11-09 17:20:44] [WARN] api - 0/5 tasks running
+[2025-11-09 17:20:44] [WARN] postgres - /5 tasks running
+[2025-11-09 17:20:44] [WARN] redis - /5 tasks running
+[2025-11-09 17:20:45] [WARN] traefik - /5 tasks running
+[2025-11-09 17:20:45] [WARN] webui - /2 tasks running
+[2025-11-09 17:20:45] [WARN] ollama - /2 tasks running
+[2025-11-09 17:20:45] [INFO] Testing API endpoints...
+[2025-11-09 17:20:47] [SUCCESS] API Health - HTTP 200 (0ms)
+[2025-11-09 17:20:47] [SUCCESS] Autonomous Status - HTTP 200 (0ms)
+[2025-11-09 17:20:47] [SUCCESS] Agents List - HTTP 200 (0ms)
+[2025-11-09 17:20:47] [SUCCESS] WebUI - HTTP 200 (0ms)
+[2025-11-09 17:20:47] [SUCCESS] Traefik Dashboard - HTTP 200 (0ms)
+[2025-11-09 17:20:47] [SUCCESS] Grafana - HTTP 200 (0ms)
+[2025-11-09 17:20:47] [SUCCESS] Prometheus - HTTP 200 (0ms)
+[2025-11-09 17:20:47] [INFO] Testing autonomous agents...
+[2025-11-09 17:20:47] [SUCCESS] monitoring agent - Status: completed
+[2025-11-09 17:20:47] [ERROR] backup agent failed: The remote server returned an error: (404) Not Found.
+[2025-11-09 17:20:47] [ERROR] sync agent failed: The remote server returned an error: (404) Not Found.
+[2025-11-09 17:20:47] [INFO] Testing DNS resolution...
+[2025-11-09 17:20:48] [ERROR] Test  failed: The property 'api.twisterlab.local' cannot be found on this object. Verify that the property exists and can be set.
+[2025-11-09 17:20:48] [INFO] Testing database connectivity...
+[2025-11-09 17:20:48] [ERROR] PostgreSQL connection failed: PostgreSQL container not found
+[2025-11-09 17:20:48] [ERROR] Redis connection failed: Redis container not found
+[2025-11-09 17:20:48] [INFO] Generating recommendations...
+[2025-11-09 17:20:48] [SUCCESS] Results exported to: debug_report_20251109_172043.json
+[2025-11-09 17:20:48] [INFO] Complete diagnostic finished
+[2025-11-09 17:21:07] [INFO] Starting complete TwisterLab system diagnostic...
+[2025-11-09 17:21:07] [INFO] Testing Docker status...
+[2025-11-09 17:21:08] [SUCCESS] Docker is running - Version: 28.5.2
+[2025-11-09 17:21:08] [INFO] Testing Docker Swarm status...
+[2025-11-09 17:21:08] [SUCCESS] Swarm active - 3/3 nodes ready
+[2025-11-09 17:21:08] [INFO] Testing TwisterLab services...
+[2025-11-09 17:21:08] [WARN] api - 0/5 tasks running
+[2025-11-09 17:21:08] [WARN] postgres - /5 tasks running
+[2025-11-09 17:21:08] [WARN] redis - /5 tasks running
+[2025-11-09 17:21:09] [WARN] traefik - /5 tasks running
+[2025-11-09 17:21:09] [WARN] webui - /2 tasks running
+[2025-11-09 17:21:09] [WARN] ollama - /2 tasks running
+[2025-11-09 17:21:09] [INFO] Testing API endpoints...
+[2025-11-09 17:21:11] [SUCCESS] API Health - HTTP 200 (0ms)
+[2025-11-09 17:21:11] [SUCCESS] Autonomous Status - HTTP 200 (0ms)
+[2025-11-09 17:21:11] [SUCCESS] Agents List - HTTP 200 (0ms)
+[2025-11-09 17:21:11] [SUCCESS] WebUI - HTTP 200 (0ms)
+[2025-11-09 17:21:11] [SUCCESS] Traefik Dashboard - HTTP 200 (0ms)
+[2025-11-09 17:21:11] [SUCCESS] Grafana - HTTP 200 (0ms)
+[2025-11-09 17:21:11] [SUCCESS] Prometheus - HTTP 200 (0ms)
+[2025-11-09 17:21:11] [INFO] Testing autonomous agents...
+[2025-11-09 17:21:11] [SUCCESS] monitoring agent - Status: completed
+[2025-11-09 17:21:12] [SUCCESS] backup agent - Status: completed
+[2025-11-09 17:21:12] [SUCCESS] sync agent - Status: completed
+[2025-11-09 17:21:12] [INFO] Testing DNS resolution...
+[2025-11-09 17:21:12] [ERROR] Test  failed: The property 'api.twisterlab.local' cannot be found on this object. Verify that the property exists and can be set.
+[2025-11-09 17:21:12] [INFO] Testing database connectivity...
+[2025-11-09 17:21:12] [ERROR] PostgreSQL connection failed: PostgreSQL container not found
+[2025-11-09 17:21:12] [ERROR] Redis connection failed: Redis container not found
+[2025-11-09 17:21:12] [INFO] Generating recommendations...
+[2025-11-09 17:21:12] [SUCCESS] Results exported to: debug_report_20251109_172107.json
+[2025-11-09 17:21:12] [INFO] Complete diagnostic finished
+[2025-11-09 17:27:46] [INFO] Starting complete TwisterLab system diagnostic...
+[2025-11-09 17:27:46] [INFO] Testing Docker status...
+[2025-11-09 17:27:47] [SUCCESS] Docker is running - Version: 28.5.2
+[2025-11-09 17:27:47] [INFO] Testing Docker Swarm status...
+[2025-11-09 17:27:47] [SUCCESS] Swarm active - 3/3 nodes ready
+[2025-11-09 17:27:47] [INFO] Testing TwisterLab services...
+[2025-11-09 17:27:47] [WARN] api - 0/5 tasks running
+[2025-11-09 17:27:48] [WARN] postgres - /5 tasks running
+[2025-11-09 17:27:48] [WARN] redis - /5 tasks running
+[2025-11-09 17:27:48] [WARN] traefik - /5 tasks running
+[2025-11-09 17:27:48] [WARN] webui - /2 tasks running
+[2025-11-09 17:27:48] [WARN] ollama - /2 tasks running
+[2025-11-09 17:27:48] [INFO] Testing API endpoints...
+[2025-11-09 17:27:50] [SUCCESS] API Health - HTTP 200 (0ms)
+[2025-11-09 17:27:50] [SUCCESS] Autonomous Status - HTTP 200 (0ms)
+[2025-11-09 17:27:50] [SUCCESS] Agents List - HTTP 200 (0ms)
+[2025-11-09 17:27:50] [SUCCESS] WebUI - HTTP 200 (0ms)
+[2025-11-09 17:27:51] [SUCCESS] Traefik Dashboard - HTTP 200 (0ms)
+[2025-11-09 17:27:51] [SUCCESS] Grafana - HTTP 200 (0ms)
+[2025-11-09 17:27:51] [SUCCESS] Prometheus - HTTP 200 (0ms)
+[2025-11-09 17:27:51] [INFO] Testing autonomous agents...
+[2025-11-09 17:27:51] [SUCCESS] monitoring agent - Status: completed
+[2025-11-09 17:27:51] [SUCCESS] backup agent - Status: completed
+[2025-11-09 17:27:51] [SUCCESS] sync agent - Status: completed
+[2025-11-09 17:27:51] [INFO] Testing DNS resolution...
+[2025-11-09 17:27:51] [ERROR] Test  failed: The property 'api.twisterlab.local' cannot be found on this object. Verify that the property exists and can be set.
+[2025-11-09 17:27:51] [INFO] Testing database connectivity...
+[2025-11-09 17:27:51] [ERROR] PostgreSQL connection failed: PostgreSQL container not found
+[2025-11-09 17:27:51] [ERROR] Redis connection failed: Redis container not found
+[2025-11-09 17:27:51] [INFO] Generating recommendations...
+[2025-11-09 17:27:51] [SUCCESS] Results exported to: debug_report_20251109_172746.json
+[2025-11-09 17:27:52] [INFO] Complete diagnostic finished
+[2025-11-09 17:35:54] [INFO] Starting complete TwisterLab system diagnostic...
+[2025-11-09 17:35:54] [INFO] Testing Docker status...
+[2025-11-09 17:35:54] [SUCCESS] Docker is running - Version: 28.5.2
+[2025-11-09 17:35:54] [INFO] Testing Docker Swarm status...
+[2025-11-09 17:35:54] [SUCCESS] Swarm active - 3/3 nodes ready
+[2025-11-09 17:35:54] [INFO] Testing TwisterLab services...
+[2025-11-09 17:35:55] [WARN] api - 0/5 tasks running
+[2025-11-09 17:35:55] [WARN] postgres - /5 tasks running
+[2025-11-09 17:35:55] [WARN] redis - /5 tasks running
+[2025-11-09 17:35:55] [WARN] traefik - /5 tasks running
+[2025-11-09 17:35:55] [WARN] webui - /2 tasks running
+[2025-11-09 17:35:55] [WARN] ollama - /2 tasks running
+[2025-11-09 17:35:55] [INFO] Testing API endpoints...
+[2025-11-09 17:35:58] [SUCCESS] API Health - HTTP 200 (0ms)
+[2025-11-09 17:35:58] [SUCCESS] Autonomous Status - HTTP 200 (0ms)
+[2025-11-09 17:35:58] [SUCCESS] Agents List - HTTP 200 (0ms)
+[2025-11-09 17:35:58] [SUCCESS] WebUI - HTTP 200 (0ms)
+[2025-11-09 17:35:58] [SUCCESS] Traefik Dashboard - HTTP 200 (0ms)
+[2025-11-09 17:35:58] [SUCCESS] Grafana - HTTP 200 (0ms)
+[2025-11-09 17:35:58] [SUCCESS] Prometheus - HTTP 200 (0ms)
+[2025-11-09 17:35:58] [INFO] Testing autonomous agents...
+[2025-11-09 17:35:58] [SUCCESS] monitoring agent - Status: completed
+[2025-11-09 17:35:58] [SUCCESS] backup agent - Status: completed
+[2025-11-09 17:35:58] [SUCCESS] sync agent - Status: completed
+[2025-11-09 17:35:58] [INFO] Testing DNS resolution...
+[2025-11-09 17:35:58] [ERROR] Test  failed: The property 'api.twisterlab.local' cannot be found on this object. Verify that the property exists and can be set.
+[2025-11-09 17:35:58] [INFO] Testing database connectivity...
+[2025-11-09 17:35:58] [ERROR] PostgreSQL connection failed: PostgreSQL container not found
+[2025-11-09 17:35:59] [ERROR] Redis connection failed: Redis container not found
+[2025-11-09 17:35:59] [INFO] Generating recommendations...
+[2025-11-09 17:35:59] [SUCCESS] Results exported to: debug_report_20251109_173554.json
+[2025-11-09 17:35:59] [INFO] Complete diagnostic finished
+[2025-11-09 17:36:32] [INFO] Starting complete TwisterLab system diagnostic...
+[2025-11-09 17:36:32] [INFO] Testing Docker status...
+[2025-11-09 17:36:32] [SUCCESS] Docker is running - Version: 28.5.2
+[2025-11-09 17:36:32] [INFO] Testing Docker Swarm status...
+[2025-11-09 17:36:32] [SUCCESS] Swarm active - 3/3 nodes ready
+[2025-11-09 17:36:32] [INFO] Testing TwisterLab services...
+[2025-11-09 17:36:32] [INFO] Testing API endpoints...
+[2025-11-09 17:36:32] [ERROR] API Health failed: Cannot validate argument on parameter 'TimeoutSec'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.
+[2025-11-09 17:36:32] [ERROR] Autonomous Status failed: Cannot validate argument on parameter 'TimeoutSec'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.
+[2025-11-09 17:36:32] [ERROR] Agents List failed: Cannot validate argument on parameter 'TimeoutSec'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.
+[2025-11-09 17:36:33] [ERROR] WebUI failed: Cannot validate argument on parameter 'Uri'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again.
+[2025-11-09 17:36:33] [ERROR] Traefik Dashboard failed: Cannot validate argument on parameter 'Uri'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again.
+[2025-11-09 17:36:33] [ERROR] Grafana failed: Cannot validate argument on parameter 'Uri'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again.
+[2025-11-09 17:36:33] [ERROR] Prometheus failed: Cannot validate argument on parameter 'Uri'. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again.
+[2025-11-09 17:36:33] [INFO] Testing autonomous agents...
+[2025-11-09 17:36:33] [ERROR] monitoring agent failed: Cannot validate argument on parameter 'TimeoutSec'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.
+[2025-11-09 17:36:33] [ERROR] backup agent failed: Cannot validate argument on parameter 'TimeoutSec'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.
+[2025-11-09 17:36:33] [ERROR] sync agent failed: Cannot validate argument on parameter 'TimeoutSec'. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.
+[2025-11-09 17:36:33] [INFO] Testing DNS resolution...
+[2025-11-09 17:36:33] [ERROR] Test  failed: The property 'api.twisterlab.local' cannot be found on this object. Verify that the property exists and can be set.
+[2025-11-09 17:36:33] [INFO] Testing database connectivity...
+[2025-11-09 17:36:33] [ERROR] PostgreSQL connection failed: PostgreSQL container not found
+[2025-11-09 17:36:33] [ERROR] Redis connection failed: Redis container not found
+[2025-11-09 17:36:33] [INFO] Generating recommendations...
+[2025-11-09 17:36:33] [SUCCESS] Results exported to: debug_report_20251109_173632.json
+[2025-11-09 17:36:33] [INFO] Complete diagnostic finished

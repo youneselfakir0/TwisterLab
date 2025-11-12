@@ -1,0 +1,212 @@
+groups:
+  - name: twisterlab_alerts
+    rules:
+
+    # API Health Alerts
+    - alert: TwisterLabAPIHighErrorRate
+      expr: rate(http_requests_total{job="twisterlab-api", status=~"5.."}[5m]) / rate(http_requests_total{job="twisterlab-api"}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: critical
+        service: api
+      annotations:
+        summary: "TwisterLab API high error rate ({{ $value | printf \"%.2f\" }})"
+        description: "TwisterLab API error rate > 5% for 5 minutes"
+
+    - alert: TwisterLabAPIUnavailable
+      expr: up{job="twisterlab-api"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        service: api
+      annotations:
+        summary: "TwisterLab API is down"
+        description: "TwisterLab API has been unavailable for 2 minutes"
+
+    - alert: TwisterLabAPIHighLatency
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="twisterlab-api"}[5m])) > 2
+      for: 5m
+      labels:
+        severity: warning
+        service: api
+      annotations:
+        summary: "TwisterLab API high latency ({{ $value | printf \"%.2f\" }}s)"
+        description: "95th percentile API response time > 2s for 5 minutes"
+
+    # Database Alerts
+    - alert: TwisterLabDatabaseDown
+      expr: up{job="postgres-exporter"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        service: database
+      annotations:
+        summary: "TwisterLab PostgreSQL database is down"
+        description: "PostgreSQL database has been unavailable for 2 minutes"
+
+    - alert: TwisterLabDatabaseHighConnections
+      expr: pg_stat_activity_count > 50
+      for: 5m
+      labels:
+        severity: warning
+        service: database
+      annotations:
+        summary: "TwisterLab database high connection count ({{ $value }})"
+        description: "PostgreSQL active connections > 50 for 5 minutes"
+
+    - alert: TwisterLabDatabaseSlowQueries
+      expr: rate(pg_stat_activity_max_tx_duration{datname="twisterlab_prod"}[5m]) > 30
+      for: 5m
+      labels:
+        severity: warning
+        service: database
+      annotations:
+        summary: "TwisterLab database slow queries detected"
+        description: "Long-running queries detected in TwisterLab database"
+
+    # Redis/Cache Alerts
+    - alert: TwisterLabRedisDown
+      expr: up{job="redis-exporter"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        service: cache
+      annotations:
+        summary: "TwisterLab Redis cache is down"
+        description: "Redis cache has been unavailable for 2 minutes"
+
+    - alert: TwisterLabRedisHighMemoryUsage
+      expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        service: cache
+      annotations:
+        summary: "TwisterLab Redis high memory usage ({{ $value | printf \"%.1f\" }}%)"
+        description: "Redis memory usage > 90% for 5 minutes"
+
+    # System Resource Alerts
+    - alert: TwisterLabHighCPUUsage
+      expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+      for: 5m
+      labels:
+        severity: warning
+        service: system
+      annotations:
+        summary: "TwisterLab high CPU usage ({{ $value | printf \"%.1f\" }}%)"
+        description: "System CPU usage > 85% for 5 minutes"
+
+    - alert: TwisterLabHighMemoryUsage
+      expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+      for: 5m
+      labels:
+        severity: warning
+        service: system
+      annotations:
+        summary: "TwisterLab high memory usage ({{ $value | printf \"%.1f\" }}%)"
+        description: "System memory usage > 90% for 5 minutes"
+
+    - alert: TwisterLabLowDiskSpace
+      expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} * 100) < 10
+      for: 5m
+      labels:
+        severity: critical
+        service: system
+      annotations:
+        summary: "TwisterLab low disk space ({{ $value | printf \"%.1f\" }}% free)"
+        description: "Root filesystem has < 10% free space for 5 minutes"
+
+    # Docker/Container Alerts
+    - alert: TwisterLabContainerRestarted
+      expr: increase(container_last_seen{container_label_com_docker_swarm_service_name=~".*"}[5m]) > 0
+      for: 1m
+      labels:
+        severity: warning
+        service: docker
+      annotations:
+        summary: "TwisterLab container restarted"
+        description: "A TwisterLab container has restarted unexpectedly"
+
+    - alert: TwisterLabContainerUnhealthy
+      expr: container_health_status{container_label_com_docker_swarm_service_name=~".*"} != 1
+      for: 2m
+      labels:
+        severity: critical
+        service: docker
+      annotations:
+        summary: "TwisterLab container unhealthy"
+        description: "A TwisterLab container is reporting unhealthy status"
+
+    # Agent-Specific Alerts
+    - alert: TwisterLabAgentHighFailureRate
+      expr: rate(agent_operations_total{status="failed"}[10m]) / rate(agent_operations_total[10m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        service: agents
+      annotations:
+        summary: "TwisterLab agent high failure rate ({{ $value | printf \"%.1f\" }}%)"
+        description: "Agent operations failure rate > 10% for 5 minutes"
+
+    - alert: TwisterLabAgentQueueBacklog
+      expr: agent_queue_size > 100
+      for: 5m
+      labels:
+        severity: warning
+        service: agents
+      annotations:
+        summary: "TwisterLab agent queue backlog ({{ $value }} items)"
+        description: "Agent processing queue has > 100 pending items for 5 minutes"
+
+    # Backup Alerts
+    - alert: TwisterLabBackupFailed
+      expr: backup_status{status="failed"} == 1
+      for: 1m
+      labels:
+        severity: critical
+        service: backup
+      annotations:
+        summary: "TwisterLab backup failed"
+        description: "Automated backup process has failed"
+
+    - alert: TwisterLabBackupOverdue
+      expr: time() - backup_last_success_timestamp > 86400  # 24 hours
+      for: 1h
+      labels:
+        severity: warning
+        service: backup
+      annotations:
+        summary: "TwisterLab backup overdue"
+        description: "No successful backup in the last 24 hours"
+
+    # Ticket Processing Alerts
+    - alert: TwisterLabHighTicketBacklog
+      expr: ticket_queue_size > 50
+      for: 10m
+      labels:
+        severity: warning
+        service: tickets
+      annotations:
+        summary: "TwisterLab high ticket backlog ({{ $value }} tickets)"
+        description: "Unprocessed ticket queue > 50 items for 10 minutes"
+
+    - alert: TwisterLabTicketProcessingStalled
+      expr: rate(ticket_processed_total[15m]) == 0
+      for: 15m
+      labels:
+        severity: critical
+        service: tickets
+      annotations:
+        summary: "TwisterLab ticket processing stalled"
+        description: "No tickets processed in the last 15 minutes"
+
+    # Network/Connectivity Alerts
+    - alert: TwisterLabNetworkConnectivityIssues
+      expr: probe_success{job="blackbox"} == 0
+      for: 5m
+      labels:
+        severity: warning
+        service: network
+      annotations:
+        summary: "TwisterLab network connectivity issues"
+        description: "External connectivity check failed for 5 minutes"

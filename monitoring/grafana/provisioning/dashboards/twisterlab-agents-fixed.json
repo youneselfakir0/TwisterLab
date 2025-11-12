@@ -1,0 +1,138 @@
+﻿{
+  "dashboard": {
+    "id": null,
+    "uid": "twisterlab-agents-fixed",
+    "title": "TwisterLab Agents - Real Metrics (FIXED)",
+    "tags": ["twisterlab", "agents", "fixed"],
+    "timezone": "browser",
+    "schemaVersion": 36,
+    "version": 1,
+    "refresh": "10s",
+    "time": {
+      "from": "now-15m",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Agent Operations (Total)",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0},
+        "datasource": {"type": "prometheus", "uid": "df3qqymva25tsb"},
+        "targets": [{
+          "expr": "sum(agent_operations_total)",
+          "legendFormat": "Total Operations",
+          "refId": "A"
+        }],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "HTTP Requests Total",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0},
+        "datasource": {"type": "prometheus", "uid": "df3qqymva25tsb"},
+        "targets": [{
+          "expr": "sum(http_requests_total)",
+          "legendFormat": "HTTP Requests",
+          "refId": "A"
+        }],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 3,
+        "title": "API Memory Usage (MB)",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0},
+        "datasource": {"type": "prometheus", "uid": "df3qqymva25tsb"},
+        "targets": [{
+          "expr": "process_resident_memory_bytes / 1024 / 1024",
+          "legendFormat": "Memory MB",
+          "refId": "A"
+        }],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decmbytes",
+            "decimals": 1
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Operations by Agent",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+        "datasource": {"type": "prometheus", "uid": "df3qqymva25tsb"},
+        "targets": [{
+          "expr": "sum by(agent) (agent_operations_total)",
+          "legendFormat": "{{agent}}",
+          "refId": "A"
+        }],
+        "options": {
+          "legend": {"displayMode": "table", "placement": "right"}
+        }
+      },
+      {
+        "id": 5,
+        "title": "HTTP Requests by Endpoint",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+        "datasource": {"type": "prometheus", "uid": "df3qqymva25tsb"},
+        "targets": [{
+          "expr": "sum by(endpoint) (http_requests_total)",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }],
+        "options": {
+          "legend": {"displayMode": "table", "placement": "right"}
+        }
+      },
+      {
+        "id": 6,
+        "title": "Agent Success Rate",
+        "type": "bargauge",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+        "datasource": {"type": "prometheus", "uid": "df3qqymva25tsb"},
+        "targets": [{
+          "expr": "sum by(agent) (agent_operations_total{status=\"success\"})",
+          "legendFormat": "{{agent}}",
+          "refId": "A"
+        }],
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "CPU Usage",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+        "datasource": {"type": "prometheus", "uid": "df3qqymva25tsb"},
+        "targets": [{
+          "expr": "rate(process_cpu_seconds_total[1m])",
+          "legendFormat": "CPU Usage",
+          "refId": "A"
+        }]
+      }
+    ]
+  },
+  "overwrite": true
+}

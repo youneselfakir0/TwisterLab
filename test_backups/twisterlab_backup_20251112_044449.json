@@ -1,0 +1,15 @@
+{
+  "backup_id": "20251112_044449",
+  "backup_name": "twisterlab_backup_20251112_044449",
+  "timestamp": "2025-11-12T04:44:49.958321+00:00",
+  "size_bytes": 1332,
+  "size_mb": 0.0,
+  "checksum": "55e2262c56a08296806a18c6431ee83c0150007d7ca8ba2c4b5f49436e73996b",
+  "components": [
+    "postgresql",
+    "redis",
+    "configs"
+  ],
+  "execution_time_seconds": 0.08,
+  "status": "success"
+}

@@ -1,0 +1,136 @@
+﻿{
+    "Issues":  [
+                   "API Health endpoint is not accessible",
+                   "Autonomous Status endpoint is not accessible",
+                   "Agents List endpoint is not accessible",
+                   "WebUI endpoint is not accessible",
+                   "Traefik Dashboard endpoint is not accessible",
+                   "Grafana endpoint is not accessible",
+                   "Prometheus endpoint is not accessible",
+                   "monitoring agent is not responding",
+                   "backup agent is not responding",
+                   "sync agent is not responding",
+                   "Test  execution failed",
+                   "Database connectivity issues",
+                   "Redis connectivity issues"
+               ],
+    "Recommendations":  [
+                            "Address 13 identified issues",
+                            "Check service logs and restart failing containers",
+                            "Verify agent initialization and dependencies"
+                        ],
+    "Agents":  {
+                   "monitoring":  {
+                                      "Error":  "Cannot validate argument on parameter \u0027TimeoutSec\u0027. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.",
+                                      "Status":  "Failed"
+                                  },
+                   "backup":  {
+                                  "Error":  "Cannot validate argument on parameter \u0027TimeoutSec\u0027. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.",
+                                  "Status":  "Failed"
+                              },
+                   "sync":  {
+                                "Error":  "Cannot validate argument on parameter \u0027TimeoutSec\u0027. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.",
+                                "Status":  "Failed"
+                            }
+               },
+    "Timestamp":  "2025-11-09T17:36:32Z",
+    "Services":  {
+                     "Database":  {
+                                      "PostgreSQL":  "Failed",
+                                      "Error":  "PostgreSQL container not found",
+                                      "Redis":  "Failed"
+                                  }
+                 },
+    "System":  {
+                   "Swarm":  {
+                                 "ReadyNodes":  3,
+                                 "Status":  "Active",
+                                 "TotalNodes":  3,
+                                 "Nodes":  [
+                                               {
+                                                   "Availability":  "Active",
+                                                   "EngineVersion":  "28.3.1",
+                                                   "Hostname":  "CoreServer-RTX",
+                                                   "ID":  "nji5xw7se2szt4eqp3d2a1p48",
+                                                   "ManagerStatus":  "Reachable",
+                                                   "Self":  true,
+                                                   "Status":  "Ready",
+                                                   "TLSStatus":  "Ready"
+                                               },
+                                               {
+                                                   "Availability":  "Active",
+                                                   "EngineVersion":  "28.3.1",
+                                                   "Hostname":  "DELL",
+                                                   "ID":  "txlkvt76zi1akns0s8v6ndhsz",
+                                                   "ManagerStatus":  "",
+                                                   "Self":  false,
+                                                   "Status":  "Ready",
+                                                   "TLSStatus":  "Ready"
+                                               },
+                                               {
+                                                   "Availability":  "Active",
+                                                   "EngineVersion":  "28.5.1",
+                                                   "Hostname":  "edgeserver.twisterlab.local",
+                                                   "ID":  "ue0izwj2zd37f074unkxuu2hr",
+                                                   "ManagerStatus":  "Leader",
+                                                   "Self":  false,
+                                                   "Status":  "Ready",
+                                                   "TLSStatus":  "Ready"
+                                               }
+                                           ]
+                             },
+                   "Docker":  {
+                                  "Images":  4,
+                                  "Status":  "Running",
+                                  "Containers":  5,
+                                  "Version":  "28.5.2"
+                              }
+               },
+    "Monitoring":  {
+
+                   },
+    "Endpoints":  {
+                      "Grafana":  {
+                                      "Status":  "Failed",
+                                      "Url":  null,
+                                      "Error":  "Cannot validate argument on parameter \u0027Uri\u0027. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again.",
+                                      "Type":  "monitoring"
+                                  },
+                      "Prometheus":  {
+                                         "Status":  "Failed",
+                                         "Url":  null,
+                                         "Error":  "Cannot validate argument on parameter \u0027Uri\u0027. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again.",
+                                         "Type":  "monitoring"
+                                     },
+                      "Traefik_Dashboard":  {
+                                                "Status":  "Failed",
+                                                "Url":  null,
+                                                "Error":  "Cannot validate argument on parameter \u0027Uri\u0027. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again.",
+                                                "Type":  "traefik"
+                                            },
+                      "Autonomous_Status":  {
+                                                "Status":  "Failed",
+                                                "Url":  "/api/v1/autonomous/status",
+                                                "Error":  "Cannot validate argument on parameter \u0027TimeoutSec\u0027. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.",
+                                                "Type":  "api"
+                                            },
+                      "Agents_List":  {
+                                          "Status":  "Failed",
+                                          "Url":  "/api/v1/autonomous/agents",
+                                          "Error":  "Cannot validate argument on parameter \u0027TimeoutSec\u0027. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.",
+                                          "Type":  "api"
+                                      },
+                      "API_Health":  {
+                                         "Status":  "Failed",
+                                         "Url":  "/health",
+                                         "Error":  "Cannot validate argument on parameter \u0027TimeoutSec\u0027. The argument is null, empty, or an element of the argument collection contains a null value. Supply a collection that does not contain any null values and then try the command again.",
+                                         "Type":  "api"
+                                     },
+                      "WebUI":  {
+                                    "Status":  "Failed",
+                                    "Url":  null,
+                                    "Error":  "Cannot validate argument on parameter \u0027Uri\u0027. The argument is null or empty. Provide an argument that is not null or empty, and then try the command again.",
+                                    "Type":  "webui"
+                                }
+                  }
+}

@@ -1,0 +1,199 @@
+[tool.ruff]
+# Ruff configuration: adjust rules and excluded paths
+
+[tool.ruff.lint]
+extend-ignore = [
+    "E203"
+]
+exclude = [
+    " .venv",
+    " .venv_new",
+    " test_venv",
+    "old",
+    "twisterlab.egg-info",
+    "venv",
+    "env",
+    "__pycache__"
+]
+
+## Only one [build-system] section allowed
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "twisterlab"
+version = "1.0.0-alpha.1"
+description = "AI-Powered IT Helpdesk Automation Platform"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.12"
+authors = [
+    {name = "TwisterLab Team", email = "admin@twisterlab.local"}
+]
+maintainers = [
+    {name = "TwisterLab Team", email = "admin@twisterlab.local"}
+]
+keywords = ["ai", "helpdesk", "automation", "mcp", "agents"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.23.0",
+    "pydantic>=2.0.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "ollama>=0.1.0",
+    "redis>=4.5.0",
+    "psycopg2-binary>=2.9.0",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.12.0",
+    "python-multipart>=0.0.6",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.25.0",
+    "structlog>=23.0.0",
+    "prometheus-client>=0.17.0",
+    "websockets>=12.0",
+    "asyncio-mqtt>=0.13.0",
+    "cryptography>=41.0.0",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.0.0"
+]
+azure = [
+    "azure-identity>=1.12.0",
+    "azure-keyvault-secrets>=4.7.0",
+    "azure-storage-blob>=12.17.0",
+    "azure-cosmos>=4.5.0",
+    "azure-functions>=1.16.0",
+    "azure-monitor-opentelemetry>=1.0.0"
+]
+
+[project.urls]
+Homepage = "https://twisterlab.local"
+Documentation = "https://docs.twisterlab.local"
+Repository = "https://github.com/twisterlab/twisterlab"
+Issues = "https://github.com/twisterlab/twisterlab/issues"
+Changelog = "https://github.com/twisterlab/twisterlab/blob/main/CHANGELOG.md"
+
+[project.scripts]
+twisterlab = "cli.twisterlab:main"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agents*", "cli*", "mcp*", "openwebui*"]
+exclude = ["tests*", "docs*", "deployment*", "old*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "ollama.*",
+    "redis.*",
+    "psycopg2.*"
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow running tests",
+    "azure: Tests requiring Azure resources"
+]
+
+[tool.coverage.run]
+source = ["agents", "cli", "mcp"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/conftest.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError"
+]

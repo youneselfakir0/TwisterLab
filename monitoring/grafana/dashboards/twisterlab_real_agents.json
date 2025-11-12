@@ -1,0 +1,295 @@
+{
+  "dashboard": {
+    "title": "TwisterLab Real Agents Monitoring",
+    "tags": ["twisterlab", "agents", "real", "autonomous"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "time": {
+      "from": "now-30m",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Agent Execution Count (Last Hour)",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(increase(agent_executions_total[1h]))",
+            "legendFormat": "Total Executions"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 2,
+        "title": "Agent Success Rate",
+        "type": "gauge",
+        "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(rate(agent_executions_success_total[5m])) / sum(rate(agent_executions_total[5m])) * 100",
+            "legendFormat": "Success %"
+          }
+        ],
+        "options": {
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": 0, "color": "red"},
+              {"value": 80, "color": "yellow"},
+              {"value": 95, "color": "green"}
+            ]
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Active Agents",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "count(agent_health_status == 1)",
+            "legendFormat": "Healthy Agents"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Average Execution Time",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "avg(agent_execution_duration_seconds)",
+            "legendFormat": "Avg Time (s)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Executions by Agent",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(agent_executions_total{agent_name=~\".*\"}[1m])",
+            "legendFormat": "{{agent_name}}"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Agent Health Status",
+        "type": "table",
+        "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "agent_health_status",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "agent_name": "Agent",
+                "Value": "Status"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Execution Duration by Agent",
+        "type": "heatmap",
+        "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "agent_execution_duration_seconds",
+            "legendFormat": "{{agent_name}}"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Success vs Error Rate",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(agent_executions_success_total[1m])",
+            "legendFormat": "Success - {{agent_name}}"
+          },
+          {
+            "expr": "rate(agent_executions_error_total[1m])",
+            "legendFormat": "Error - {{agent_name}}"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "MonitoringAgent - System Metrics",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 20, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "monitoring_agent_cpu_percent",
+            "legendFormat": "CPU %"
+          },
+          {
+            "expr": "monitoring_agent_memory_percent",
+            "legendFormat": "Memory %"
+          },
+          {
+            "expr": "monitoring_agent_disk_percent",
+            "legendFormat": "Disk %"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "BackupAgent - Backup Statistics",
+        "type": "stat",
+        "gridPos": {"x": 8, "y": 20, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "backup_agent_total_backups",
+            "legendFormat": "Total Backups"
+          },
+          {
+            "expr": "backup_agent_last_backup_size_mb",
+            "legendFormat": "Last Backup Size (MB)"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "SyncAgent - Consistency Status",
+        "type": "gauge",
+        "gridPos": {"x": 16, "y": 20, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "sync_agent_consistency_percentage",
+            "legendFormat": "Consistency %"
+          }
+        ],
+        "options": {
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": 0, "color": "red"},
+              {"value": 90, "color": "yellow"},
+              {"value": 99, "color": "green"}
+            ]
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "ClassifierAgent - Classification Distribution",
+        "type": "piechart",
+        "gridPos": {"x": 0, "y": 26, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "sum by (category) (classifier_agent_classifications_total)",
+            "legendFormat": "{{category}}"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "ResolverAgent - SOP Execution Success Rate",
+        "type": "bargauge",
+        "gridPos": {"x": 8, "y": 26, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "sum by (sop_id) (resolver_agent_sop_success_total) / sum by (sop_id) (resolver_agent_sop_executions_total) * 100",
+            "legendFormat": "{{sop_id}}"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        }
+      },
+      {
+        "id": 14,
+        "title": "MaestroAgent - Orchestration Workflows",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 26, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(maestro_agent_workflows_total[5m])",
+            "legendFormat": "Workflows/s"
+          },
+          {
+            "expr": "maestro_agent_healthy_agents",
+            "legendFormat": "Healthy Agents"
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Scheduler Statistics",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 32, "w": 24, "h": 8},
+        "targets": [
+          {
+            "expr": "scheduler_task_executions_total",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "scheduler_task_last_execution_timestamp",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "merge"
+          },
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "task_name": "Scheduled Task",
+                "Value #A": "Total Executions",
+                "Value #B": "Last Execution"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}

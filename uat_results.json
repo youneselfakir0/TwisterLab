@@ -1,0 +1,104 @@
+{
+  "timestamp": "2025-11-09T21:49:30.821170",
+  "total_scenarios": 12,
+  "passed": 0,
+  "failed": 12,
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "Outlook Connection Issues",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.2660000000032596,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 2,
+      "name": "WiFi Connection Problems",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.25,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 3,
+      "name": "Printer Not Working",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.25,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 4,
+      "name": "Password Reset Request",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.25,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 5,
+      "name": "VPN Connection Failure",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.25,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 6,
+      "name": "Software Installation Request",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.25,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 7,
+      "name": "Slow Computer Performance",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.264999999999418,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 8,
+      "name": "File Share Access Denied",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.25,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 9,
+      "name": "Blue Screen of Death (BSOD)",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.25,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 10,
+      "name": "Email Attachment Blocked",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.25,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 11,
+      "name": "Malware Detection Alert",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.25,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    },
+    {
+      "id": 12,
+      "name": "Microsoft Office Activation",
+      "status": "failed",
+      "ticket_id": "",
+      "execution_time": 2.25,
+      "error": "Cannot connect to host localhost:8001 ssl:default [The remote computer refused the network connection]"
+    }
+  ]
+}

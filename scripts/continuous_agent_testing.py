@@ -72,7 +72,7 @@ AGENT_WORKLOAD_DISTRIBUTION = {
 
 class AgentLoadTester:
     """Realistic load tester for TwisterLab agents."""
-    
+
     def __init__(self):
         self.session: aiohttp.ClientSession = None
         self.ticket_counter = 1000
@@ -84,24 +84,24 @@ class AgentLoadTester:
             "start_time": None,
             "errors": [],
         }
-    
+
     async def __aenter__(self):
         """Async context manager entry."""
         self.session = aiohttp.ClientSession()
         self.stats["start_time"] = datetime.now()
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         if self.session:
             await self.session.close()
-    
+
     def _get_next_ticket_id(self) -> str:
         """Generate unique ticket ID."""
         ticket_id = f"T-{self.ticket_counter:06d}"
         self.ticket_counter += 1
         return ticket_id
-    
+
     async def execute_agent_operation(
         self,
         agent_name: str,
@@ -109,7 +109,7 @@ class AgentLoadTester:
         data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute a single agent operation."""
-        
+
         # Replace placeholders in data
         processed_data = {}
         for key, value in data.items():
@@ -120,17 +120,17 @@ class AgentLoadTester:
                     processed_data[key] = value.format(random.randint(1000, 9999))
             else:
                 processed_data[key] = value
-        
+
         url = f"{API_BASE_URL}/api/v1/autonomous/agents/{agent_name}/execute"
         payload = {
             "operation": operation,
             "data": processed_data
         }
-        
+
         try:
             async with self.session.post(url, json=payload, timeout=30) as response:
                 result = await response.json()
-                
+
                 # Update stats
                 self.stats["total_operations"] += 1
                 if result.get("status") == "success":
@@ -143,7 +143,7 @@ class AgentLoadTester:
                         "error": result.get("result", "Unknown error"),
                         "timestamp": datetime.now().isoformat()
                     })
-                
+
                 # Track per-agent stats
                 if agent_name not in self.stats["operations_by_agent"]:
                     self.stats["operations_by_agent"][agent_name] = {
@@ -151,15 +151,15 @@ class AgentLoadTester:
                         "success": 0,
                         "failed": 0
                     }
-                
+
                 self.stats["operations_by_agent"][agent_name]["total"] += 1
                 if result.get("status") == "success":
                     self.stats["operations_by_agent"][agent_name]["success"] += 1
                 else:
                     self.stats["operations_by_agent"][agent_name]["failed"] += 1
-                
+
                 return result
-        
+
         except asyncio.TimeoutError:
             self.stats["total_operations"] += 1
             self.stats["failed_operations"] += 1
@@ -170,7 +170,7 @@ class AgentLoadTester:
                 "timestamp": datetime.now().isoformat()
             })
             return {"status": "error", "error": "Timeout"}
-        
+
         except Exception as e:
             self.stats["total_operations"] += 1
             self.stats["failed_operations"] += 1
@@ -181,7 +181,7 @@ class AgentLoadTester:
                 "timestamp": datetime.now().isoformat()
             })
             return {"status": "error", "error": str(e)}
-    
+
     async def run_realistic_workload(
         self,
         duration_minutes: int = 5,
@@ -189,7 +189,7 @@ class AgentLoadTester:
     ):
         """
         Run realistic workload based on typical helpdesk patterns.
-        
+
         Args:
             duration_minutes: How long to run the test
             operations_per_minute: Target operations per minute (default: 12 = 1 ticket every 5 seconds)
@@ -202,27 +202,27 @@ class AgentLoadTester:
         print(f"   - Target rate: {operations_per_minute} operations/minute")
         print(f"   - Expected total: ~{duration_minutes * operations_per_minute} operations")
         print(f"{'='*80}\n")
-        
+
         end_time = time.time() + (duration_minutes * 60)
         interval = 60 / operations_per_minute  # Seconds between operations
-        
+
         operation_count = 0
-        
+
         while time.time() < end_time:
             # Select agent based on workload distribution
             agent_name = self._select_agent_by_distribution()
-            
+
             # Select random scenario for this agent
             scenarios = REALISTIC_SCENARIOS.get(agent_name, [])
             if not scenarios:
                 continue
-            
+
             scenario = random.choice(scenarios)
-            
+
             # Execute operation
             operation_count += 1
             print(f"[{operation_count:03d}] 🤖 {agent_name:25s} → {scenario['operation']:20s} ", end="")
-            
+
             start = time.time()
             result = await self.execute_agent_operation(
                 agent_name,
@@ -230,35 +230,35 @@ class AgentLoadTester:
                 scenario["data"]
             )
             duration = time.time() - start
-            
+
             # Print result
             status_icon = "✅" if result.get("status") == "success" else "❌"
             print(f"{status_icon} ({duration*1000:.1f}ms)")
-            
+
             # Wait for next operation (with small random jitter)
             jitter = random.uniform(-0.2, 0.2) * interval
             await asyncio.sleep(max(0.1, interval + jitter))
-        
+
         # Print final stats
         self._print_final_stats()
-    
+
     def _select_agent_by_distribution(self) -> str:
         """Select agent based on realistic workload distribution."""
         rand = random.randint(1, 100)
         cumulative = 0
-        
+
         for agent, percentage in AGENT_WORKLOAD_DISTRIBUTION.items():
             cumulative += percentage
             if rand <= cumulative:
                 return agent
-        
+
         # Fallback
         return "classifieragent"
-    
+
     def _print_final_stats(self):
         """Print comprehensive test statistics."""
         duration = (datetime.now() - self.stats["start_time"]).total_seconds()
-        
+
         print(f"\n{'='*80}")
         print(f"📈 TEST RESULTS SUMMARY")
         print(f"{'='*80}")
@@ -270,36 +270,36 @@ class AgentLoadTester:
         print(f"\n{'='*80}")
         print(f"📋 PER-AGENT BREAKDOWN")
         print(f"{'='*80}")
-        
+
         for agent, stats in sorted(self.stats["operations_by_agent"].items()):
             success_rate = stats["success"] / max(1, stats["total"]) * 100
             print(f"  {agent:25s}: {stats['total']:4d} ops ({stats['success']:4d} ✅ / {stats['failed']:4d} ❌) - {success_rate:.1f}% success")
-        
+
         if self.stats["errors"]:
             print(f"\n{'='*80}")
             print(f"⚠️  ERRORS ENCOUNTERED ({len(self.stats['errors'])} total)")
             print(f"{'='*80}")
-            
+
             # Show last 10 errors
             for error in self.stats["errors"][-10:]:
                 print(f"  [{error['timestamp']}] {error['agent']:20s} - {error['operation']:15s}: {error['error']}")
-        
+
         print(f"\n{'='*80}")
         print(f"✅ TEST COMPLETED")
         print(f"{'='*80}\n")
-        
+
         # Save stats to file
         stats_file = f"load_test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         with open(stats_file, 'w') as f:
             json.dump(self.stats, f, indent=2, default=str)
         print(f"📁 Results saved to: {stats_file}\n")
-    
+
     async def check_prometheus_metrics(self):
         """Query Prometheus for current agent metrics."""
         print(f"\n{'='*80}")
         print(f"📊 PROMETHEUS METRICS SNAPSHOT")
         print(f"{'='*80}")
-        
+
         queries = {
             "Total Operations": 'sum(agent_operations_total)',
             "Success Rate": 'sum(agent_operations_total{status="success"}) / sum(agent_operations_total) * 100',
@@ -307,7 +307,7 @@ class AgentLoadTester:
             "Avg Execution Time": 'avg(rate(agent_execution_duration_seconds_sum[5m]) / rate(agent_execution_duration_seconds_count[5m]))',
             "Active Agents": 'active_agents_count',
         }
-        
+
         try:
             for metric_name, query in queries.items():
                 async with self.session.get(
@@ -315,23 +315,23 @@ class AgentLoadTester:
                     params={"query": query}
                 ) as response:
                     result = await response.json()
-                    
+
                     if result.get("data", {}).get("result"):
                         value = result["data"]["result"][0]["value"][1]
                         print(f"  {metric_name:25s}: {value}")
                     else:
                         print(f"  {metric_name:25s}: No data")
-        
+
         except Exception as e:
             print(f"  ⚠️  Error querying Prometheus: {e}")
-        
+
         print(f"{'='*80}\n")
 
 
 async def main():
     """Main entry point."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="TwisterLab Realistic Agent Load Tester")
     parser.add_argument(
         "--duration",
@@ -350,20 +350,20 @@ async def main():
         action="store_true",
         help="Check Prometheus metrics before and after test"
     )
-    
+
     args = parser.parse_args()
-    
+
     async with AgentLoadTester() as tester:
         if args.check_metrics:
             print("\n🔍 PRE-TEST METRICS CHECK")
             await tester.check_prometheus_metrics()
             await asyncio.sleep(2)
-        
+
         await tester.run_realistic_workload(
             duration_minutes=args.duration,
             operations_per_minute=args.rate
         )
-        
+
         if args.check_metrics:
             print("\n🔍 POST-TEST METRICS CHECK")
             await asyncio.sleep(2)  # Wait for Prometheus scrape

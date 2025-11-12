@@ -42,12 +42,12 @@ docker build \
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Image buildée avec succès${NC}"
     echo ""
-    
+
     # Afficher les images
     echo -e "${YELLOW}📦 Images créées:${NC}"
     docker images | grep "${IMAGE_NAME}"
     echo ""
-    
+
     echo -e "${GREEN}✅ REBUILD TERMINÉ${NC}"
     echo ""
     echo "Pour redéployer:"

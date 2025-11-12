@@ -1,0 +1,206 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "TwisterLab System Overview",
+    "tags": ["twisterlab", "production", "autonomous-agents"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "API Response Time (95th percentile)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"twisterlab-api\"}[5m]))",
+            "legendFormat": "95th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"twisterlab-api\"}[5m]))",
+            "legendFormat": "50th percentile",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {"format": "s", "label": "Response Time"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Agent Operations Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(agent_operations_total[5m])",
+            "legendFormat": "{{agent}} operations/min",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {"format": "ops", "label": "Operations/min"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Database Connections",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 8, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "pg_stat_activity_count{datname=\"twisterlab_prod\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 80}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Redis Memory Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+        "targets": [
+          {
+            "expr": "redis_memory_used_bytes / redis_memory_max_bytes * 100",
+            "legendFormat": "Memory usage %",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {"format": "percent", "label": "Memory Usage"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Agent Health Status",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+        "targets": [
+          {
+            "expr": "agent_health_status",
+            "legendFormat": "{{agent}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "1": {"text": "Healthy", "color": "green"},
+                  "0": {"text": "Unhealthy", "color": "red"}
+                },
+                "type": "value"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "System Load Average",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "node_load1",
+            "legendFormat": "1m load",
+            "refId": "A"
+          },
+          {
+            "expr": "node_load5",
+            "legendFormat": "5m load",
+            "refId": "B"
+          },
+          {
+            "expr": "node_load15",
+            "legendFormat": "15m load",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Disk Usage",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "(node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100",
+            "legendFormat": "{{mountpoint}} usage %",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {"format": "percent", "label": "Disk Usage"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Container Restarts",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 22},
+        "targets": [
+          {
+            "expr": "increase(container_restart_count[5m])",
+            "legendFormat": "{{container}} restarts",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Network Traffic",
+        "type": "graph",
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 22},
+        "targets": [
+          {
+            "expr": "rate(container_network_receive_bytes_total[5m])",
+            "legendFormat": "{{container}} RX",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(container_network_transmit_bytes_total[5m])",
+            "legendFormat": "{{container}} TX",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {"format": "Bps", "label": "Network Traffic"},
+          {"format": "short"}
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+}

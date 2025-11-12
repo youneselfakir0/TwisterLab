@@ -433,6 +433,12 @@ class MCPServerContinue:
         """List available resources"""
         resources = [
             {
+                "uri": "twisterlab://agents/registry",
+                "name": "Agents Registry",
+                "description": "Complete list of all 7 real autonomous agents with module paths and capabilities",
+                "mimeType": "application/json"
+            },
+            {
                 "uri": "twisterlab://system/health",
                 "name": "System Health",
                 "description": "Current TwisterLab system status",
@@ -443,6 +449,12 @@ class MCPServerContinue:
                 "name": "Agent Status",
                 "description": "Status of all agents",
                 "mimeType": "application/json"
+            },
+            {
+                "uri": "twisterlab://docs/quickstart",
+                "name": "Quick Start Guide",
+                "description": "How to use TwisterLab agents via MCP",
+                "mimeType": "text/markdown"
             }
         ]
 
@@ -452,7 +464,90 @@ class MCPServerContinue:
         """Read resource content"""
         uri = params.get("uri", "")
 
-        if uri == "twisterlab://system/health":
+        if uri == "twisterlab://agents/registry":
+            content = json.dumps({
+                "version": "2.0.0",
+                "total_agents": 7,
+                "base_class": "agents.base.TwisterAgent",
+                "agents": [
+                    {
+                        "name": "RealMonitoringAgent",
+                        "module": "agents.real.real_monitoring_agent",
+                        "file": "agents/real/real_monitoring_agent.py",
+                        "mcp_tool": "monitor_system_health",
+                        "description": "System health monitoring (CPU, RAM, disk, Docker services)",
+                        "capabilities": ["cpu_monitoring", "ram_monitoring", "disk_monitoring", "docker_health"],
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealBackupAgent",
+                        "module": "agents.real.real_backup_agent",
+                        "file": "agents/real/real_backup_agent.py",
+                        "mcp_tool": "create_backup",
+                        "description": "Automated backups with disaster recovery (PostgreSQL, Redis, configs)",
+                        "capabilities": ["postgres_backup", "redis_backup", "config_backup", "incremental_backup"],
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealSyncAgent",
+                        "module": "agents.real.real_sync_agent",
+                        "file": "agents/real/real_sync_agent.py",
+                        "mcp_tool": "sync_cache",
+                        "description": "Cache/Database synchronization (Redis ↔ PostgreSQL)",
+                        "capabilities": ["redis_sync", "postgres_sync", "conflict_resolution"],
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealClassifierAgent",
+                        "module": "agents.real.real_classifier_agent",
+                        "file": "agents/real/real_classifier_agent.py",
+                        "mcp_tool": "classify_ticket",
+                        "description": "Ticket classification using Ollama LLM (llama3.2:1b)",
+                        "capabilities": ["llm_classification", "confidence_scoring", "priority_assignment"],
+                        "categories": ["network", "hardware", "software", "account", "email"],
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealResolverAgent",
+                        "module": "agents.real.real_resolver_agent",
+                        "file": "agents/real/real_resolver_agent.py",
+                        "mcp_tool": "resolve_ticket",
+                        "description": "SOP-based ticket resolution (network, hardware, software, account, email)",
+                        "capabilities": ["sop_execution", "troubleshooting", "guided_resolution"],
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealDesktopCommanderAgent",
+                        "module": "agents.real.real_desktop_commander_agent",
+                        "file": "agents/real/real_desktop_commander_agent.py",
+                        "mcp_tool": "execute_desktop_command",
+                        "description": "Remote system command execution (PowerShell, Bash, SSH)",
+                        "capabilities": ["powershell_execution", "bash_execution", "ssh_commands", "command_whitelisting"],
+                        "status": "operational",
+                        "security": "whitelisted_commands_only"
+                    },
+                    {
+                        "name": "RealMaestroAgent",
+                        "module": "agents.real.real_maestro_agent",
+                        "file": "agents/real/real_maestro_agent.py",
+                        "mcp_tool": null,
+                        "description": "Workflow orchestration and load balancing (agent coordination)",
+                        "capabilities": ["workflow_orchestration", "load_balancing", "state_persistence", "error_recovery"],
+                        "status": "operational"
+                    }
+                ],
+                "infrastructure": {
+                    "database": "PostgreSQL 16",
+                    "cache": "Redis 7",
+                    "llm": "Ollama (llama3.2:1b, llama3:latest)",
+                    "deployment": "Docker Swarm",
+                    "monitoring": "Prometheus + Grafana"
+                },
+                "api_base": "http://192.168.0.30:8000",
+                "mcp_protocol": "2024-11-05"
+            }, indent=2)
+
+        elif uri == "twisterlab://system/health":
             content = json.dumps({
                 "status": "degraded",
                 "api_service": "offline",
@@ -463,10 +558,66 @@ class MCPServerContinue:
 
         elif uri == "twisterlab://agents/status":
             content = json.dumps({
-                "agents": ["classifier", "resolver", "monitoring", "backup", "sync"],
+                "agents": ["RealMonitoring", "RealBackup", "RealSync", "RealClassifier", "RealResolver", "RealDesktopCommander", "RealMaestro"],
                 "status": "mock_mode",
                 "note": "API service offline - using mock responses"
             }, indent=2)
+
+        elif uri == "twisterlab://docs/quickstart":
+            content = """# TwisterLab MCP Quick Start
+
+## Available Tools
+
+1. **list_autonomous_agents** - List all 7 agents
+   ```
+   @mcp list_autonomous_agents
+   ```
+
+2. **monitor_system_health** - Check system health
+   ```
+   @mcp monitor_system_health
+   ```
+
+3. **create_backup** - Create backups
+   ```
+   @mcp create_backup
+   ```
+
+4. **sync_cache** - Sync Redis ↔ PostgreSQL
+   ```
+   @mcp sync_cache
+   ```
+
+5. **classify_ticket** - Classify helpdesk tickets
+   ```
+   @mcp classify_ticket "WiFi not working"
+   ```
+
+6. **resolve_ticket** - Get resolution steps
+   ```
+   @mcp resolve_ticket --category=network --description="No internet"
+   ```
+
+7. **execute_desktop_command** - Run remote commands
+   ```
+   @mcp execute_desktop_command --command="Get-Service Docker" --target=192.168.0.30
+   ```
+
+## Resources
+
+- `twisterlab://agents/registry` - Full agent documentation
+- `twisterlab://system/health` - System status
+- `twisterlab://agents/status` - Agent status
+
+## Files
+
+- Base class: `agents/base.py` (TwisterAgent)
+- Real agents: `agents/real/*.py`
+- MCP server: `agents/mcp/mcp_server_continue_sync.py`
+"""
+
+        else:
+            content = json.dumps({"error": f"Unknown resource: {uri}"}, indent=2)
 
         else:
             return self._error_response(request_id, -32602, f"Unknown resource: {uri}")

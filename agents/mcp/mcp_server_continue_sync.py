@@ -107,22 +107,57 @@ class MCPServerContinue:
         }
 
     def _handle_tools_list(self, request_id: int) -> Dict:
-        """List available tools"""
+        """List available tools - ALL 7 REAL TwisterLab agents"""
         tools = [
             {
-                "name": "classify_ticket",
-                "description": "Classify IT helpdesk ticket (network, hardware, software, account, email)",
+                "name": "list_autonomous_agents",
+                "description": "List all 7 production autonomous agents (RealMonitoring, RealBackup, RealSync, RealClassifier, RealResolver, RealDesktopCommander, RealMaestro)",
+                "inputSchema": {"type": "object", "properties": {}}
+            },
+            {
+                "name": "monitor_system_health",
+                "description": "RealMonitoringAgent - Check system health (CPU, RAM, disk, Docker services)",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "ticket_text": {"type": "string", "description": "Ticket text"}
+                        "detailed": {"type": "boolean", "description": "Include detailed metrics"}
+                    }
+                }
+            },
+            {
+                "name": "create_backup",
+                "description": "RealBackupAgent - Create PostgreSQL/Redis/config backup with disaster recovery",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "backup_type": {"type": "string", "enum": ["full", "incremental", "config_only"]}
+                    }
+                }
+            },
+            {
+                "name": "sync_cache",
+                "description": "RealSyncAgent - Synchronize Redis cache with PostgreSQL database",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "force": {"type": "boolean", "description": "Force full resync"}
+                    }
+                }
+            },
+            {
+                "name": "classify_ticket",
+                "description": "RealClassifierAgent - Classify IT helpdesk ticket using Ollama LLM",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "ticket_text": {"type": "string", "description": "Ticket description"}
                     },
                     "required": ["ticket_text"]
                 }
             },
             {
                 "name": "resolve_ticket",
-                "description": "Get resolution steps from SOP database",
+                "description": "RealResolverAgent - Execute SOP resolution steps for ticket category",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -134,20 +169,18 @@ class MCPServerContinue:
                 }
             },
             {
-                "name": "monitor_system_health",
-                "description": "Check TwisterLab system health (CPU, RAM, disk, Docker)",
-                "inputSchema": {"type": "object", "properties": {}}
-            },
-            {
-                "name": "create_backup",
-                "description": "Create database/config backup",
+                "name": "execute_desktop_command",
+                "description": "RealDesktopCommanderAgent - Execute system commands on remote machines (PowerShell/Bash)",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "backup_type": {"type": "string", "enum": ["full", "incremental"]}
-                    }
+                        "command": {"type": "string", "description": "Command to execute"},
+                        "target_host": {"type": "string", "description": "Target hostname/IP"},
+                        "timeout": {"type": "integer", "description": "Timeout in seconds"}
+                    },
+                    "required": ["command", "target_host"]
                 }
-            },
+            }
         ]
 
         return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": tools}}
@@ -184,10 +217,13 @@ class MCPServerContinue:
     def _call_api(self, tool_name: str, arguments: Dict) -> Dict:
         """Call real TwisterLab API"""
         endpoint_map = {
+            "list_autonomous_agents": "/v1/mcp/tools/list_autonomous_agents",
+            "monitor_system_health": "/v1/mcp/tools/monitor_system_health",
+            "create_backup": "/v1/mcp/tools/create_backup",
+            "sync_cache": "/v1/mcp/tools/sync_cache",
             "classify_ticket": "/v1/mcp/tools/classify_ticket",
             "resolve_ticket": "/v1/mcp/tools/resolve_ticket",
-            "monitor_system_health": "/v1/mcp/tools/monitor_system_health",
-            "create_backup": "/v1/mcp/tools/create_backup"
+            "execute_desktop_command": "/v1/mcp/tools/execute_desktop_command"
         }
         
         endpoint = endpoint_map.get(tool_name)
@@ -195,7 +231,9 @@ class MCPServerContinue:
             raise ValueError(f"Unknown tool: {tool_name}")
         
         # Map arguments to API format
-        if tool_name == "classify_ticket":
+        if tool_name == "list_autonomous_agents":
+            payload = {}  # No arguments needed
+        elif tool_name == "classify_ticket":
             payload = {
                 "description": arguments.get("ticket_text", ""),
                 "priority": arguments.get("priority")
@@ -213,6 +251,16 @@ class MCPServerContinue:
         elif tool_name == "create_backup":
             payload = {
                 "backup_type": arguments.get("backup_type", "full")
+            }
+        elif tool_name == "sync_cache":
+            payload = {
+                "force": arguments.get("force", False)
+            }
+        elif tool_name == "execute_desktop_command":
+            payload = {
+                "command": arguments.get("command"),
+                "target_host": arguments.get("target_host"),
+                "timeout": arguments.get("timeout", 30)
             }
         else:
             payload = arguments
@@ -245,7 +293,59 @@ class MCPServerContinue:
     def _get_mock_response(self, tool_name: str, arguments: Dict) -> Dict:
         """Fallback mock responses"""
         # Mock responses (used when API is unreachable)
-        if tool_name == "classify_ticket":
+        if tool_name == "list_autonomous_agents":
+            result = {
+                "status": "success",
+                "mode": "MOCK",
+                "agents": [
+                    {
+                        "name": "RealMonitoringAgent",
+                        "module": "agents.real.real_monitoring_agent",
+                        "description": "System health monitoring (CPU, RAM, disk, Docker services)",
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealBackupAgent",
+                        "module": "agents.real.real_backup_agent",
+                        "description": "Automated backups with disaster recovery (PostgreSQL, Redis, configs)",
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealSyncAgent",
+                        "module": "agents.real.real_sync_agent",
+                        "description": "Cache/Database synchronization (Redis ↔ PostgreSQL)",
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealClassifierAgent",
+                        "module": "agents.real.real_classifier_agent",
+                        "description": "Ticket classification using Ollama LLM (llama3.2:1b)",
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealResolverAgent",
+                        "module": "agents.real.real_resolver_agent",
+                        "description": "SOP-based ticket resolution (network, hardware, software, account, email)",
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealDesktopCommanderAgent",
+                        "module": "agents.real.real_desktop_commander_agent",
+                        "description": "Remote system command execution (PowerShell, Bash, SSH)",
+                        "status": "operational"
+                    },
+                    {
+                        "name": "RealMaestroAgent",
+                        "module": "agents.real.real_maestro_agent",
+                        "description": "Workflow orchestration and load balancing (agent coordination)",
+                        "status": "operational"
+                    }
+                ],
+                "total": 7,
+                "note": "⚠️ Mock response - API service offline. Real agents defined in agents/real/"
+            }
+        
+        elif tool_name == "classify_ticket":
             ticket_text = arguments.get("ticket_text", "")
             result = {
                 "status": "success",
@@ -294,6 +394,30 @@ class MCPServerContinue:
                 "backup_location": "/backups/mock_backup.tar.gz",
                 "mode": "MOCK",
                 "note": "⚠️ Mock response - API service offline"
+            }
+        
+        elif tool_name == "sync_cache":
+            result = {
+                "status": "success",
+                "agent": "RealSyncAgent",
+                "synced_keys": 42,
+                "duration_ms": 150,
+                "mode": "MOCK",
+                "note": "⚠️ Mock response - API service offline"
+            }
+        
+        elif tool_name == "execute_desktop_command":
+            command = arguments.get("command", "unknown")
+            target = arguments.get("target_host", "unknown")
+            result = {
+                "status": "success",
+                "agent": "RealDesktopCommanderAgent",
+                "command": command,
+                "target_host": target,
+                "output": f"Mock output for: {command}",
+                "exit_code": 0,
+                "mode": "MOCK",
+                "note": "⚠️ Mock response - API service offline. Real execution disabled."
             }
 
         else:

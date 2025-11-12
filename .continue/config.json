@@ -1,0 +1,79 @@
+{
+  "models": [
+    {
+      "title": "Llama 3.2 (1B) - Chat Rapide",
+      "provider": "ollama",
+      "model": "llama3.2:1b",
+      "apiBase": "http://localhost:11434"
+    },
+    {
+      "title": "Llama 3 (8B) - Chat Avancé",
+      "provider": "ollama",
+      "model": "llama3:latest",
+      "apiBase": "http://localhost:11434"
+    },
+    {
+      "title": "DeepSeek R1 - Raisonnement",
+      "provider": "ollama",
+      "model": "deepseek-r1:latest",
+      "apiBase": "http://localhost:11434"
+    },
+    {
+      "title": "CodeLlama - Génération Code",
+      "provider": "ollama",
+      "model": "codellama:latest",
+      "apiBase": "http://localhost:11434"
+    },
+    {
+      "title": "Qwen 3 (8B) - Refactoring",
+      "provider": "ollama",
+      "model": "qwen3:8b",
+      "apiBase": "http://localhost:11434"
+    },
+    {
+      "title": "GPT-OSS (120B) - Cloud Gratuit",
+      "provider": "ollama",
+      "model": "gpt-oss:120b-cloud",
+      "apiBase": "http://localhost:11434"
+    }
+  ],
+  "tabAutocompleteModel": {
+    "title": "CodeLlama Autocomplete",
+    "provider": "ollama",
+    "model": "codellama:latest",
+    "apiBase": "http://localhost:11434"
+  },
+  "embeddingsProvider": {
+    "provider": "ollama",
+    "model": "llama3.2:1b",
+    "apiBase": "http://localhost:11434"
+  },
+  "experimental": {
+    "modelContextProtocol": true,
+    "modelContextProtocolServers": [
+      {
+        "name": "TwisterLab MCP",
+        "autoApprove": [
+          "list_autonomous_agents",
+          "monitor_system_health",
+          "create_backup",
+          "sync_cache",
+          "classify_ticket",
+          "resolve_ticket",
+          "execute_desktop_command"
+        ],
+        "transport": {
+          "type": "stdio",
+          "command": "python",
+          "args": [
+            "agents/mcp/mcp_server_continue_sync.py"
+          ],
+          "env": {
+            "PYTHONPATH": "C:\\TwisterLab",
+            "API_URL": "http://192.168.0.30:8000"
+          }
+        }
+      }
+    ]
+  }
+}

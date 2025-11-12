@@ -97,6 +97,14 @@ context:
   - provider: diff
   - provider: terminal
 
+# System Prompts - Fichiers .prompt.md dans .continue/prompts/
+# Usage: @prompt <nom-du-prompt>
+# - @prompt troubleshoot-system  : Diagnostic infrastructure (90 min)
+# - @prompt debug-mcp            : Debug connexion MCP (10 min)
+# - @prompt optimize-pc          : Nettoyage et optimisation PC (2h)
+# - @prompt simulate-tickets-6h  : Simulation tickets autonome (6h)
+# Voir .continue/prompts/README.md pour documentation complète
+
 # Custom rules pour TwisterLab
 rules:
   - "Utiliser DeepSeek R1 pour analyses complexes et raisonnement profond"

@@ -85,20 +85,10 @@ models:
       temperature: 0.7
       maxTokens: 8192
 
-# MCP Servers - TwisterLab Agents Integration
-# API TwisterLab maintenant accessible sur http://192.168.0.30:8000
-# Déployement propre v1.0.1 en production
-# Format Continue strict: name, command, args, env, cwd (pas de metadata complexe)
-mcpServers:
-  - name: "TwisterLab MCP"
-    command: "python"
-    args:
-      - "agents/mcp/mcp_server_continue_sync.py"
-    env:
-      API_URL: "http://192.168.0.30:8000"
-      PYTHONPATH: "C:\\TwisterLab"
-    cwd: "C:\\TwisterLab"
-    connectionTimeout: 10000
+# MCP Servers - Configuration locale via fichiers JSON
+# Les MCP servers sont définis dans .continue/mcpServers/*.json
+# Format: { "mcpServers": { "nom": { "command": "...", "args": [...], "env": {...} } } }
+# Continue les charge automatiquement depuis les fichiers JSON locaux
 
 # Context providers
 context:

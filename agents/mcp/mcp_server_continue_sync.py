@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class MCPServerContinue:
     """MCP Server for Continue IDE - stdio transport"""
-    
+
     def __init__(self):
         """Initialize MCP server"""
         self.protocol_version = "2024-11-05"
@@ -36,15 +36,15 @@ class MCPServerContinue:
             "description": "TwisterLab MCP Server for Continue IDE"
         }
         logger.info(f"Initialized: {self.server_info['name']} v{self.server_info['version']}")
-        
+
     def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Handle JSON-RPC 2.0 request"""
         method = request.get("method")
         params = request.get("params", {})
         request_id = request.get("id")
-        
+
         logger.info(f"Request: {method} (id={request_id})")
-        
+
         try:
             if method == "initialize":
                 return self._handle_initialize(request_id, params)
@@ -56,22 +56,24 @@ class MCPServerContinue:
                 return self._handle_resources_list(request_id)
             elif method == "resources/read":
                 return self._handle_resources_read(request_id, params)
+            elif method == "resources/templates/list":
+                return self._handle_resources_templates_list(request_id)
             elif method == "prompts/list":
                 return self._handle_prompts_list(request_id)
             elif method == "prompts/get":
                 return self._handle_prompts_get(request_id, params)
             else:
                 return self._error_response(request_id, -32601, f"Method not found: {method}")
-                
+
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
             return self._error_response(request_id, -32603, str(e))
-    
+
     def _handle_initialize(self, request_id: int, params: Dict) -> Dict:
         """Initialize MCP connection"""
         client = params.get("clientInfo", {}).get("name", "unknown")
         logger.info(f"Client: {client}")
-        
+
         return {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -85,7 +87,7 @@ class MCPServerContinue:
                 "serverInfo": self.server_info,
             },
         }
-    
+
     def _handle_tools_list(self, request_id: int) -> Dict:
         """List available tools"""
         tools = [
@@ -129,16 +131,16 @@ class MCPServerContinue:
                 }
             },
         ]
-        
+
         return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": tools}}
-    
+
     def _handle_tools_call(self, request_id: int, params: Dict) -> Dict:
         """Execute tool call (mock implementation)"""
         tool_name = params.get("name")
         arguments = params.get("arguments", {})
-        
+
         logger.info(f"Tool: {tool_name} | Args: {arguments}")
-        
+
         # Mock responses (replace with real agent calls when API is ready)
         if tool_name == "classify_ticket":
             ticket_text = arguments.get("ticket_text", "")
@@ -150,7 +152,7 @@ class MCPServerContinue:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "note": "⚠️ Mock response - API service offline"
             }
-            
+
         elif tool_name == "resolve_ticket":
             category = arguments.get("category", "unknown")
             result = {
@@ -165,7 +167,7 @@ class MCPServerContinue:
                 "estimated_time": "15-30 minutes",
                 "note": "⚠️ Mock response - API service offline"
             }
-            
+
         elif tool_name == "monitor_system_health":
             result = {
                 "status": "warning",
@@ -178,7 +180,7 @@ class MCPServerContinue:
                 },
                 "note": "⚠️ Mock response - API service offline"
             }
-            
+
         elif tool_name == "create_backup":
             result = {
                 "status": "success",
@@ -186,10 +188,10 @@ class MCPServerContinue:
                 "backup_location": "/backups/mock_backup.tar.gz",
                 "note": "⚠️ Mock response - API service offline"
             }
-            
+
         else:
             return self._error_response(request_id, -32602, f"Unknown tool: {tool_name}")
-        
+
         return {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -200,7 +202,7 @@ class MCPServerContinue:
                 }]
             }
         }
-    
+
     def _handle_resources_list(self, request_id: int) -> Dict:
         """List available resources"""
         resources = [
@@ -217,13 +219,13 @@ class MCPServerContinue:
                 "mimeType": "application/json"
             }
         ]
-        
+
         return {"jsonrpc": "2.0", "id": request_id, "result": {"resources": resources}}
-    
+
     def _handle_resources_read(self, request_id: int, params: Dict) -> Dict:
         """Read resource content"""
         uri = params.get("uri", "")
-        
+
         if uri == "twisterlab://system/health":
             content = json.dumps({
                 "status": "degraded",
@@ -232,17 +234,17 @@ class MCPServerContinue:
                 "cache": "online",
                 "llm": "online"
             }, indent=2)
-            
+
         elif uri == "twisterlab://agents/status":
             content = json.dumps({
                 "agents": ["classifier", "resolver", "monitoring", "backup", "sync"],
                 "status": "mock_mode",
                 "note": "API service offline - using mock responses"
             }, indent=2)
-            
+
         else:
             return self._error_response(request_id, -32602, f"Unknown resource: {uri}")
-        
+
         return {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -254,29 +256,30 @@ class MCPServerContinue:
                 }]
             }
         }
-    
-    def _handle_prompts_list(self, request_id: int) -> Dict:
-        """List available prompts"""
-        prompts = [
-            {
-                "name": "classify_it_ticket",
-                "description": "Classify an IT helpdesk ticket",
-                "arguments": [{"name": "ticket", "description": "Ticket text", "required": True}]
-            },
-            {
-                "name": "resolve_network_issue",
-                "description": "Get network troubleshooting steps",
-                "arguments": [{"name": "issue", "description": "Network issue", "required": True}]
+
+    def _handle_resources_templates_list(self, request_id: int) -> Dict:
+        """List available resource templates (optional MCP feature)"""
+        # Return empty list - we don't use resource templates
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {
+                "resourceTemplates": []
             }
-        ]
-        
+        }
+
+    def _handle_prompts_list(self, request_id: int) -> Dict:
+        """List available prompts (disabled - use tools instead)"""
+        # Return empty list to force Continue to use tools, not prompts
+        prompts = []
+
         return {"jsonrpc": "2.0", "id": request_id, "result": {"prompts": prompts}}
-    
+
     def _handle_prompts_get(self, request_id: int, params: Dict) -> Dict:
         """Get prompt content"""
         name = params.get("name", "")
         args = params.get("arguments", {})
-        
+
         if name == "classify_it_ticket":
             ticket = args.get("ticket", "")
             text = f"Classify this IT ticket:\n\n{ticket}\n\nCategories: network, hardware, software, account, email"
@@ -285,7 +288,7 @@ class MCPServerContinue:
             text = f"Troubleshooting steps for:\n\n{issue}\n\n1. Diagnosis\n2. Quick fixes\n3. Advanced steps"
         else:
             return self._error_response(request_id, -32602, f"Unknown prompt: {name}")
-        
+
         return {
             "jsonrpc": "2.0",
             "id": request_id,
@@ -294,7 +297,7 @@ class MCPServerContinue:
                 "messages": [{"role": "user", "content": {"type": "text", "text": text}}]
             }
         }
-    
+
     def _error_response(self, request_id: int, code: int, message: str) -> Dict:
         """Create JSON-RPC error response"""
         return {
@@ -302,41 +305,41 @@ class MCPServerContinue:
             "id": request_id,
             "error": {"code": code, "message": message}
         }
-    
+
     def run(self):
         """Main event loop - read stdin, write stdout"""
         logger.info("="*60)
         logger.info(f"MCP Server Starting: {self.server_info['name']}")
         logger.info(f"Protocol: MCP {self.protocol_version}")
         logger.info("="*60)
-        
+
         while True:
             try:
                 line = sys.stdin.readline()
                 if not line:
                     logger.info("EOF - shutting down")
                     break
-                
+
                 line = line.strip()
                 if not line:
                     continue
-                
+
                 request = json.loads(line)
                 response = self.handle_request(request)
-                
+
                 sys.stdout.write(json.dumps(response) + "\n")
                 sys.stdout.flush()
-                
+
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON: {e}")
                 error = self._error_response(None, -32700, "Parse error")
                 sys.stdout.write(json.dumps(error) + "\n")
                 sys.stdout.flush()
-                
+
             except KeyboardInterrupt:
                 logger.info("Interrupted")
                 break
-                
+
             except Exception as e:
                 logger.error(f"Error: {e}", exc_info=True)
                 error = self._error_response(None, -32603, str(e))
@@ -356,3 +359,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

@@ -45,12 +45,12 @@ class MCPServerContinue:
             "version": "2.0.0",  # Version 2.0 - REAL mode
             "description": "TwisterLab MCP Server for Continue IDE (REAL mode)"
         }
-        
+
         # API configuration
         self.api_url = os.getenv("API_URL", "http://192.168.0.30:8000")
         self.api_timeout = 60.0  # 60 seconds for LLM operations
         self.mode = "REAL" if HTTPX_AVAILABLE else "MOCK"
-        
+
         logger.info(f"Initialized: {self.server_info['name']} v{self.server_info['version']}")
         logger.info(f"Mode: {self.mode}")
         logger.info(f"API URL: {self.api_url}")
@@ -213,7 +213,7 @@ class MCPServerContinue:
                 }]
             }
         }
-    
+
     def _call_api(self, tool_name: str, arguments: Dict) -> Dict:
         """Call real TwisterLab API"""
         endpoint_map = {
@@ -225,11 +225,11 @@ class MCPServerContinue:
             "resolve_ticket": "/v1/mcp/tools/resolve_ticket",
             "execute_desktop_command": "/v1/mcp/tools/execute_desktop_command"
         }
-        
+
         endpoint = endpoint_map.get(tool_name)
         if not endpoint:
             raise ValueError(f"Unknown tool: {tool_name}")
-        
+
         # Map arguments to API format
         if tool_name == "list_autonomous_agents":
             payload = {}  # No arguments needed
@@ -264,18 +264,18 @@ class MCPServerContinue:
             }
         else:
             payload = arguments
-        
+
         # Call API
         url = f"{self.api_url}{endpoint}"
         logger.info(f"Calling API: POST {url}")
-        
+
         with httpx.Client(timeout=self.api_timeout) as client:
             response = client.post(url, json=payload)
             response.raise_for_status()
             api_response = response.json()
-        
+
         logger.info(f"API response status: {api_response.get('status')}")
-        
+
         # Extract data from MCPResponse format
         if api_response.get("status") == "ok":
             return {
@@ -289,7 +289,7 @@ class MCPServerContinue:
                 "mode": "REAL",
                 "error": api_response.get("error", "Unknown error")
             }
-    
+
     def _get_mock_response(self, tool_name: str, arguments: Dict) -> Dict:
         """Fallback mock responses"""
         # Mock responses (used when API is unreachable)
@@ -344,7 +344,7 @@ class MCPServerContinue:
                 "total": 7,
                 "note": "⚠️ Mock response - API service offline. Real agents defined in agents/real/"
             }
-        
+
         elif tool_name == "classify_ticket":
             ticket_text = arguments.get("ticket_text", "")
             result = {
@@ -395,7 +395,7 @@ class MCPServerContinue:
                 "mode": "MOCK",
                 "note": "⚠️ Mock response - API service offline"
             }
-        
+
         elif tool_name == "sync_cache":
             result = {
                 "status": "success",
@@ -405,7 +405,7 @@ class MCPServerContinue:
                 "mode": "MOCK",
                 "note": "⚠️ Mock response - API service offline"
             }
-        
+
         elif tool_name == "execute_desktop_command":
             command = arguments.get("command", "unknown")
             target = arguments.get("target_host", "unknown")
@@ -426,7 +426,7 @@ class MCPServerContinue:
                 "mode": "MOCK",
                 "error": f"Unknown tool: {tool_name}"
             }
-        
+
         return result
 
     def _handle_resources_list(self, request_id: int) -> Dict:
@@ -615,9 +615,6 @@ class MCPServerContinue:
 - Real agents: `agents/real/*.py`
 - MCP server: `agents/mcp/mcp_server_continue_sync.py`
 """
-
-        else:
-            content = json.dumps({"error": f"Unknown resource: {uri}"}, indent=2)
 
         else:
             return self._error_response(request_id, -32602, f"Unknown resource: {uri}")

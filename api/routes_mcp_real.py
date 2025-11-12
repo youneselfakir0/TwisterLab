@@ -4,9 +4,16 @@ Production-ready FastAPI routes for MCP tool integration
 """
 import logging
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field, validator
 from datetime import datetime, timezone
+import time
+
+# Import database layer
+from agents.core.database import get_db_session
+from agents.core.repository import TicketRepository, AgentLogRepository, SystemMetricsRepository
+from agents.core.models import TicketPriority
 
 # Import real agents
 from agents.real.real_classifier_agent import RealClassifierAgent
@@ -19,6 +26,18 @@ logger = logging.getLogger(__name__)
 
 # Create router (prefix is defined in api/main.py, not here)
 router = APIRouter(tags=["mcp-tools"])
+
+
+# ============================================================================
+# PYDANTIC MODELS
+# ============================================================================
+
+class MCPResponse(BaseModel):
+    """Standard MCP response format."""
+    status: str = Field(..., pattern="^(ok|error)$")
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 # ============================================================================
@@ -187,22 +206,19 @@ class CreateBackupRequest(BaseModel):
     )
 
 
-class MCPResponse(BaseModel):
-    """Standard MCP response format."""
-    status: str = Field(..., pattern="^(ok|error)$")
-    data: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
-    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
-
 # ============================================================================
 # ENDPOINTS - MCP Tool Routes
 # ============================================================================
 
 @router.post("/classify_ticket", response_model=MCPResponse)
-async def classify_ticket(request: ClassifyTicketRequest) -> MCPResponse:
+async def classify_ticket(
+    request: ClassifyTicketRequest,
+    session: AsyncSession = Depends(get_db_session)
+) -> MCPResponse:
     """
     Classify a helpdesk ticket using RealClassifierAgent.
+    
+    **Database Integration**: Creates ticket record and logs execution.
     
     **Input**:
     - `description`: Ticket description (10-5000 chars)
@@ -210,7 +226,7 @@ async def classify_ticket(request: ClassifyTicketRequest) -> MCPResponse:
     
     **Output**:
     - `status`: "ok" or "error"
-    - `data`: Classification results (category, confidence, routed_to, priority)
+    - `data`: Classification results + ticket_id from database
     - `error`: Error message if status="error"
     
     **Example**:
@@ -239,18 +255,31 @@ async def classify_ticket(request: ClassifyTicketRequest) -> MCPResponse:
     """
     try:
         logger.info(f"🔍 Classifying ticket: {request.description[:50]}...")
+        start_time = time.time()
         
-        # Initialize agent
+        # 1. Create ticket repository
+        ticket_repo = TicketRepository(session)
+        log_repo = AgentLogRepository(session)
+        
+        # 2. Create ticket in database
+        priority_enum = TicketPriority(request.priority) if request.priority else TicketPriority.MEDIUM
+        ticket_db = await ticket_repo.create(
+            description=request.description,
+            priority=priority_enum
+        )
+        
+        # 3. Initialize agent
         agent = RealClassifierAgent()
         
         # Build ticket context
         ticket = {
+            "id": ticket_db.id,  # Include DB ticket ID
             "description": request.description,
-            "title": request.description[:100],  # Use first 100 chars as title
+            "title": request.description[:100],
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
-        # Execute classification
+        # 4. Execute classification
         result = await agent.execute({
             "operation": "classify_ticket",
             "ticket": ticket
@@ -258,6 +287,13 @@ async def classify_ticket(request: ClassifyTicketRequest) -> MCPResponse:
         
         # Check if classification succeeded
         if result.get("status") != "success":
+            # Log failure
+            await log_repo.log_execution(
+                agent_name="RealClassifierAgent",
+                action="classify_ticket",
+                ticket_id=ticket_db.id,
+                error=result.get("error", "Unknown error")
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Classification failed: {result.get('error', 'Unknown error')}"
@@ -270,14 +306,35 @@ async def classify_ticket(request: ClassifyTicketRequest) -> MCPResponse:
         if request.priority:
             classification["priority"] = request.priority
         
+        # 5. Update ticket with category
+        category = classification.get("category", "unknown")
+        await ticket_repo.update_category(ticket_db.id, category)
+        
+        # 6. Log successful execution
+        execution_time_ms = int((time.time() - start_time) * 1000)
+        await log_repo.log_execution(
+            agent_name="RealClassifierAgent",
+            action="classify_ticket",
+            ticket_id=ticket_db.id,
+            result=classification,
+            execution_time_ms=execution_time_ms
+        )
+        
+        # 7. Commit transaction
+        await session.commit()
+        
         logger.info(
-            f"✅ Classification complete: {classification.get('category')} "
-            f"(confidence: {classification.get('confidence')})"
+            f"✅ Classification complete: {category} (confidence: {classification.get('confidence')}) "
+            f"[ticket_id={ticket_db.id}, {execution_time_ms}ms]"
         )
         
         return MCPResponse(
             status="ok",
-            data=classification
+            data={
+                **classification,
+                "ticket_id": ticket_db.id,  # Return DB ticket ID
+                "execution_time_ms": execution_time_ms
+            }
         )
         
     except HTTPException:
@@ -387,7 +444,10 @@ async def resolve_ticket(request: ResolveTicketRequest) -> MCPResponse:
 
 
 @router.post("/monitor_system_health", response_model=MCPResponse)
-async def monitor_system_health(request: MonitorSystemHealthRequest = MonitorSystemHealthRequest()) -> MCPResponse:
+async def monitor_system_health(
+    request: MonitorHealthRequest,
+    session: AsyncSession = Depends(get_db_session)
+) -> MCPResponse:
     """
     Monitor system health using RealMonitoringAgent.
     
@@ -429,6 +489,11 @@ async def monitor_system_health(request: MonitorSystemHealthRequest = MonitorSys
     """
     try:
         logger.info(f"🏥 Monitoring system health (detailed: {request.detailed})")
+        start_time = time.time()
+        
+        # Initialize repositories
+        metrics_repo = SystemMetricsRepository(session)
+        log_repo = AgentLogRepository(session)
         
         # Initialize agent
         agent = RealMonitoringAgent()
@@ -441,24 +506,58 @@ async def monitor_system_health(request: MonitorSystemHealthRequest = MonitorSys
         
         # Check if health check succeeded
         if result.get("status") != "success":
+            # Log failure
+            await log_repo.log_execution(
+                agent_name="RealMonitoringAgent",
+                action="health_check",
+                error=result.get("error", "Unknown error")
+            )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Health check failed: {result.get('error', 'Unknown error')}"
             )
         
-        # Extract health data (key is "health_check", not "health")
+        # Extract health data
         health_data = result.get("health_check", {})
         health_data["overall_status"] = result.get("health_status", "unknown")
         health_data["issues"] = result.get("issues", [])
         
+        # Record metrics in database
+        cpu = health_data.get("cpu_percent", 0.0)
+        memory = health_data.get("memory_percent", 0.0)
+        disk = health_data.get("disk_percent", 0.0)
+        docker_status = health_data.get("overall_status", "unknown")
+        
+        await metrics_repo.record_metrics(
+            cpu_usage=cpu,
+            memory_usage=memory,
+            disk_usage=disk,
+            docker_status=docker_status
+        )
+        
+        # Log execution
+        execution_time_ms = int((time.time() - start_time) * 1000)
+        await log_repo.log_execution(
+            agent_name="RealMonitoringAgent",
+            action="health_check",
+            result={"status": docker_status, "cpu": cpu, "memory": memory, "disk": disk},
+            execution_time_ms=execution_time_ms
+        )
+        
+        # Commit transaction
+        await session.commit()
+        
         logger.info(
-            f"✅ Health check complete: {health_data.get('overall_status')} "
-            f"(CPU: {health_data.get('cpu_percent')}%, RAM: {health_data.get('memory_percent')}%)"
+            f"✅ Health check complete: {docker_status} "
+            f"(CPU: {cpu}%, RAM: {memory}%, Disk: {disk}%) [{execution_time_ms}ms]"
         )
         
         return MCPResponse(
             status="ok",
-            data=health_data
+            data={
+                **health_data,
+                "execution_time_ms": execution_time_ms
+            }
         )
         
     except HTTPException:

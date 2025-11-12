@@ -40,7 +40,7 @@ Write-Host ""
 
 foreach ($dash in $dashboards) {
     $url = "http://${edgeserver}:$($dash.Port)"
-    
+
     # Tester l'accessibilité
     try {
         $response = Invoke-WebRequest -Uri $url -TimeoutSec 3 -UseBasicParsing -ErrorAction Stop
@@ -48,11 +48,11 @@ foreach ($dash in $dashboards) {
         Write-Host "       -> $($dash.Desc)" -ForegroundColor Gray
         Write-Host "       -> $url" -ForegroundColor Cyan
         Write-Host ""
-        
+
         # Ouvrir dans le navigateur
         Start-Process $url
         Start-Sleep -Milliseconds 500
-        
+
     } catch {
         Write-Host "  [X] $($dash.Name) (port $($dash.Port)) - Non accessible" -ForegroundColor Red
         Write-Host "      -> $($_.Exception.Message)" -ForegroundColor Gray
@@ -62,7 +62,7 @@ foreach ($dash in $dashboards) {
 
 Write-Host ""
 Write-Host "======================================================================" -ForegroundColor Green
-Write-Host "                                                                      " -ForegroundColor Green  
+Write-Host "                                                                      " -ForegroundColor Green
 Write-Host "              DASHBOARDS OUVERTS DANS NAVIGATEUR                      " -ForegroundColor Green
 Write-Host "                                                                      " -ForegroundColor Green
 Write-Host "  Grafana:       http://$edgeserver:3000                              " -ForegroundColor Green

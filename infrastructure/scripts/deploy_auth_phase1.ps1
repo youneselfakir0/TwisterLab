@@ -45,16 +45,16 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Couleurs
-function Write-Success { param($msg) Write-Host "✅ $msg" -ForegroundColor Green }
-function Write-Info { param($msg) Write-Host "ℹ️  $msg" -ForegroundColor Cyan }
-function Write-Warning { param($msg) Write-Host "⚠️  $msg" -ForegroundColor Yellow }
-function Write-Error { param($msg) Write-Host "❌ $msg" -ForegroundColor Red }
+function Write-Success { param($msg) Write-Host "[OK] $msg" -ForegroundColor Green }
+function Write-Info { param($msg) Write-Host "[INFO] $msg" -ForegroundColor Cyan }
+function Write-Warning { param($msg) Write-Host "[WARN] $msg" -ForegroundColor Yellow }
+function Write-ErrorMsg { param($msg) Write-Host "[ERROR] $msg" -ForegroundColor Red }
 
-Write-Host "`n" -NoNewline
-Write-Host "╔════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║        TwisterLab Phase 1 - Authentication Deployment         ║" -ForegroundColor Cyan
-Write-Host "║                    Mode: LOCAL (no Azure)                      ║" -ForegroundColor Cyan
-Write-Host "╚════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "================================================================" -ForegroundColor Cyan
+Write-Host "        TwisterLab Phase 1 - Authentication Deployment         " -ForegroundColor Cyan
+Write-Host "                    Mode: LOCAL (no Azure)                     " -ForegroundColor Cyan
+Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host ""
 
 Write-Info "Target Environment: $Environment"
@@ -64,16 +64,16 @@ Write-Host ""
 # ============================================================================
 # ÉTAPE 1: Vérifications Préliminaires
 # ============================================================================
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
-Write-Info "ÉTAPE 1/7: Vérifications préliminaires"
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
+Write-Host "================================================================" -ForegroundColor Gray
+Write-Info "ETAPE 1/7: Verifications preliminaires"
+Write-Host "================================================================" -ForegroundColor Gray
 
 # Vérifier Python
 try {
     $pythonVersion = python --version 2>&1
     Write-Success "Python détecté: $pythonVersion"
 } catch {
-    Write-Error "Python non trouvé. Installer Python 3.12+"
+    Write-ErrorMsg "Python non trouve. Installer Python 3.12+"
     exit 1
 }
 

@@ -45,7 +45,7 @@ Write-Host ""
 
 try {
     & $pythonCmd $scriptPath @args
-    
+
     if ($LASTEXITCODE -eq 0) {
         Write-Host "`n✅ Load test completed successfully!" -ForegroundColor Green
     } else {

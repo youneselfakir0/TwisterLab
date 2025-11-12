@@ -1,0 +1,475 @@
+{
+  "dashboard": {
+    "title": "TwisterLab - LLM Agents Performance",
+    "tags": ["twisterlab", "llm", "agents", "gpu"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "graph",
+        "title": "ClassifierAgent - Response Time",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(classifier_llm_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 LLM",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(classifier_llm_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 LLM",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(classifier_keyword_duration_seconds_sum[5m]) / rate(classifier_keyword_duration_seconds_count[5m])",
+            "legendFormat": "Keywords Fallback",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Response Time"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "nullPointMode": "null",
+        "tooltip": {"shared": true, "sort": 0, "value_type": "individual"}
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "graph",
+        "title": "ResolverAgent - SOP Generation Time",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(resolver_llm_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 LLM SOP",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(resolver_llm_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 LLM SOP",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(resolver_static_duration_seconds_sum[5m]) / rate(resolver_static_duration_seconds_count[5m])",
+            "legendFormat": "Static SOP Fallback",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Generation Time"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+        "type": "stat",
+        "title": "GPU Utilization (GTX 1050)",
+        "targets": [
+          {
+            "expr": "nvidia_gpu_utilization{gpu=\"0\"}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value",
+          "justifyMode": "auto",
+          "textMode": "value_and_name",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 60, "color": "yellow"},
+                {"value": 80, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+        "type": "stat",
+        "title": "GPU Memory Usage (2GB VRAM)",
+        "targets": [
+          {
+            "expr": "nvidia_gpu_memory_used_bytes{gpu=\"0\"} / nvidia_gpu_memory_total_bytes{gpu=\"0\"} * 100",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 70, "color": "yellow"},
+                {"value": 90, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+        "type": "stat",
+        "title": "Ollama Health Status",
+        "targets": [
+          {
+            "expr": "up{job=\"ollama-gpu\"}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "0", "text": "DOWN"},
+              {"type": "value", "value": "1", "text": "UP"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "type": "graph",
+        "title": "LLM Tokens Generated per Agent",
+        "targets": [
+          {
+            "expr": "rate(classifier_llm_tokens_total[5m])",
+            "legendFormat": "ClassifierAgent",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(resolver_llm_tokens_total[5m])",
+            "legendFormat": "ResolverAgent",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(commander_llm_tokens_total[5m])",
+            "legendFormat": "DesktopCommanderAgent",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Tokens/sec"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "bars": false,
+        "stack": true
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "type": "graph",
+        "title": "LLM Success vs Fallback Rate",
+        "targets": [
+          {
+            "expr": "rate(classifier_llm_success_total[5m])",
+            "legendFormat": "Classifier LLM Success",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(classifier_keyword_fallback_total[5m])",
+            "legendFormat": "Classifier Keyword Fallback",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(resolver_llm_success_total[5m])",
+            "legendFormat": "Resolver LLM Success",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(resolver_static_fallback_total[5m])",
+            "legendFormat": "Resolver Static Fallback",
+            "refId": "D"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests/sec"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 0,
+        "linewidth": 2
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 24},
+        "type": "stat",
+        "title": "ClassifierAgent - Avg Confidence",
+        "targets": [
+          {
+            "expr": "avg(classifier_confidence)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "decimals": 2,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 0.7, "color": "yellow"},
+                {"value": 0.85, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 24},
+        "type": "stat",
+        "title": "ResolverAgent - Avg SOP Steps",
+        "targets": [
+          {
+            "expr": "avg(resolver_sop_steps_count)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 1,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 3, "color": "yellow"},
+                {"value": 5, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 24},
+        "type": "stat",
+        "title": "DesktopCommander - Whitelist Blocks",
+        "targets": [
+          {
+            "expr": "increase(commander_whitelist_blocked_total[1h])",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 10, "color": "yellow"},
+                {"value": 50, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "type": "table",
+        "title": "Top 10 Ticket Categories (ClassifierAgent)",
+        "targets": [
+          {
+            "expr": "topk(10, sum by (category) (increase(classifier_category_total[1h])))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Value"},
+              "properties": [
+                {"id": "displayName", "value": "Count"},
+                {"id": "unit", "value": "short"}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 12,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "type": "graph",
+        "title": "End-to-End Ticket Processing Time",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(ticket_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(ticket_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 (median)",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(ticket_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Processing Time"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [15], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Slow Ticket Processing",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 13,
+        "gridPos": {"h": 6, "w": 24, "x": 0, "y": 40},
+        "type": "graph",
+        "title": "LLM Error Rate (All Agents)",
+        "targets": [
+          {
+            "expr": "rate(classifier_llm_error_total[5m])",
+            "legendFormat": "ClassifierAgent Errors",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(resolver_llm_error_total[5m])",
+            "legendFormat": "ResolverAgent Errors",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(commander_llm_error_total[5m])",
+            "legendFormat": "DesktopCommanderAgent Errors",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Errors/sec"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 0,
+        "linewidth": 2,
+        "bars": false,
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [0.1], "type": "gt"},
+              "operator": {"type": "or"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "name": "High LLM Error Rate"
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+    },
+    "annotations": {
+      "list": [
+        {
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": false,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Deployments",
+          "type": "dashboard"
+        }
+      ]
+    }
+  }
+}

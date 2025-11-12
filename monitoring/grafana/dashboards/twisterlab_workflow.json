@@ -1,0 +1,267 @@
+{
+  "dashboard": {
+    "title": "TwisterLab - Workflow Autonome",
+    "tags": ["twisterlab", "agents", "workflow"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Agents Actifs",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "active_agents_count",
+            "legendFormat": "Agents"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 3, "color": "yellow"},
+                {"value": 6, "color": "green"}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Tickets Traités (Total)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(agent_operations_total{operation='classify_ticket'})",
+            "legendFormat": "Tickets"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Taux de Succès Workflow",
+        "type": "gauge",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(http_requests_total{endpoint='/api/v1/tickets/process',status='success'}) / sum(http_requests_total{endpoint='/api/v1/tickets/process'}) * 100",
+            "legendFormat": "Success %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 70, "color": "yellow"},
+                {"value": 90, "color": "green"}
+              ]
+            },
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Temps Moyen Workflow",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{endpoint='/api/v1/tickets/process'}[5m]))",
+            "legendFormat": "p95"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "decimals": 3,
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Opérations par Agent (5min)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "rate(agent_operations_total[5m])",
+            "legendFormat": "{{agent}} - {{operation}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            },
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Classification par Catégorie",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "sum by (category) (agent_operations_total{agent='ClassifierAgent'})",
+            "legendFormat": "{{category}}"
+          }
+        ],
+        "options": {
+          "legend": {"displayMode": "table", "placement": "right"},
+          "pieType": "donut"
+        }
+      },
+      {
+        "id": 7,
+        "title": "MonitoringAgent - CPU Usage",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "node_cpu_seconds_total{mode='idle'}",
+            "legendFormat": "CPU Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "custom": {
+              "fillOpacity": 20
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "MonitoringAgent - Memory Usage",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 12},
+        "targets": [
+          {
+            "expr": "node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100",
+            "legendFormat": "Memory Available %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "MonitoringAgent - Disk Usage",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 12},
+        "targets": [
+          {
+            "expr": "(node_filesystem_size_bytes{mountpoint='/'} - node_filesystem_avail_bytes{mountpoint='/'}) / node_filesystem_size_bytes{mountpoint='/'} * 100",
+            "legendFormat": "Disk Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 70, "color": "yellow"},
+                {"value": 90, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Workflow - Succès vs Erreurs",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 18},
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{endpoint='/api/v1/tickets/process',status='success'}[5m])",
+            "legendFormat": "Success"
+          },
+          {
+            "expr": "rate(http_requests_total{endpoint='/api/v1/tickets/process',status='error'}[5m])",
+            "legendFormat": "Errors"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 80
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Success"},
+              "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]
+            },
+            {
+              "matcher": {"id": "byName", "options": "Errors"},
+              "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]
+            }
+          ]
+        }
+      },
+      {
+        "id": 11,
+        "title": "Logs Récents (Agents)",
+        "type": "logs",
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 18},
+        "targets": [
+          {
+            "expr": "{container_name=~'twisterlab_api.*'} |~ 'Agent|workflow|ticket'",
+            "legendFormat": ""
+          }
+        ]
+      }
+    ],
+    "refresh": "10s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+    }
+  }
+}

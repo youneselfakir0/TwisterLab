@@ -51,13 +51,13 @@ $dashboards = @(
 
 foreach ($dashboardPath in $dashboards) {
     $dashboardName = Split-Path $dashboardPath -Leaf
-    
+
     Write-Host "    Importing $dashboardName..." -ForegroundColor White
-    
+
     try {
         # Lire le contenu du dashboard
         $dashboardContent = Get-Content $dashboardPath -Raw | ConvertFrom-Json
-        
+
         # Si le JSON contient déjà un objet dashboard, l'utiliser tel quel
         # Sinon, l'encapsuler
         if ($dashboardContent.dashboard) {
@@ -69,11 +69,11 @@ foreach ($dashboardPath in $dashboards) {
                 message = "Imported via PowerShell script"
             } | ConvertTo-Json -Depth 100
         }
-        
+
         # Importer le dashboard
         $response = Invoke-RestMethod -Uri "$GRAFANA_URL/api/dashboards/db" -Method Post -Headers $headers -Body $payload
         Write-Host "    [OK] $dashboardName importe - UID: $($response.uid)" -ForegroundColor Green
-        
+
     } catch {
         Write-Host "    [X] Erreur lors de l'import: $($_.Exception.Message)" -ForegroundColor Red
     }

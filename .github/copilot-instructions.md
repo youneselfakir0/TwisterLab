@@ -1,650 +1,496 @@
-# 🚀 TWISTERLAB v1.0.0 - COMPLETE COPILOT VS CODE SYSTEM PROMPT
-# À coller dans .github/copilot-instructions.md ou dans VS Code Copilot Chat settings
+# TwisterLab v1.0.0 - AI Agent Development Guide
 
----
+**Production-ready multi-agent AI orchestration system for autonomous IT helpdesk automation**
 
-## CONTEXT: PROJECT OVERVIEW
+## AI Assistant Interaction Guidelines
 
-You are assisting with **TwisterLab v1.0.0** - a production-grade multi-agent AI orchestration system for autonomous IT helpdesk automation.
+When working with TwisterLab, AI assistants should:
 
-**Project Status**: 83% complete (10/12 milestones)
-**Active Environment**: Staging validated, Production-ready
-**Tech Stack**: Python 3.11+, FastAPI, PostgreSQL, Redis, Docker Swarm, Kubernetes-ready
-**Repository**: https://github.com/youneselfakir0/TwisterLab
+**Core Principles**:
+- **Production-First**: All solutions must be production-ready, not PoC/throwaway code
+- **Real Infrastructure**: Only use technologies actually deployed (Docker Swarm, PostgreSQL, Redis, Ollama, Prometheus, Grafana)
+- **Security-Conscious**: Never expose credentials, always validate inputs, audit all actions
+- **Documentation-Driven**: Every change includes clear docs, type hints, and tests
+- **Proactive Problem-Solving**: Identify weaknesses, suggest improvements, provide alternatives
 
----
+**Response Style**:
+- Concise, precise explanations with well-indented code
+- Multi-step tasks get numbered checklists or plans
+- Include rationale for technical decisions
+- Suggest tests and monitoring approaches
+- Point out trade-offs and edge cases
 
-## PART 1: TWISTERLAB ARCHITECTURE (READ FIRST)
+**Technology Stack** (only use these):
+- **Backend**: Python 3.12+, FastAPI, asyncio, asyncpg
+- **Infrastructure**: Docker Swarm, PostgreSQL 16, Redis 7
+- **AI/LLM**: Ollama (llama3.2:1b), Open WebUI
+- **Monitoring**: Prometheus, Grafana
+- **Scripting**: PowerShell, Bash
+- **Config**: YAML, TOML, .env files
 
-### System Components
+**Common Tasks**:
+- Agent implementation (inherit from `TwisterAgent` or create `Real*Agent`)
+- Deployment automation (use `infrastructure/scripts/deploy.ps1`)
+- Monitoring setup (Prometheus metrics + Grafana dashboards)
+- Testing (pytest with asyncio, integration tests)
+- LLM integration (Ollama API at `http://192.168.0.30:11434`)
 
-**7 Production AI Agents** (all 100% tested):
-1. **ClassifierAgent** - Analyzes incoming tickets, routes to appropriate agent
-2. **ResolverAgent** - Executes SOPs, resolves issues autonomously
-3. **Desktop-CommanderAgent** - Executes system commands securely (Windows/Linux)
-4. **MaestroOrchestratorAgent** - Load balancing, workflow orchestration
-5. **SyncAgent** - Cache/DB synchronization, consistency verification
-6. **BackupAgent** - Disaster recovery, automated backups
-7. **MonitoringAgent** - Real-time metrics, alerting, health checks
+**Forbidden**:
+- Cloud-only services (AWS/Azure-specific without local alternatives)
+- Unvetted dependencies not in `requirements.txt`
+- Hardcoded credentials or secrets
+- Code without type hints or docstrings
+- Changes without corresponding tests
 
-**Infrastructure**:
-- PostgreSQL (high-availability)
-- Redis (caching + state management)
-- Prometheus (metrics collection)
-- Grafana (dashboards)
-- Docker Swarm (4-node production cluster)
-- GitHub Actions (CI/CD pipelines)
+## Project Architecture
 
-**Deployment Models**:
-- Staging: docker-compose.staging.yml (local testing)
-- Production: docker-compose.production.yml (blue-green zero-downtime)
-- CI/CD: Automated test → deploy → validate → rollback
+### Core Agent System (7 Agents)
 
----
+All agents inherit from `TwisterAgent` (in `agents/base.py`) - a multi-framework base class supporting export to Microsoft, LangChain, Semantic Kernel, and OpenAI formats.
 
-## PART 2: MCP ISOLATION & CREDENTIAL MANAGEMENT (CRITICAL)
+**Production Agents** (in `agents/real/`):
+- `RealMonitoringAgent` - System health checks (CPU/RAM/disk/Docker)
+- `RealBackupAgent` - Automated backups with disaster recovery
+- `RealSyncAgent` - Cache/DB synchronization
+- `RealClassifierAgent` - Ticket classification and routing
+- `RealResolverAgent` - SOP execution for issue resolution
+- `RealDesktopCommanderAgent` - Remote system command execution
+- `RealMaestroAgent` - Workflow orchestration and load balancing
 
-### 4-Tier MCP Architecture (MANDATORY ISOLATION)
+**Standard Agents** (in `agents/core/`, `agents/helpdesk/`, `agents/resolver/`, `agents/desktop_commander/`):
+- Abstract implementations following BaseAgent pattern
+- Reference implementations for new agent development
 
+### Infrastructure Stack
+
+**Current Deployment** (Docker Swarm on edgeserver.twisterlab.local):
+- FastAPI (port 8000) - Main API
+- PostgreSQL 16 (port 5432) - Primary database  
+- Redis 7 (port 6379) - Cache + state management
+- Ollama (port 11434) - Local LLM inference (llama3.2:1b)
+- Open WebUI (port 8083) - Chat interface
+- Traefik (ports 80/443/8080) - Load balancer
+- Prometheus + Grafana (ports 9090/3000) - Monitoring
+
+**Reorganized Structure** (as of v1.0.0 - 2025-11-10):
 ```
-TIER 1: TwisterLab Agent MCPs (172.25.0.0/16, ports 9000-9100)
-  ├─ linkedin_mcp (9001)
-  ├─ twitter_mcp (9002)
-  ├─ email_mcp (9003)
-  ├─ github_mcp (9004)
-  └─ notion_mcp (9005)
-  🔒 Access: ONLY TwisterLab agents
-
-TIER 2: Claude Desktop MCPs (172.26.0.0/16, ports 9200-9300)
-  ├─ claude_filesystem_mcp (9201)
-  ├─ claude_web_search_mcp (9202)
-  ├─ claude_code_analysis_mcp (9203)
-  └─ claude_knowledge_base_mcp (9204)
-  🔒 Access: ONLY Claude Desktop
-
-TIER 3: Docker System MCPs (172.27.0.0/16, ports 9400-9500)
-  ├─ docker_monitoring_mcp (9401)
-  ├─ docker_orchestration_mcp (9402)
-  └─ docker_health_check_mcp (9403)
-  🔒 Access: ONLY Docker daemon + Maestro
-
-TIER 4: Copilot MCPs (172.28.0.0/16, ports 9600-9700)
-  ├─ copilot_code_completion_mcp (9601)
-  ├─ copilot_github_mcp (9602)
-  └─ copilot_repo_analysis_mcp (9603)
-  🔒 Access: ONLY GitHub Copilot
-
-FIREWALL RULES:
-  ❌ NO cross-tier communication allowed
-  ✅ Each tier completely isolated
-```
-
-### Credential Management Rules (NON-NEGOTIABLE)
-
-**Rule 1: Encryption**
-- ✅ ALL credentials encrypted with Fernet cipher
-- ✅ Master password stored in secure ENV var ONLY (never in code/logs)
-- ✅ Plaintext credentials destroyed after use
-
-**Rule 2: Scoping**
-- ✅ Enterprise credentials (DB, Docker, Office365) ≠ Personal credentials (LinkedIn, Twitter)
-- ✅ Agents access ONLY assigned credentials
-- ✅ ClassifierAgent CANNOT access LinkedIn credentials
-
-**Rule 3: Audit Trail**
-- ✅ Every credential access logged with timestamp, agent, result
-- ✅ NO plaintext credentials in logs
-- ✅ Failed access attempts trigger alerts
-
-**Rule 4: Emergency Protocol**
-- ✅ If credentials compromised: immediate revocation + agent stop
-- ✅ Security team alert sent automatically
-- ✅ Full audit trail preserved
-
----
-
-## PART 3: CODING STANDARDS (MANDATORY)
-
-### Code Quality Requirements
-
-**Type Hints (PEP 484)**
-```python
-# ✅ CORRECT
-async def process_ticket(ticket_id: str, priority: int) -> Dict[str, Any]:
-    """Process ticket with validation."""
-    pass
-
-# ❌ WRONG
-async def process_ticket(ticket_id, priority):
-    pass
+infrastructure/
+├── docker/docker-compose.unified.yml    # Single compose file for all envs
+├── configs/.env.production              # Production config
+├── configs/.env.staging                 # Staging config
+└── scripts/deploy.ps1                   # Unified deployment script
 ```
 
-**Docstrings (Google Style)**
-```python
-# ✅ CORRECT
-async def authenticate_service(service: str) -> Session:
-    """
-    Authenticate to external service using encrypted credentials.
-    
-    Args:
-        service: Service name (e.g., 'linkedin', 'twitter')
-    
-    Returns:
-        Authenticated session object
-    
-    Raises:
-        CredentialNotFoundError: If credentials not configured
-        AuthenticationFailedError: If authentication fails
-    
-    Example:
-        >>> session = await authenticate_service('linkedin')
-        >>> result = await session.post_content('Hello world')
-    """
-    pass
-```
+**Previous chaos**: 26+ docker-compose files, 18 Dockerfiles, 90+ PowerShell scripts → **Now**: 1 compose file, 2 configs, 1 deploy script
 
-**Error Handling**
-```python
-# ✅ CORRECT - Specific exceptions
-try:
-    creds = await get_credentials('linkedin')
-except CredentialNotFoundError as e:
-    logger.warning(f"Credentials missing for linkedin: {e}")
-    raise
-except AuthenticationFailedError as e:
-    logger.error(f"Authentication failed: {e}")
-    await alert_operator()
-    raise
+## MCP Communication Architecture
 
-# ❌ WRONG - Generic exception
-try:
-    creds = await get_credentials('linkedin')
-except Exception:
-    pass
-```
+**Current Status**: MCP Router exists in `agents/mcp/mcp_router.py` with tier-based isolation design, but MCP servers are not yet deployed.
 
-**Logging (Structured, no secrets)**
-```python
-# ✅ CORRECT
-logger.info(
-    "Agent execution started",
-    extra={
-        'agent': 'ClassifierAgent',
-        'ticket_id': 'T-001',
-        'timestamp': datetime.now().isoformat()
-    }
-)
+The MCP Router defines 4 isolation tiers for future implementation:
+- **Tier 1** (172.25.0.0/16): TwisterLab agent MCPs
+- **Tier 2** (172.26.0.0/16): Claude Desktop MCPs  
+- **Tier 3** (172.27.0.0/16): Docker system MCPs
+- **Tier 4** (172.28.0.0/16): Copilot MCPs
 
-# ❌ WRONG - Contains sensitive data
-logger.info(f"Authenticated as {password}@{service}")
-```
+**Current Agent Communication**: Agents currently communicate via direct Python calls in `AutonomousAgentOrchestrator` rather than through deployed MCP servers. The MCP Router provides the foundation for future secure, isolated inter-agent communication.
 
-**Testing Requirements**
-- ✅ Every module MUST have unit tests (pytest)
-- ✅ MINIMUM 80% code coverage (enforced by CI)
-- ✅ Integration tests for end-to-end flows
-- ✅ Mock external services (avoid real API calls in tests)
+## Agent Development Patterns
 
----
+### 1. TwisterAgent Base Class
 
-## PART 4: AGENT IMPLEMENTATION PATTERNS
-
-### BaseAgent Pattern (MANDATORY)
-
-All agents MUST inherit from BaseAgent:
+All agents MUST inherit from `TwisterAgent` in `agents/base.py`:
 
 ```python
-from agents.base.base_agent import BaseAgent
-from typing import Dict, Any
+from agents.base import TwisterAgent
+from typing import Dict, Any, Optional
 
-class CustomAgent(BaseAgent):
-    """
-    Your agent description.
+class MyNewAgent(TwisterAgent):
+    def __init__(self):
+        super().__init__(
+            name="my-new-agent",
+            display_name="My New Agent",
+            description="What this agent does",
+            role="assistant",
+            model="llama-3.2",          # or "gpt-4", etc.
+            temperature=0.7,
+            tools=[self._define_tools()],  # Max 5 tools per agent
+            metadata={"version": "1.0"}
+        )
     
-    Responsibilities:
-    - What it does
-    - How it integrates with other agents
-    """
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Any:
+        """Execute agent task - MUST be implemented"""
+        # Your logic here
+        pass
+    
+    def _define_tools(self) -> list:
+        """Define agent tools in OpenAI function calling format"""
+        return [{
+            "type": "function",
+            "function": {
+                "name": "my_tool",
+                "description": "What it does",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "param1": {"type": "string", "description": "..."}
+                    },
+                    "required": ["param1"]
+                }
+            }
+        }]
+```
+
+### 2. Real Agent Pattern (Production)
+
+For production-ready agents in `agents/real/`:
+
+```python
+class RealMyAgent:
+    """Real working agent with actual implementation"""
     
     def __init__(self):
-        super().__init__()
-        self.name = "CustomAgent"
-        self.priority = 5
-        self.capabilities = ['capability_1', 'capability_2']
+        self.name = "RealMyAgent"
+        # No inheritance - direct implementation
     
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Execute agent logic.
-        
-        Args:
-            context: Input context (ticket, data, etc)
-        
-        Returns:
-            Result dict with status, data, errors
-        """
+        """Execute real operation"""
         try:
-            # 1. Validate input
-            self._validate_context(context)
-            
-            # 2. Log start
-            await self.audit_log('execute_start', context)
-            
-            # 3. Execute logic
-            result = await self._process(context)
-            
-            # 4. Log success
-            await self.audit_log('execute_success', result)
-            
-            return result
-        
+            result = await self._perform_actual_work(context)
+            return {
+                "status": "success",
+                "agent": self.name,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "data": result
+            }
         except Exception as e:
-            # 5. Log error (without exposing sensitive data)
-            await self.audit_log('execute_failed', {'error_type': type(e).__name__})
-            raise
-    
-    async def _process(self, context: Dict) -> Dict[str, Any]:
-        """Override this method with agent-specific logic."""
-        raise NotImplementedError("Subclasses must implement _process()")
-    
-    def _validate_context(self, context: Dict) -> None:
-        """Validate input context."""
-        required_fields = ['ticket_id', 'priority']
-        for field in required_fields:
-            if field not in context:
-                raise ValueError(f"Missing required field: {field}")
+            logger.error(f"{self.name} failed: {e}")
+            return {"status": "error", "error": str(e)}
 ```
 
-### Agent Interaction Pattern
+### 3. Multi-Framework Export
+
+TwisterAgent supports exporting to multiple frameworks:
 
 ```python
-# Agents communicate via MCP Router (never directly)
-from agents.mcp.mcp_router import MCPRouter
+agent = MyAgent()
 
-class MyAgent(BaseAgent):
-    
-    async def call_other_agent(self, agent_name: str, operation: str, params: Dict) -> Dict:
-        """
-        Call another agent via isolated MCP (secure, audited).
-        
-        Args:
-            agent_name: Target agent name
-            operation: Operation to execute
-            params: Operation parameters
-        
-        Returns:
-            Result from target agent
-        """
-        return await self.mcp_router.route_to_mcp(
-            agent_name=self.name,
-            mcp_name=f'{agent_name}_mcp',
-            operation=operation,
-            params=params
-        )
+# Export to Microsoft Agent Framework
+microsoft_schema = agent.to_schema("microsoft")
+
+# Export to LangChain
+langchain_schema = agent.to_schema("langchain")
+
+# Export to OpenAI Assistants API
+openai_schema = agent.to_schema("openai")
+
+# Export to Semantic Kernel
+sk_schema = agent.to_schema("semantic-kernel")
 ```
 
----
-
-## PART 5: TESTING PATTERNS
-
-### Unit Test Template
-
-```python
-import pytest
-from agents.custom_agent import CustomAgent
-
-@pytest.fixture
-def agent():
-    """Setup test agent."""
-    return CustomAgent()
-
-@pytest.mark.asyncio
-async def test_agent_initialization(agent):
-    """Test agent initializes correctly."""
-    assert agent.name == "CustomAgent"
-    assert agent.priority >= 1
-    assert len(agent.capabilities) > 0
-
-@pytest.mark.asyncio
-async def test_agent_execute_success(agent):
-    """Test agent executes successfully."""
-    context = {
-        'ticket_id': 'T-001',
-        'priority': 'high',
-        'data': {'issue': 'test'}
-    }
-    
-    result = await agent.execute(context)
-    
-    assert result['status'] == 'success'
-    assert 'data' in result
-
-@pytest.mark.asyncio
-async def test_agent_execute_failure(agent):
-    """Test agent handles errors correctly."""
-    invalid_context = {}  # Missing required fields
-    
-    with pytest.raises(ValueError):
-        await agent.execute(invalid_context)
-
-@pytest.mark.asyncio
-async def test_agent_credential_isolation(agent):
-    """Test agent cannot access unauthorized credentials."""
-    # This should FAIL - enterprise agent accessing personal scope
-    with pytest.raises(CredentialScopeViolation):
-        await agent.get_credentials('linkedin')  # Agent should only access enterprise creds
-```
-
-### Integration Test Template
-
-```python
-@pytest.mark.asyncio
-async def test_full_ticket_pipeline():
-    """Test complete ticket flow: Email → Classifier → Resolver → Desktop-Commander → Sync → Monitoring."""
-    
-    # 1. Create test ticket
-    ticket = {
-        'ticket_id': 'T-INT-001',
-        'title': 'Cannot connect to WiFi',
-        'priority': 'high'
-    }
-    
-    # 2. Execute pipeline
-    classifier = ClassifierAgent()
-    classified = await classifier.execute({'ticket': ticket})
-    
-    assert classified['status'] == 'success'
-    assert classified['routed_to_agent'] == 'resolver'
-    
-    # 3. Continue through chain...
-    # (test each agent in sequence)
-```
-
----
-
-## PART 6: DEPLOYMENT WORKFLOWS
+## Deployment Workflows
 
 ### Local Development
-```bash
+
+```powershell
 # 1. Start staging environment
-docker-compose -f docker-compose.staging.yml up -d
+.\infrastructure\scripts\deploy.ps1 -Environment staging
 
 # 2. Verify services
-curl http://localhost:8001/health          # API
-curl http://localhost:3001                 # Grafana
+curl http://localhost:8000/health
+curl http://localhost:3000  # Grafana
 
 # 3. Run tests
-pytest tests/ -v --cov=agents --cov-report=html
+pytest tests/ -v --cov=agents
 
-# 4. Check code quality
-black agents/
-pylint agents/
+# 4. Code quality
+ruff check agents/
 mypy agents/
-
-# 5. Commit & push
-git add .
-git commit -m "feat: [agent-name] [description]"
-git push origin main
 ```
 
 ### Production Deployment
-```bash
-# 1. Create production environment file
-cp .env.production.example .env.production
-# Edit with real values
 
-# 2. Deploy with GitHub Actions
-# Just push to main branch - CI/CD handles:
-#   - Run all tests
-#   - Build Docker images
-#   - Deploy to staging (validate)
-#   - Deploy to production (blue-green)
-#   - Run smoke tests
-#   - Automatic rollback if failed
+**Current method** (unified deployment script):
+```powershell
+# Deploy to production (edgeserver.twisterlab.local)
+.\infrastructure\scripts\deploy.ps1 -Environment production
 
-# 3. Monitor
-curl http://localhost:3001  # Grafana dashboards
-curl http://localhost:9090  # Prometheus
+# Force redeployment
+.\infrastructure\scripts\deploy.ps1 -Environment production -Force
+
+# Deploy manually via SSH
+ssh twister@192.168.0.30
+cd /home/twister
+export $(cat .env.production | xargs)
+docker stack deploy -c docker-compose.yml twisterlab
 ```
 
----
+**What happens**:
+1. Validates prerequisites (Docker, Swarm, files)
+2. Loads environment config (`.env.production` or `.env.staging`)
+3. Deploys stack to Docker Swarm (6 services)
+4. Runs health checks (30s timeout per service)
+5. Reports status for all services
 
-## PART 7: DIRECTORY STRUCTURE (REFERENCE)
+**Production endpoint**: http://192.168.0.30:8000
+**Monitoring**: http://192.168.0.30:3000 (Grafana)
 
-```
-twisterlab/
-├── agents/
-│   ├── __init__.py
-│   ├── base/
-│   │   └── base_agent.py           # BaseAgent class (inherit from this)
-│   ├── core/
-│   │   ├── classifier_agent.py      # #1 - Ticket classification
-│   │   ├── resolver_agent.py        # #2 - SOP execution
-│   │   ├── desktop_commander_agent.py # #3 - System commands
-│   │   └── maestro_agent.py         # #4 - Orchestration
-│   ├── support/
-│   │   ├── sync_agent.py            # #5 - Cache sync
-│   │   ├── backup_agent.py          # #6 - Backup/recovery
-│   │   └── monitoring_agent.py      # #7 - Monitoring
-│   ├── mcp/
-│   │   ├── mcp_router.py            # Route MCP calls (CRITICAL)
-│   │   └── credential_manager.py    # Credential encryption (CRITICAL)
-│   └── security/
-│       └── credential_access.py     # Secure credential usage
-├── api/
-│   ├── main.py                      # FastAPI app
-│   ├── routes/
-│   │   ├── agents.py
-│   │   ├── tickets.py
-│   │   └── monitoring.py
-│   └── middleware/
-│       ├── auth.py
-│       └── logging.py
-├── tests/
-│   ├── test_agents/
-│   ├── test_api/
-│   ├── test_integration_full_system.py
-│   └── test_mcp_isolation.py
-├── monitoring/
-│   ├── prometheus.yml
-│   ├── grafana/
-│   │   └── dashboards/
-│   └── prometheus.staging.yml
-├── docker-compose.staging.yml
-├── docker-compose.production.yml
-├── docker-compose.mcp-isolation.yml
-├── .github/
-│   ├── copilot-instructions.md      # THIS FILE
-│   └── workflows/
-│       ├── ci.yml
-│       ├── deploy-staging.yml
-│       └── deploy-production.yml
-├── docs/
-│   ├── SYSTEM_PROMPT_TECHNICAL_EXCELLENCE.md
-│   ├── SECURE_CREDENTIALS_MCP_SYSTEM_PROMPT.md
-│   ├── PRODUCTION_DEPLOYMENT_GUIDE.md
-│   └── README.md
-└── vault/
-    ├── linkedin_creds.enc
-    ├── twitter_creds.enc
-    ├── email_creds.enc
-    └── github_creds.enc
+### Agent Registration
+
+**Understanding the Architecture**:
+- **`AutonomousAgentOrchestrator`** (`agents/orchestrator/autonomous_orchestrator.py`): Manages scheduled background tasks for autonomous agents (monitoring, backup, sync)
+- **`MaestroOrchestratorAgent`** (`agents/core/maestro_orchestrator_agent.py`): Handles workflow coordination and load balancing for ticket processing
+- **`RealMaestroAgent`** (`agents/real/real_maestro_agent.py`): Production implementation of workflow orchestration
+
+To add a new agent to the autonomous system:
+
+```python
+# In agents/orchestrator/autonomous_orchestrator.py
+from agents.real.real_my_agent import RealMyAgent
+
+async def initialize_agents(self):
+    self.agents = {
+        "monitoring": MonitoringAgent(),
+        "backup": BackupAgent(),
+## Testing Requirements
+
+**Current Test Status**: 22 test files in `tests/` directory (as of 2025-11-11)
+
+**Pytest configuration** (in `pyproject.toml`):
+```toml
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests", 
+    "slow: Slow running tests",
+    "azure: Tests requiring Azure resources"
+]
 ```
 
----
-
-## PART 8: COMMON TASKS & COMMANDS
-
-### Add New Agent
-```bash
-# 1. Create agent file
-touch agents/core/my_new_agent.py
-
-# 2. Implement using BaseAgent pattern (see PART 4)
-
-# 3. Create tests
-touch tests/test_agents/test_my_new_agent.py
-
-# 4. Add to __init__.py
-# agents/__init__.py
-from agents.core.my_new_agent import MyNewAgent
-
-# 5. Register in Maestro
-# agents/core/maestro_agent.py
-self.agents['my_new_agent'] = MyNewAgent()
-
-# 6. Run tests
-pytest tests/test_agents/test_my_new_agent.py -v
-
-# 7. Commit
-git add agents/ tests/
-git commit -m "feat: Add MyNewAgent with full test coverage"
+**Test structure**:
+```
+tests/
+├── test_agents/                    # Agent-specific tests
+│   ├── test_maestro_orchestrator_agent.py
+│   └── test_maestro_orchestrator_agent_simple.py
+├── integration/                    # Cross-component tests
+│   └── test_mcp_integration.py
+├── unit/                           # Unit tests
+│   └── test_maestro.py
+├── test_monitoring_agent.py        # Individual agent tests
+├── test_backup_agent.py
+├── test_sync_agent.py
+├── test_resolver.py
+├── test_classifier_llm.py
+└── test_integration_real_agents.py # Full system tests
 ```
 
-### Add MCP Server (Isolated)
-```bash
-# 1. Create MCP container in docker-compose.mcp-isolation.yml
-# (Add under appropriate TIER with isolated network)
-
-# 2. Create credential file
-touch vault/service_creds.enc
-
-# 3. Encrypt credentials
-python agents/security/credential_manager.py encrypt vault/service_creds.enc
-
-# 4. Update MCPRouter
-# agents/mcp/mcp_router.py
-MCP_NETWORKS['service_mcp'] = {
-    'endpoint': 'http://172.25.0.15:9006',
-    'allowed_agents': ['RelevantAgent'],
-    'credentials_scope': 'enterprise'  # or 'personal'
-}
-
-# 5. Test isolation
-docker-compose -f docker-compose.mcp-isolation.yml up -d
-docker exec agent_mcp_1 curl http://172.26.0.10:8000  # Should timeout
+**Coverage**: No recent coverage data available. Run `pytest tests/ -v --cov=agents --cov-report=html` to generate.
+**Test structure**:
+```
+tests/
+├── test_agents/           # Agent-specific tests
+├── integration/           # Cross-component tests
+├── unit/                  # Unit tests
+└── test_*_agent.py       # Individual agent tests
 ```
 
-### Run Tests
-```bash
+**Writing tests**:
+```python
+import pytest
+from agents.real.real_my_agent import RealMyAgent
+
+@pytest.mark.asyncio
+async def test_my_agent_execution():
+    agent = RealMyAgent()
+    result = await agent.execute({"test": "data"})
+    assert result["status"] == "success"
+    assert "data" in result
+```
+
+**Run tests**:
+```powershell
 # All tests
 pytest tests/ -v
 
 # Specific test file
-pytest tests/test_agents/test_classifier_agent.py -v
+pytest tests/test_my_agent.py -v
 
-# With coverage
+# With coverage report
 pytest tests/ -v --cov=agents --cov-report=html
 
-# Integration tests only
-pytest tests/test_integration_full_system.py -v -s
+# Async tests only
+pytest tests/ -v -m asyncio
 ```
 
-### Deploy to Staging
-```bash
-# 1. Verify tests pass locally
-pytest tests/ -v
+## Key Conventions
 
-# 2. Verify code quality
-black agents/ --check
-mypy agents/
+### Import Paths
+```python
+# ✅ CORRECT - Absolute imports from project root
+from agents.base import TwisterAgent
+from agents.real.real_monitoring_agent import RealMonitoringAgent
 
-# 3. Push to main
-git push origin main
-
-# 4. GitHub Actions automatically:
-#    - Runs all tests
-#    - Deploys to staging
-#    - Runs smoke tests
-#    - Notifies on success/failure
+# ❌ WRONG - Relative imports
+from ..base import TwisterAgent
 ```
+
+### Logging
+```python
+import logging
+logger = logging.getLogger(__name__)
+
+# ✅ Structured logging
+logger.info(f"{self.name}: Task completed", extra={
+    "agent": self.name,
+    "duration_ms": duration,
+    "status": "success"
+})
+
+# ❌ Don't log sensitive data
+logger.info(f"Password: {password}")  # NEVER DO THIS
+```
+
+### Async/Await
+```python
+# ✅ All agent execute() methods must be async
+async def execute(self, context: Dict) -> Dict:
+    result = await self._perform_work()
+    return result
+
+# ✅ Use asyncio for concurrent operations
+import asyncio
+results = await asyncio.gather(
+    self.check_cpu(),
+    self.check_memory(),
+    self.check_disk()
+)
+```
+
+### Type Hints (MANDATORY)
+```python
+# ✅ All functions must have type hints
+async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    pass
+
+# ❌ No type hints
+async def execute(self, context):
+    pass
+```
+
+## Common Operations
+
+### Access Ollama LLM
+```python
+import aiohttp
+
+async def query_llm(self, prompt: str) -> str:
+    async with aiohttp.ClientSession() as session:
+        payload = {
+            "model": "llama3.2:1b",
+            "prompt": prompt,
+            "stream": False
+        }
+        async with session.post(
+            "http://192.168.0.30:11434/api/generate",
+            json=payload
+        ) as resp:
+            data = await resp.json()
+            return data.get("response", "")
+```
+
+### Database Access
+```python
+import asyncpg
+
+async def query_database(self, query: str):
+### Redis Cache
+```python
+import aioredis
+
+async def cache_data(self, key: str, value: Any):
+    redis = await aioredis.create_redis_pool(
+        f"redis://:{os.getenv('REDIS_PASSWORD')}@192.168.0.30:6379"
+    )
+    try:
+        await redis.set(key, json.dumps(value))
+        await redis.expire(key, 3600)  # 1 hour TTL
+    finally:
+        redis.close()
+        await redis.wait_closed()
+```
+
+## Security & Credentials
+
+**Current Status**: Basic encryption references exist in `BackupAgent` (mentions "vault" for encryption keys), but full credential management system with Fernet encryption is not yet implemented.
+
+**Planned Features** (referenced in code but not fully deployed):
+- Encrypted credential storage
+- Tier-based credential scoping (enterprise vs personal)
+- Audit logging for credential access
+
+**Current Best Practice**: Store sensitive credentials in environment variables (`.env.production`, `.env.staging`) and access via `os.getenv()`. Never commit credentials to version control. Redis Cache
+```python
+import aioredis
+
+async def cache_data(self, key: str, value: Any):
+    redis = await aioredis.create_redis_pool(
+        f"redis://:{os.getenv('REDIS_PASSWORD')}@192.168.0.30:6379"
+    )
+    try:
+        await redis.set(key, json.dumps(value))
+        await redis.expire(key, 3600)  # 1 hour TTL
+    finally:
+        redis.close()
+        await redis.wait_closed()
+```
+
+## Troubleshooting
+
+### Agent Not Loading
+```powershell
+# Check if agent is registered in orchestrator
+ssh twister@192.168.0.30 "docker exec twisterlab_api.1.* python -c 'from agents.orchestrator.autonomous_orchestrator import orchestrator; print(orchestrator.agents.keys())'"
+
+# Check logs
+ssh twister@192.168.0.30 "docker service logs twisterlab_api --tail 100"
+```
+
+### Service Not Starting
+```powershell
+# Check service status
+ssh twister@192.168.0.30 "docker service ls"
+
+# Inspect specific service
+ssh twister@192.168.0.30 "docker service ps twisterlab_api --no-trunc"
+
+# View logs
+ssh twister@192.168.0.30 "docker service logs twisterlab_postgres --tail 50"
+```
+
+### Database Connection Failed
+```powershell
+# Verify PostgreSQL is running
+ssh twister@192.168.0.30 "docker exec twisterlab_postgres.1.* pg_isready -U twisterlab"
+
+# Test connection
+ssh twister@192.168.0.30 "docker exec twisterlab_postgres.1.* psql -U twisterlab -c 'SELECT version();'"
+```
+
+## References
+
+- **Main README**: `README.md` - Project overview
+- **Reorganization Guide**: `REORGANISATION_COMPLETE.md` - v1.0 migration
+- **Changelog**: `CHANGELOG.md` - Version history
+- **Infrastructure**: `infrastructure/README.md` - Deployment docs
+- **Agent Examples**: `agents/real/` - Production implementations
+- **Base Classes**: `agents/base.py` - TwisterAgent foundation
 
 ---
 
-## PART 9: DEBUGGING & TROUBLESHOOTING
-
-### Common Issues
-
-**Issue: Tests fail with "CredentialNotFoundError"**
-```bash
-# Solution: Ensure credentials encrypted in vault/
-python -c "from agents.security.credential_manager import CredentialManager; \
-  CredentialManager().encrypt_from_csv('passwords.csv')"
-```
-
-**Issue: MCP connection timeout**
-```bash
-# Solution: Verify MCP container is running and accessible
-docker-compose -f docker-compose.mcp-isolation.yml ps
-docker logs linkedin_mcp
-
-# Verify network isolation
-docker exec linkedin_mcp curl http://172.25.0.10:8000/health
-```
-
-**Issue: Agent cannot access credentials**
-```bash
-# Solution: Check credential scope assignment
-# agents/mcp/mcp_router.py - verify allowed_agents list
-# Make sure agent is in correct tier (enterprise vs personal)
-```
-
-**Issue: Circular imports or missing modules**
-```bash
-# Solution: Check __init__.py files are present
-# Ensure all imports are relative
-# from agents.core.classifier_agent import ClassifierAgent  # ✅
-# from classifier_agent import ClassifierAgent              # ❌
-```
-
----
-
-## PART 10: PRODUCTION CHECKLIST
-
-Before deploying to production:
-
-- [ ] All 138+ tests passing
-- [ ] Code coverage ≥ 80%
-- [ ] No linting errors (pylint, mypy, black)
-- [ ] Security scan passed (bandit, safety)
-- [ ] All credentials encrypted in vault/
-- [ ] Docker images built and tagged
-- [ ] Staging deployment validated
-- [ ] Monitoring dashboards configured
-- [ ] Alerts configured with thresholds
-- [ ] Rollback procedure tested
-- [ ] Documentation updated
-- [ ] Team trained on system
-
----
-
-## SUMMARY: KEY PRINCIPLES
-
-1. **Agents are autonomous** - They execute independently, driven by tickets/schedules
-2. **MCPs are isolated** - 4-tier architecture prevents cross-contamination
-3. **Credentials are encrypted** - Never plaintext, always audited
-4. **Code is tested** - 138+ tests, ≥80% coverage mandatory
-5. **Deployment is automated** - CI/CD handles all validation + deployment
-6. **Monitoring is real-time** - Prometheus + Grafana expose all metrics
-7. **Failure is graceful** - Errors logged, escalated, recovered automatically
-8. **Everything is documented** - Code, tests, architecture, operations
-
----
-
-## GETTING HELP
-
-- **Architecture questions**: See PART 1
-- **Security questions**: See PART 2
-- **Code standards**: See PART 3
-- **Agent implementation**: See PART 4
-- **Testing**: See PART 5
-- **Deployment**: See PART 6
-- **Troubleshooting**: See PART 9
-
----
-
-**Status**: PRODUCTION READY  
-**Last Updated**: 2025-11-02  
-**Version**: v1.0.0  
-**Maintained By**: TwisterLab Team
-
-🚀 **Happy coding! The agents are ready to work.**
+**Version**: 1.0.0  
+**Last Updated**: 2025-11-11  
+**Production Status**: ✅ Operational (6/6 services running)

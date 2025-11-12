@@ -3,10 +3,15 @@
     "id": null,
     "uid": "twisterlab-agents-realtime",
     "title": "TwisterLab Agents - Real-time Monitoring",
-    "tags": ["twisterlab", "agents", "autonomous", "realtime"],
+    "tags": [
+      "twisterlab",
+      "agents",
+      "autonomous",
+      "realtime"
+    ],
     "timezone": "browser",
     "schemaVersion": 36,
-    "version": 1,
+    "version": 5,
     "refresh": "10s",
     "time": {
       "from": "now-15m",
@@ -17,8 +22,16 @@
         "id": 1,
         "title": "Active Agents Status",
         "type": "stat",
-        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "count(up{job=~\"twisterlab.*\"})",
@@ -37,9 +50,18 @@
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 5, "color": "yellow"},
-                {"value": 7, "color": "green"}
+                {
+                  "value": 0,
+                  "color": "red"
+                },
+                {
+                  "value": 5,
+                  "color": "yellow"
+                },
+                {
+                  "value": 7,
+                  "color": "green"
+                }
               ]
             }
           }
@@ -49,8 +71,16 @@
         "id": 2,
         "title": "API Health Check",
         "type": "stat",
-        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "up{job=\"twisterlab-api\"}",
@@ -67,14 +97,28 @@
         "fieldConfig": {
           "defaults": {
             "mappings": [
-              {"type": "value", "value": 1, "text": "HEALTHY"},
-              {"type": "value", "value": 0, "text": "DOWN"}
+              {
+                "type": "value",
+                "value": 1,
+                "text": "HEALTHY"
+              },
+              {
+                "type": "value",
+                "value": 0,
+                "text": "DOWN"
+              }
             ],
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 1, "color": "green"}
+                {
+                  "value": 0,
+                  "color": "red"
+                },
+                {
+                  "value": 1,
+                  "color": "green"
+                }
               ]
             }
           }
@@ -84,11 +128,19 @@
         "id": 3,
         "title": "Redis Status",
         "type": "stat",
-        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 0},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
-            "expr": "redis_up",
+            "expr": "count(up{job=~\".*redis.*\"}) OR on() vector(0)",
             "legendFormat": "Redis",
             "refId": "A"
           }
@@ -97,21 +149,36 @@
           "graphMode": "none",
           "colorMode": "background",
           "justifyMode": "center",
-          "textMode": "name"
+          "textMode": "value_and_name"
         },
         "fieldConfig": {
           "defaults": {
             "mappings": [
-              {"type": "value", "value": 1, "text": "CONNECTED"},
-              {"type": "value", "value": 0, "text": "DOWN"}
+              {
+                "type": "value",
+                "value": 0,
+                "text": "NO EXPORTER"
+              },
+              {
+                "type": "value",
+                "value": 1,
+                "text": "MONITORED"
+              }
             ],
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 1, "color": "green"}
+                {
+                  "value": 0,
+                  "color": "orange"
+                },
+                {
+                  "value": 1,
+                  "color": "green"
+                }
               ]
-            }
+            },
+            "noValue": "No Redis Exporter Configured"
           }
         }
       },
@@ -119,11 +186,19 @@
         "id": 4,
         "title": "PostgreSQL Status",
         "type": "stat",
-        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 0},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
-            "expr": "pg_up",
+            "expr": "count(up{job=~\".*postgres.*\"}) OR on() vector(0)",
             "legendFormat": "PostgreSQL",
             "refId": "A"
           }
@@ -132,21 +207,36 @@
           "graphMode": "none",
           "colorMode": "background",
           "justifyMode": "center",
-          "textMode": "name"
+          "textMode": "value_and_name"
         },
         "fieldConfig": {
           "defaults": {
             "mappings": [
-              {"type": "value", "value": 1, "text": "CONNECTED"},
-              {"type": "value", "value": 0, "text": "DOWN"}
+              {
+                "type": "value",
+                "value": 0,
+                "text": "NO EXPORTER"
+              },
+              {
+                "type": "value",
+                "value": 1,
+                "text": "MONITORED"
+              }
             ],
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 1, "color": "green"}
+                {
+                  "value": 0,
+                  "color": "orange"
+                },
+                {
+                  "value": 1,
+                  "color": "green"
+                }
               ]
-            }
+            },
+            "noValue": "No PostgreSQL Exporter Configured"
           }
         }
       },
@@ -154,12 +244,20 @@
         "id": 5,
         "title": "API Request Rate (req/s)",
         "type": "timeseries",
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 6
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
-            "expr": "rate(http_requests_total{job=\"twisterlab-api\"}[1m])",
-            "legendFormat": "{{method}} {{path}}",
+            "expr": "sum(rate(http_requests_total{job=\"twisterlab-api\"}[1m])) by (method, endpoint)",
+            "legendFormat": "{{method}} {{endpoint}}",
             "refId": "A"
           }
         ],
@@ -170,7 +268,8 @@
               "lineInterpolation": "smooth",
               "fillOpacity": 10
             },
-            "unit": "reqps"
+            "unit": "reqps",
+            "noValue": "No HTTP Traffic"
           }
         }
       },
@@ -178,8 +277,16 @@
         "id": 6,
         "title": "API Response Time (ms)",
         "type": "timeseries",
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 6
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"twisterlab-api\"}[5m])) * 1000",
@@ -206,8 +313,16 @@
         "id": 7,
         "title": "Container CPU Usage (%)",
         "type": "timeseries",
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 14
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "rate(container_cpu_usage_seconds_total{name=~\"twisterlab.*\"}[1m]) * 100",
@@ -230,8 +345,16 @@
         "id": 8,
         "title": "Container Memory Usage (MB)",
         "type": "timeseries",
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 14
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "container_memory_usage_bytes{name=~\"twisterlab.*\"} / 1024 / 1024",
@@ -253,8 +376,16 @@
         "id": 9,
         "title": "Redis Memory Usage",
         "type": "gauge",
-        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 22},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 22
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "redis_memory_used_bytes / redis_memory_max_bytes * 100",
@@ -269,9 +400,18 @@
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "green"},
-                {"value": 70, "color": "yellow"},
-                {"value": 90, "color": "red"}
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 70,
+                  "color": "yellow"
+                },
+                {
+                  "value": 90,
+                  "color": "red"
+                }
               ]
             }
           }
@@ -281,8 +421,16 @@
         "id": 10,
         "title": "PostgreSQL Connections",
         "type": "stat",
-        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 22},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 22
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "pg_stat_database_numbackends",
@@ -300,9 +448,18 @@
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "green"},
-                {"value": 50, "color": "yellow"},
-                {"value": 80, "color": "red"}
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 50,
+                  "color": "yellow"
+                },
+                {
+                  "value": 80,
+                  "color": "red"
+                }
               ]
             }
           }
@@ -312,8 +469,16 @@
         "id": 11,
         "title": "Disk Usage (%)",
         "type": "gauge",
-        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 22},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 22
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
@@ -328,9 +493,18 @@
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "green"},
-                {"value": 75, "color": "yellow"},
-                {"value": 90, "color": "red"}
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 75,
+                  "color": "yellow"
+                },
+                {
+                  "value": 90,
+                  "color": "red"
+                }
               ]
             }
           }
@@ -340,8 +514,16 @@
         "id": 12,
         "title": "Network I/O (MB/s)",
         "type": "timeseries",
-        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 22},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 22
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "rate(node_network_receive_bytes_total{device!~\"lo|veth.*\"}[1m]) / 1024 / 1024",
@@ -368,8 +550,16 @@
         "id": 13,
         "title": "Agent Operations Rate (ops/sec)",
         "type": "timeseries",
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "rate(agent_operations_total[1m])",
@@ -389,16 +579,29 @@
           }
         },
         "options": {
-          "tooltip": {"mode": "multi"},
-          "legend": {"displayMode": "table", "placement": "right"}
+          "tooltip": {
+            "mode": "multi"
+          },
+          "legend": {
+            "displayMode": "table",
+            "placement": "right"
+          }
         }
       },
       {
         "id": 14,
         "title": "Agent Error Rate (errors/sec)",
         "type": "timeseries",
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "rate(agent_operations_total{status=\"error\"}[5m])",
@@ -418,24 +621,46 @@
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "green"},
-                {"value": 0.01, "color": "yellow"},
-                {"value": 0.1, "color": "red"}
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 0.01,
+                  "color": "yellow"
+                },
+                {
+                  "value": 0.1,
+                  "color": "red"
+                }
               ]
             }
           }
         },
         "options": {
-          "tooltip": {"mode": "multi"},
-          "legend": {"displayMode": "table", "placement": "right"}
+          "tooltip": {
+            "mode": "multi"
+          },
+          "legend": {
+            "displayMode": "table",
+            "placement": "right"
+          }
         }
       },
       {
         "id": 15,
         "title": "Agent Execution Duration P95 (seconds)",
         "type": "gauge",
-        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 32},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 32
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "histogram_quantile(0.95, rate(agent_execution_duration_seconds_bucket[5m]))",
@@ -451,9 +676,18 @@
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "green"},
-                {"value": 1, "color": "yellow"},
-                {"value": 5, "color": "red"}
+                {
+                  "value": 0,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 5,
+                  "color": "red"
+                }
               ]
             }
           }
@@ -468,8 +702,16 @@
         "id": 16,
         "title": "Agent Operations by Status",
         "type": "piechart",
-        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 32},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 32
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "sum by (status) (agent_operations_total)",
@@ -479,11 +721,17 @@
         ],
         "options": {
           "pieType": "donut",
-          "displayLabels": ["name", "percent"],
+          "displayLabels": [
+            "name",
+            "percent"
+          ],
           "legend": {
             "displayMode": "table",
             "placement": "right",
-            "values": ["value", "percent"]
+            "values": [
+              "value",
+              "percent"
+            ]
           }
         },
         "fieldConfig": {
@@ -495,12 +743,34 @@
           },
           "overrides": [
             {
-              "matcher": {"id": "byName", "options": "success"},
-              "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]
+              "matcher": {
+                "id": "byName",
+                "options": "success"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "green",
+                    "mode": "fixed"
+                  }
+                }
+              ]
             },
             {
-              "matcher": {"id": "byName", "options": "error"},
-              "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]
+              "matcher": {
+                "id": "byName",
+                "options": "error"
+              },
+              "properties": [
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "red",
+                    "mode": "fixed"
+                  }
+                }
+              ]
             }
           ]
         }
@@ -509,8 +779,16 @@
         "id": 17,
         "title": "Active Agents Count",
         "type": "stat",
-        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 32},
-        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 32
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3qqymva25tsb"
+        },
         "targets": [
           {
             "expr": "active_agents_count",
@@ -530,9 +808,18 @@
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 6, "color": "yellow"},
-                {"value": 7, "color": "green"}
+                {
+                  "value": 0,
+                  "color": "red"
+                },
+                {
+                  "value": 6,
+                  "color": "yellow"
+                },
+                {
+                  "value": 7,
+                  "color": "green"
+                }
               ]
             }
           }

@@ -27,21 +27,21 @@ docker cp api/ ${CONTAINER_ID}:/app/
 if [ $? -eq 0 ]; then
     echo "✅ Fichiers copiés avec succès"
     echo ""
-    
+
     # Redémarrer le service
     echo "🔄 Redémarrage du service API..."
     docker service update --force twisterlab_api
-    
+
     if [ $? -eq 0 ]; then
         echo "✅ Service redémarré"
         echo ""
         echo "⏳ Attente du démarrage (10s)..."
         sleep 10
-        
+
         # Tester l'API
         echo "🧪 Test de l'API..."
         curl -s http://localhost:8000/health | python3 -m json.tool
-        
+
         echo ""
         echo "✅ MISE À JOUR TERMINÉE"
     else

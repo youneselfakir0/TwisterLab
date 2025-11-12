@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: twisterlab-postgres
+    environment:
+      POSTGRES_DB: twisterlab
+      POSTGRES_USER: twisterlab
+      POSTGRES_PASSWORD: twisterlab2024!
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deployment/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - twisterlab
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twisterlab -d twisterlab"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & State
+  redis:
+    image: redis:7-alpine
+    container_name: twisterlab-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - twisterlab
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama for Local AI Inference
+  ollama:
+    image: ollama/ollama:latest
+    container_name: twisterlab-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - twisterlab
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # TwisterLab API Server
+  api:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile.api
+    container_name: twisterlab-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://twisterlab:twisterlab2024!@postgres:5432/twisterlab
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    networks:
+      - twisterlab
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # OpenWebUI Frontend
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: twisterlab-openwebui
+    ports:
+      - "3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY=twisterlab-secret-key-2024
+    volumes:
+      - openwebui_data:/app/backend/data
+    networks:
+      - twisterlab
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  ollama_data:
+  openwebui_data:
+
+networks:
+  twisterlab:
+    driver: bridge

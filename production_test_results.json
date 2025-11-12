@@ -1,0 +1,62 @@
+{
+  "summary": {
+    "total_tests": 8,
+    "passed": 0,
+    "failed": 8,
+    "success_rate": "0.0%"
+  },
+  "results": [
+    {
+      "test_name": "test_health_endpoint",
+      "status": "error",
+      "error": "[Errno 11001] getaddrinfo failed",
+      "timestamp": "2025-11-09T15:47:55.995696"
+    },
+    {
+      "test_name": "test_autonomous_status",
+      "status": "error",
+      "error": "[Errno 11001] getaddrinfo failed",
+      "timestamp": "2025-11-09T15:47:55.995696"
+    },
+    {
+      "test_name": "test_autonomous_agents",
+      "status": "error",
+      "error": "[Errno 11001] getaddrinfo failed",
+      "timestamp": "2025-11-09T15:47:55.997702"
+    },
+    {
+      "test_name": "test_monitoring_agent",
+      "status": "error",
+      "error": "[Errno 11001] getaddrinfo failed",
+      "timestamp": "2025-11-09T15:47:55.998685"
+    },
+    {
+      "test_name": "test_backup_agent",
+      "status": "error",
+      "error": "[Errno 11001] getaddrinfo failed",
+      "timestamp": "2025-11-09T15:47:55.998685"
+    },
+    {
+      "test_name": "test_sync_agent",
+      "status": "error",
+      "error": "[Errno 11001] getaddrinfo failed",
+      "timestamp": "2025-11-09T15:47:55.998685"
+    },
+    {
+      "test_name": "test_emergency_response",
+      "status": "error",
+      "error": "[Errno 11001] getaddrinfo failed",
+      "timestamp": "2025-11-09T15:47:56.000710"
+    },
+    {
+      "test_name": "test_scheduled_tasks",
+      "status": "error",
+      "error": "[Errno 11001] getaddrinfo failed",
+      "timestamp": "2025-11-09T15:47:56.000710"
+    }
+  ],
+  "timestamp": "2025-11-09T15:47:56.000710",
+  "recommendations": [
+    "Address 8 failed tests before production use"
+  ]
+}

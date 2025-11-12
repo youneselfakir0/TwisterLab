@@ -1,0 +1,544 @@
+﻿{
+    "Issues":  [
+                   "api has only 0/5 tasks running",
+                   "postgres has only /5 tasks running",
+                   "redis has only /5 tasks running",
+                   "traefik has only /5 tasks running",
+                   "webui has only /2 tasks running",
+                   "ollama has only /2 tasks running",
+                   "backup agent is not responding",
+                   "sync agent is not responding",
+                   "Test  execution failed",
+                   "Database connectivity issues",
+                   "Redis connectivity issues"
+               ],
+    "Recommendations":  [
+                            "Address 11 identified issues",
+                            "Verify agent initialization and dependencies"
+                        ],
+    "Agents":  {
+                   "monitoring":  {
+                                      "Status":  "Success",
+                                      "Result":  {
+                                                     "agent":  "monitoring",
+                                                     "operation":  "status",
+                                                     "status":  "completed",
+                                                     "timestamp":  "2025-11-09T16:36:38.645146",
+                                                     "result":  {
+                                                                    "status":  "success",
+                                                                    "timestamp":  "2025-11-09T16:36:38.645146",
+                                                                    "results":  {
+                                                                                    "services":  {
+                                                                                                     "api":  {
+                                                                                                                 "status":  "success",
+                                                                                                                 "operation":  "check_service_health",
+                                                                                                                 "mock_response":  true,
+                                                                                                                 "timestamp":  "2025-11-09T16:36:38.574840"
+                                                                                                             },
+                                                                                                     "postgres":  {
+                                                                                                                      "status":  "success",
+                                                                                                                      "operation":  "check_service_health",
+                                                                                                                      "mock_response":  true,
+                                                                                                                      "timestamp":  "2025-11-09T16:36:38.585317"
+                                                                                                                  },
+                                                                                                     "redis":  {
+                                                                                                                   "status":  "success",
+                                                                                                                   "operation":  "check_service_health",
+                                                                                                                   "mock_response":  true,
+                                                                                                                   "timestamp":  "2025-11-09T16:36:38.599053"
+                                                                                                               },
+                                                                                                     "nginx":  {
+                                                                                                                   "status":  "success",
+                                                                                                                   "operation":  "check_service_health",
+                                                                                                                   "mock_response":  true,
+                                                                                                                   "timestamp":  "2025-11-09T16:36:38.610937"
+                                                                                                               }
+                                                                                                 },
+                                                                                    "database":  {
+                                                                                                     "status":  "success",
+                                                                                                     "operation":  "check_database_health",
+                                                                                                     "mock_response":  true,
+                                                                                                     "timestamp":  "2025-11-09T16:36:38.620959"
+                                                                                                 },
+                                                                                    "cache":  {
+                                                                                                  "status":  "success",
+                                                                                                  "operation":  "check_cache_health",
+                                                                                                  "mock_response":  true,
+                                                                                                  "timestamp":  "2025-11-09T16:36:38.632577"
+                                                                                              },
+                                                                                    "performance":  {
+                                                                                                        "status":  "success",
+                                                                                                        "operation":  "get_performance_metrics",
+                                                                                                        "mock_response":  true,
+                                                                                                        "timestamp":  "2025-11-09T16:36:38.645146"
+                                                                                                    }
+                                                                                },
+                                                                    "diagnosis":  [
+                                                                                      {
+                                                                                          "type":  "service_down",
+                                                                                          "service":  "api",
+                                                                                          "severity":  "critical",
+                                                                                          "description":  "Service api is not responding",
+                                                                                          "suggested_action":  "restart_service"
+                                                                                      },
+                                                                                      {
+                                                                                          "type":  "service_down",
+                                                                                          "service":  "postgres",
+                                                                                          "severity":  "critical",
+                                                                                          "description":  "Service postgres is not responding",
+                                                                                          "suggested_action":  "restart_service"
+                                                                                      },
+                                                                                      {
+                                                                                          "type":  "service_down",
+                                                                                          "service":  "redis",
+                                                                                          "severity":  "critical",
+                                                                                          "description":  "Service redis is not responding",
+                                                                                          "suggested_action":  "restart_service"
+                                                                                      },
+                                                                                      {
+                                                                                          "type":  "service_down",
+                                                                                          "service":  "nginx",
+                                                                                          "severity":  "critical",
+                                                                                          "description":  "Service nginx is not responding",
+                                                                                          "suggested_action":  "restart_service"
+                                                                                      }
+                                                                                  ],
+                                                                    "repairs":  [
+
+                                                                                ],
+                                                                    "alerts":  [
+                                                                                   {
+                                                                                       "level":  "critical",
+                                                                                       "message":  "Service api is not responding",
+                                                                                       "service":  "api",
+                                                                                       "timestamp":  "2025-11-09T16:36:38.645146"
+                                                                                   },
+                                                                                   {
+                                                                                       "level":  "critical",
+                                                                                       "message":  "Service postgres is not responding",
+                                                                                       "service":  "postgres",
+                                                                                       "timestamp":  "2025-11-09T16:36:38.645146"
+                                                                                   },
+                                                                                   {
+                                                                                       "level":  "critical",
+                                                                                       "message":  "Service redis is not responding",
+                                                                                       "service":  "redis",
+                                                                                       "timestamp":  "2025-11-09T16:36:38.645146"
+                                                                                   },
+                                                                                   {
+                                                                                       "level":  "critical",
+                                                                                       "message":  "Service nginx is not responding",
+                                                                                       "service":  "nginx",
+                                                                                       "timestamp":  "2025-11-09T16:36:38.645146"
+                                                                                   }
+                                                                               ]
+                                                                },
+                                                     "execution_time_ms":  81.40400000000001
+                                                 },
+                                      "ResponseCode":  200
+                                  },
+                   "backup":  {
+                                  "Error":  "The remote server returned an error: (404) Not Found.",
+                                  "Status":  "Failed"
+                              },
+                   "sync":  {
+                                "Error":  "The remote server returned an error: (404) Not Found.",
+                                "Status":  "Failed"
+                            }
+               },
+    "Timestamp":  "2025-11-09T16:36:34Z",
+    "Services":  {
+                     "ollama":  {
+                                    "Status":  "Running",
+                                    "RunningTasks":  null,
+                                    "Name":  "twisterlab_prod_ollama",
+                                    "Tasks":  [
+                                                  {
+                                                      "CurrentState":  "Running about an hour ago",
+                                                      "DesiredState":  "Running",
+                                                      "Error":  "",
+                                                      "ID":  "pmk7oko1pjpv",
+                                                      "Image":  "ollama/ollama:latest",
+                                                      "Name":  "twisterlab_prod_ollama.1",
+                                                      "Node":  "edgeserver.twisterlab.local",
+                                                      "Ports":  ""
+                                                  },
+                                                  {
+                                                      "CurrentState":  "Shutdown about an hour ago",
+                                                      "DesiredState":  "Shutdown",
+                                                      "Error":  "",
+                                                      "ID":  "ot046vtnq5v9",
+                                                      "Image":  "ollama/ollama:latest",
+                                                      "Name":  "twisterlab_prod_ollama.1",
+                                                      "Node":  "",
+                                                      "Ports":  ""
+                                                  }
+                                              ],
+                                    "TotalTasks":  2
+                                },
+                     "api":  {
+                                 "Status":  "Running",
+                                 "RunningTasks":  0,
+                                 "Name":  "twisterlab_prod_api",
+                                 "Tasks":  [
+                                               {
+                                                   "CurrentState":  "New 12 seconds ago",
+                                                   "DesiredState":  "Running",
+                                                   "Error":  "",
+                                                   "ID":  "14z81xgae6s7",
+                                                   "Image":  "mcr.microsoft.com/mirror/docker/library/python:3.11-slim",
+                                                   "Name":  "twisterlab_prod_api.1",
+                                                   "Node":  "",
+                                                   "Ports":  ""
+                                               },
+                                               {
+                                                   "CurrentState":  "Rejected 12 seconds ago",
+                                                   "DesiredState":  "Shutdown",
+                                                   "Error":  "\"invalid bind mount source, muΓÇª\"",
+                                                   "ID":  "wipuiabjdecn",
+                                                   "Image":  "mcr.microsoft.com/mirror/docker/library/python:3.11-slim",
+                                                   "Name":  "twisterlab_prod_api.1",
+                                                   "Node":  "edgeserver.twisterlab.local",
+                                                   "Ports":  ""
+                                               },
+                                               {
+                                                   "CurrentState":  "Rejected 28 seconds ago",
+                                                   "DesiredState":  "Shutdown",
+                                                   "Error":  "\"invalid bind mount source, muΓÇª\"",
+                                                   "ID":  "h88091rgwnpv",
+                                                   "Image":  "mcr.microsoft.com/mirror/docker/library/python:3.11-slim",
+                                                   "Name":  "twisterlab_prod_api.1",
+                                                   "Node":  "edgeserver.twisterlab.local",
+                                                   "Ports":  ""
+                                               },
+                                               {
+                                                   "CurrentState":  "Rejected 43 seconds ago",
+                                                   "DesiredState":  "Shutdown",
+                                                   "Error":  "\"invalid bind mount source, muΓÇª\"",
+                                                   "ID":  "p4w38rvhmbvj",
+                                                   "Image":  "mcr.microsoft.com/mirror/docker/library/python:3.11-slim",
+                                                   "Name":  "twisterlab_prod_api.1",
+                                                   "Node":  "edgeserver.twisterlab.local",
+                                                   "Ports":  ""
+                                               },
+                                               {
+                                                   "CurrentState":  "Rejected 59 seconds ago",
+                                                   "DesiredState":  "Shutdown",
+                                                   "Error":  "\"invalid bind mount source, muΓÇª\"",
+                                                   "ID":  "v7edy2fvf5cg",
+                                                   "Image":  "mcr.microsoft.com/mirror/docker/library/python:3.11-slim",
+                                                   "Name":  "twisterlab_prod_api.1",
+                                                   "Node":  "edgeserver.twisterlab.local",
+                                                   "Ports":  ""
+                                               }
+                                           ],
+                                 "TotalTasks":  5
+                             },
+                     "Database":  {
+                                      "PostgreSQL":  "Failed",
+                                      "Error":  "PostgreSQL container not found",
+                                      "Redis":  "Failed"
+                                  },
+                     "postgres":  {
+                                      "Status":  "Running",
+                                      "RunningTasks":  null,
+                                      "Name":  "twisterlab_prod_postgres",
+                                      "Tasks":  [
+                                                    {
+                                                        "CurrentState":  "Running about an hour ago",
+                                                        "DesiredState":  "Running",
+                                                        "Error":  "",
+                                                        "ID":  "vk3qc90fddey",
+                                                        "Image":  "postgres:16-alpine",
+                                                        "Name":  "twisterlab_prod_postgres.1",
+                                                        "Node":  "edgeserver.twisterlab.local",
+                                                        "Ports":  ""
+                                                    },
+                                                    {
+                                                        "CurrentState":  "Shutdown about an hour ago",
+                                                        "DesiredState":  "Shutdown",
+                                                        "Error":  "",
+                                                        "ID":  "0ikfve1pqj5z",
+                                                        "Image":  "postgres:16-alpine",
+                                                        "Name":  "twisterlab_prod_postgres.1",
+                                                        "Node":  "edgeserver.twisterlab.local",
+                                                        "Ports":  ""
+                                                    },
+                                                    {
+                                                        "CurrentState":  "Failed about an hour ago",
+                                                        "DesiredState":  "Shutdown",
+                                                        "Error":  "\"task: non-zero exit (1)\"",
+                                                        "ID":  "x8c8c7d3wmui",
+                                                        "Image":  "postgres:16-alpine",
+                                                        "Name":  "twisterlab_prod_postgres.1",
+                                                        "Node":  "edgeserver.twisterlab.local",
+                                                        "Ports":  ""
+                                                    },
+                                                    {
+                                                        "CurrentState":  "Failed about an hour ago",
+                                                        "DesiredState":  "Shutdown",
+                                                        "Error":  "\"task: non-zero exit (1)\"",
+                                                        "ID":  "x0a9a28xhqgk",
+                                                        "Image":  "postgres:16-alpine",
+                                                        "Name":  "twisterlab_prod_postgres.1",
+                                                        "Node":  "edgeserver.twisterlab.local",
+                                                        "Ports":  ""
+                                                    },
+                                                    {
+                                                        "CurrentState":  "Failed about an hour ago",
+                                                        "DesiredState":  "Shutdown",
+                                                        "Error":  "\"task: non-zero exit (1)\"",
+                                                        "ID":  "ku8gzcoj92x7",
+                                                        "Image":  "postgres:16-alpine",
+                                                        "Name":  "twisterlab_prod_postgres.1",
+                                                        "Node":  "edgeserver.twisterlab.local",
+                                                        "Ports":  ""
+                                                    }
+                                                ],
+                                      "TotalTasks":  5
+                                  },
+                     "redis":  {
+                                   "Status":  "Running",
+                                   "RunningTasks":  null,
+                                   "Name":  "twisterlab_prod_redis",
+                                   "Tasks":  [
+                                                 {
+                                                     "CurrentState":  "Running about an hour ago",
+                                                     "DesiredState":  "Running",
+                                                     "Error":  "",
+                                                     "ID":  "vkdffxmjt98t",
+                                                     "Image":  "redis:7-alpine",
+                                                     "Name":  "twisterlab_prod_redis.1",
+                                                     "Node":  "edgeserver.twisterlab.local",
+                                                     "Ports":  ""
+                                                 },
+                                                 {
+                                                     "CurrentState":  "Failed about an hour ago",
+                                                     "DesiredState":  "Shutdown",
+                                                     "Error":  "\"task: non-zero exit (1)\"",
+                                                     "ID":  "uzm01msbpdo2",
+                                                     "Image":  "redis:7-alpine",
+                                                     "Name":  "twisterlab_prod_redis.1",
+                                                     "Node":  "edgeserver.twisterlab.local",
+                                                     "Ports":  ""
+                                                 },
+                                                 {
+                                                     "CurrentState":  "Failed about an hour ago",
+                                                     "DesiredState":  "Shutdown",
+                                                     "Error":  "\"task: non-zero exit (1)\"",
+                                                     "ID":  "uwg284dtn16v",
+                                                     "Image":  "redis:7-alpine",
+                                                     "Name":  "twisterlab_prod_redis.1",
+                                                     "Node":  "edgeserver.twisterlab.local",
+                                                     "Ports":  ""
+                                                 },
+                                                 {
+                                                     "CurrentState":  "Shutdown about an hour ago",
+                                                     "DesiredState":  "Shutdown",
+                                                     "Error":  "",
+                                                     "ID":  "onejywchq40v",
+                                                     "Image":  "mcr.microsoft.com/mirror/docker/library/redis:7-alpine",
+                                                     "Name":  "twisterlab_prod_redis.1",
+                                                     "Node":  "edgeserver.twisterlab.local",
+                                                     "Ports":  ""
+                                                 },
+                                                 {
+                                                     "CurrentState":  "Rejected about an hour ago",
+                                                     "DesiredState":  "Shutdown",
+                                                     "Error":  "\"No such image: mcr.microsoft.ΓÇª\"",
+                                                     "ID":  "dvkny1ej85p1",
+                                                     "Image":  "mcr.microsoft.com/mirror/docker/library/redis:7-alpine",
+                                                     "Name":  "twisterlab_prod_redis.1",
+                                                     "Node":  "edgeserver.twisterlab.local",
+                                                     "Ports":  ""
+                                                 }
+                                             ],
+                                   "TotalTasks":  5
+                               },
+                     "webui":  {
+                                   "Status":  "Running",
+                                   "RunningTasks":  null,
+                                   "Name":  "twisterlab_prod_webui",
+                                   "Tasks":  [
+                                                 {
+                                                     "CurrentState":  "Running about an hour ago",
+                                                     "DesiredState":  "Running",
+                                                     "Error":  "",
+                                                     "ID":  "kj939luc9od7",
+                                                     "Image":  "ghcr.io/open-webui/open-webui:main",
+                                                     "Name":  "twisterlab_prod_webui.1",
+                                                     "Node":  "edgeserver.twisterlab.local",
+                                                     "Ports":  ""
+                                                 },
+                                                 {
+                                                     "CurrentState":  "Shutdown about an hour ago",
+                                                     "DesiredState":  "Shutdown",
+                                                     "Error":  "",
+                                                     "ID":  "ihv90v2uq15e",
+                                                     "Image":  "ghcr.io/open-webui/open-webui:main",
+                                                     "Name":  "twisterlab_prod_webui.1",
+                                                     "Node":  "",
+                                                     "Ports":  ""
+                                                 }
+                                             ],
+                                   "TotalTasks":  2
+                               },
+                     "traefik":  {
+                                     "Status":  "Running",
+                                     "RunningTasks":  null,
+                                     "Name":  "twisterlab_prod_traefik",
+                                     "Tasks":  [
+                                                   {
+                                                       "CurrentState":  "Running 2 hours ago",
+                                                       "DesiredState":  "Running",
+                                                       "Error":  "",
+                                                       "ID":  "odjx5nja63eh",
+                                                       "Image":  "traefik:v2.10",
+                                                       "Name":  "twisterlab_prod_traefik.1",
+                                                       "Node":  "edgeserver.twisterlab.local",
+                                                       "Ports":  ""
+                                                   },
+                                                   {
+                                                       "CurrentState":  "Rejected 2 hours ago",
+                                                       "DesiredState":  "Shutdown",
+                                                       "Error":  "\"invalid mount target, must beΓÇª\"",
+                                                       "ID":  "x6ovj9brtrqt",
+                                                       "Image":  "traefik:v2.10",
+                                                       "Name":  "twisterlab_prod_traefik.1",
+                                                       "Node":  "CoreServer-RTX",
+                                                       "Ports":  ""
+                                                   },
+                                                   {
+                                                       "CurrentState":  "Rejected 2 hours ago",
+                                                       "DesiredState":  "Shutdown",
+                                                       "Error":  "\"invalid mount target, must beΓÇª\"",
+                                                       "ID":  "bw0zoe1wkere",
+                                                       "Image":  "traefik:v2.10",
+                                                       "Name":  "twisterlab_prod_traefik.1",
+                                                       "Node":  "CoreServer-RTX",
+                                                       "Ports":  ""
+                                                   },
+                                                   {
+                                                       "CurrentState":  "Rejected 2 hours ago",
+                                                       "DesiredState":  "Shutdown",
+                                                       "Error":  "\"invalid mount target, must beΓÇª\"",
+                                                       "ID":  "p45al8xg78v9",
+                                                       "Image":  "traefik:v2.10",
+                                                       "Name":  "twisterlab_prod_traefik.1",
+                                                       "Node":  "CoreServer-RTX",
+                                                       "Ports":  ""
+                                                   },
+                                                   {
+                                                       "CurrentState":  "Rejected 2 hours ago",
+                                                       "DesiredState":  "Shutdown",
+                                                       "Error":  "\"invalid mount target, must beΓÇª\"",
+                                                       "ID":  "nnsa7ie1qszd",
+                                                       "Image":  "traefik:v2.10",
+                                                       "Name":  "twisterlab_prod_traefik.1",
+                                                       "Node":  "CoreServer-RTX",
+                                                       "Ports":  ""
+                                                   }
+                                               ],
+                                     "TotalTasks":  5
+                                 }
+                 },
+    "System":  {
+                   "Swarm":  {
+                                 "ReadyNodes":  3,
+                                 "Status":  "Active",
+                                 "TotalNodes":  3,
+                                 "Nodes":  [
+                                               {
+                                                   "Availability":  "Active",
+                                                   "EngineVersion":  "28.3.1",
+                                                   "Hostname":  "CoreServer-RTX",
+                                                   "ID":  "nji5xw7se2szt4eqp3d2a1p48",
+                                                   "ManagerStatus":  "Reachable",
+                                                   "Self":  true,
+                                                   "Status":  "Ready",
+                                                   "TLSStatus":  "Ready"
+                                               },
+                                               {
+                                                   "Availability":  "Active",
+                                                   "EngineVersion":  "28.3.1",
+                                                   "Hostname":  "DELL",
+                                                   "ID":  "txlkvt76zi1akns0s8v6ndhsz",
+                                                   "ManagerStatus":  "",
+                                                   "Self":  false,
+                                                   "Status":  "Ready",
+                                                   "TLSStatus":  "Ready"
+                                               },
+                                               {
+                                                   "Availability":  "Active",
+                                                   "EngineVersion":  "28.5.1",
+                                                   "Hostname":  "edgeserver.twisterlab.local",
+                                                   "ID":  "ue0izwj2zd37f074unkxuu2hr",
+                                                   "ManagerStatus":  "Leader",
+                                                   "Self":  false,
+                                                   "Status":  "Ready",
+                                                   "TLSStatus":  "Ready"
+                                               }
+                                           ]
+                             },
+                   "Docker":  {
+                                  "Images":  4,
+                                  "Status":  "Running",
+                                  "Containers":  0,
+                                  "Version":  "28.5.2"
+                              }
+               },
+    "Monitoring":  {
+
+                   },
+    "Endpoints":  {
+                      "Grafana":  {
+                                      "Status":  "Success",
+                                      "Url":  "http://grafana.twisterlab.local",
+                                      "Type":  "monitoring",
+                                      "StatusCode":  200,
+                                      "ResponseTime":  null
+                                  },
+                      "Prometheus":  {
+                                         "Status":  "Success",
+                                         "Url":  "http://prometheus.twisterlab.local",
+                                         "Type":  "monitoring",
+                                         "StatusCode":  200,
+                                         "ResponseTime":  null
+                                     },
+                      "Traefik_Dashboard":  {
+                                                "Status":  "Success",
+                                                "Url":  "http://traefik.twisterlab.local",
+                                                "Type":  "traefik",
+                                                "StatusCode":  200,
+                                                "ResponseTime":  null
+                                            },
+                      "Autonomous_Status":  {
+                                                "Status":  "Success",
+                                                "Url":  "http://localhost:8000/api/v1/autonomous/status",
+                                                "Type":  "api",
+                                                "StatusCode":  200,
+                                                "ResponseTime":  null
+                                            },
+                      "Agents_List":  {
+                                          "Status":  "Success",
+                                          "Url":  "http://localhost:8000/api/v1/autonomous/agents",
+                                          "Type":  "api",
+                                          "StatusCode":  200,
+                                          "ResponseTime":  null
+                                      },
+                      "API_Health":  {
+                                         "Status":  "Success",
+                                         "Url":  "http://localhost:8000/health",
+                                         "Type":  "api",
+                                         "StatusCode":  200,
+                                         "ResponseTime":  null
+                                     },
+                      "WebUI":  {
+                                    "Status":  "Success",
+                                    "Url":  "http://webui.twisterlab.local",
+                                    "Type":  "webui",
+                                    "StatusCode":  200,
+                                    "ResponseTime":  null
+                                }
+                  }
+}

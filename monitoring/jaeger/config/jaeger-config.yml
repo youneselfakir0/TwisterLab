@@ -1,0 +1,17 @@
+disabled: false
+reporter:
+  queueSize: 100
+  bufferFlushInterval: 10
+  logSpans: false
+  localAgentHostPort: 127.0.0.1:6831
+sampler:
+  type: const
+  param: 1
+headers:
+  jaegerDebugHeader: debug-id
+  jaegerBaggageHeader: baggage
+  traceBaggageHeaderPrefix: uberctx-
+baggageRestrictions:
+  denyBagsWithRegexp: null
+  allowBagsWithRegexp: null
+  ignoreBagsWithRegexp: null

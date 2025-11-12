@@ -1,0 +1,112 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "TwisterLab Backup Monitoring",
+    "tags": ["twisterlab", "backup", "monitoring"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Backup Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(backup_operations_total{status=\"success\"}[7d]) / rate(backup_operations_total[7d]) * 100",
+            "legendFormat": "Success Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Backup Duration Trend",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "backup_duration_seconds",
+            "legendFormat": "{{backup_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "seconds"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Backup Size Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "backup_size_bytes",
+            "legendFormat": "{{backup_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Storage Usage",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "backup_storage_used_bytes / backup_storage_total_bytes * 100",
+            "legendFormat": "{{storage_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Recent Backup Operations",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "backup_operations_total",
+            "legendFormat": "{{backup_type}} - {{status}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "table"
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Backup Alerts",
+        "type": "alertlist",
+        "options": {
+          "showOptions": {
+            "alertName": true,
+            "alertInstance": true,
+            "alertState": true
+          }
+        }
+      }
+    ],
+    "time": {
+      "from": "now-7d",
+      "to": "now"
+    },
+    "refresh": "5m",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+}

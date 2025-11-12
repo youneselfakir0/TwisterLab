@@ -77,6 +77,14 @@ if AUTH_AVAILABLE and auth_router:
 else:
     logger.warning("Authentication disabled - Hybrid auth module not available")
 
+# Include MCP REST endpoints
+try:
+    from api.endpoints.mcp_rest import router as mcp_router
+    app.include_router(mcp_router, tags=["MCP"])
+    logger.info("MCP REST API enabled (/v1/mcp/message)")
+except ImportError as e:
+    logger.warning(f"MCP REST API not available: {e}")
+
 # Mock data for agents
 AGENTS = [
     {

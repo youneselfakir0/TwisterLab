@@ -369,22 +369,98 @@ twisterlab.local/
 
 **MCP 2024-11-05** (latest specification)
 
-**Transport Layers**:
-1. Server-Sent Events (SSE) - Remote servers
-2. stdio - Local subprocess
-3. HTTP - Stateless calls
+### Dual-Mode Architecture
 
-### MCP Servers Available
+TwisterLab implements **TWO MCP communication modes** for maximum interoperability:
 
-| Server | Purpose | Port |
-|--------|---------|------|
-| PostgreSQL | Database access | 8081 |
-| Email | SMTP/IMAP | 8082 |
-| Active Directory | User management | 8083 |
-| Slack | Notifications | 8084 |
-| Azure CLI | Azure commands | 8085 |
-| Filesystem | File operations | 8086 |
-| MS Agent Bridge | Microsoft agents | 8087 |
+#### Mode 1: REST API (Universal Interoperability)
+- **Transport**: HTTP/REST
+- **Endpoint**: `POST /v1/mcp/message`
+- **Clients**: Python, Node.js, Bash (curl), PowerShell, any HTTP-capable language
+- **Protocol**: JSON-RPC 2.0 over HTTP
+- **Use Case**: Universal access from any programming language or shell script
+
+**Example:**
+```bash
+curl -X POST http://192.168.0.30:8000/v1/mcp/tools/call \
+  -H "Content-Type: application/json" \
+  -d '{"tool":"monitor_system_health","arguments":{"include_docker":true}}'
+```
+
+#### Mode 2: Native MCP Server (Claude Desktop)
+- **Transport**: stdio (standard input/output)
+- **Protocol**: Standard MCP JSON-RPC 2.0
+- **Clients**: Claude Desktop, native MCP clients
+- **Use Case**: Ultra-fast, zero-overhead local communication
+- **Configuration**: See `infrastructure/configs/claude_desktop_config.json`
+
+**Example Claude Desktop config:**
+```json
+{
+  "mcpServers": {
+    "twisterlab": {
+      "command": "python",
+      "args": ["-m", "agents.mcp.mcp_server"],
+      "cwd": "C:\\TwisterLab"
+    }
+  }
+}
+```
+
+### Available MCP Capabilities
+
+**Tools** (5 callable operations):
+- `monitor_system_health` - Check system health (CPU/RAM/disk/Docker)
+- `create_backup` - Create PostgreSQL database backup
+- `sync_cache_db` - Sync Redis cache with PostgreSQL
+- `classify_ticket` - Classify IT ticket using LLM
+- `resolve_ticket` - Execute SOP for ticket resolution
+
+**Resources** (3 read-only data sources):
+- `twisterlab://system/health` - Current system metrics
+- `twisterlab://agents/status` - All agent statuses
+- `twisterlab://audit/mcp-log` - MCP communication audit log
+
+**Prompts** (2 templates):
+- `classify_it_ticket` - IT ticket classification prompt template
+- `resolve_network_issue` - Network troubleshooting SOP template
+
+### MCP Router (Tier Isolation)
+
+**Security Architecture**: All MCP communication goes through `agents/mcp/mcp_router.py` with tier-based isolation:
+
+- **Tier 1** (172.25.0.0/16): TwisterLab Agent MCPs
+- **Tier 2** (172.26.0.0/16): Claude Desktop MCPs
+- **Tier 3** (172.27.0.0/16): Docker System MCPs
+- **Tier 4** (172.28.0.0/16): Copilot MCPs
+
+**No cross-tier communication allowed** - all access audited.
+
+### Quick Start Examples
+
+**Python Client:**
+```python
+import requests
+
+result = requests.post(
+    "http://192.168.0.30:8000/v1/mcp/tools/call",
+    json={"tool": "classify_ticket", "arguments": {"ticket_text": "WiFi not working"}}
+).json()
+```
+
+**PowerShell Client:**
+```powershell
+$body = @{tool="monitor_system_health"; arguments=@{include_docker=$true}} | ConvertTo-Json
+Invoke-RestMethod -Method POST -Uri "http://192.168.0.30:8000/v1/mcp/tools/call" -Body $body -ContentType "application/json"
+```
+
+**See full documentation**: `MCP_INTEGRATION_GUIDE.md`
+
+### Transport Layers
+
+1. **stdio** - Claude Desktop, local subprocess (Mode 2)
+2. **HTTP/REST** - Universal clients (Mode 1)
+3. **SSE** - (Future: Remote server streams)
 
 ---
 

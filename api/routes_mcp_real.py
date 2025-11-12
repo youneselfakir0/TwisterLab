@@ -22,6 +22,110 @@ router = APIRouter(tags=["mcp-tools"])
 
 
 # ============================================================================
+# REGISTRY ENDPOINT - List All Agents
+# ============================================================================
+
+@router.post("/list_autonomous_agents", response_model=MCPResponse)
+@router.get("/list_autonomous_agents", response_model=MCPResponse)
+async def list_autonomous_agents() -> MCPResponse:
+    """
+    List all 7 real autonomous agents with metadata.
+    
+    Returns:
+        MCPResponse with agent registry data
+    """
+    try:
+        agents_data = {
+            "version": "2.0.0",
+            "total": 7,
+            "base_class": "agents.base.TwisterAgent",
+            "agents": [
+                {
+                    "name": "RealMonitoringAgent",
+                    "module": "agents.real.real_monitoring_agent",
+                    "file": "agents/real/real_monitoring_agent.py",
+                    "mcp_tool": "monitor_system_health",
+                    "description": "System health monitoring (CPU, RAM, disk, Docker services)",
+                    "capabilities": ["cpu_monitoring", "ram_monitoring", "disk_monitoring", "docker_health"],
+                    "status": "operational"
+                },
+                {
+                    "name": "RealBackupAgent",
+                    "module": "agents.real.real_backup_agent",
+                    "file": "agents/real/real_backup_agent.py",
+                    "mcp_tool": "create_backup",
+                    "description": "Automated backups with disaster recovery (PostgreSQL, Redis, configs)",
+                    "capabilities": ["postgres_backup", "redis_backup", "config_backup", "incremental_backup"],
+                    "status": "operational"
+                },
+                {
+                    "name": "RealSyncAgent",
+                    "module": "agents.real.real_sync_agent",
+                    "file": "agents/real/real_sync_agent.py",
+                    "mcp_tool": "sync_cache",
+                    "description": "Cache/Database synchronization (Redis ↔ PostgreSQL)",
+                    "capabilities": ["redis_sync", "postgres_sync", "conflict_resolution"],
+                    "status": "operational"
+                },
+                {
+                    "name": "RealClassifierAgent",
+                    "module": "agents.real.real_classifier_agent",
+                    "file": "agents/real/real_classifier_agent.py",
+                    "mcp_tool": "classify_ticket",
+                    "description": "Ticket classification using Ollama LLM (llama3.2:1b)",
+                    "capabilities": ["llm_classification", "confidence_scoring", "priority_assignment"],
+                    "categories": ["network", "hardware", "software", "account", "email"],
+                    "status": "operational"
+                },
+                {
+                    "name": "RealResolverAgent",
+                    "module": "agents.real.real_resolver_agent",
+                    "file": "agents/real/real_resolver_agent.py",
+                    "mcp_tool": "resolve_ticket",
+                    "description": "SOP-based ticket resolution (network, hardware, software, account, email)",
+                    "capabilities": ["sop_execution", "troubleshooting", "guided_resolution"],
+                    "status": "operational"
+                },
+                {
+                    "name": "RealDesktopCommanderAgent",
+                    "module": "agents.real.real_desktop_commander_agent",
+                    "file": "agents/real/real_desktop_commander_agent.py",
+                    "mcp_tool": "execute_desktop_command",
+                    "description": "Remote system command execution (PowerShell, Bash, SSH)",
+                    "capabilities": ["powershell_execution", "bash_execution", "ssh_commands", "command_whitelisting"],
+                    "status": "operational",
+                    "security": "whitelisted_commands_only"
+                },
+                {
+                    "name": "RealMaestroAgent",
+                    "module": "agents.real.real_maestro_agent",
+                    "file": "agents/real/real_maestro_agent.py",
+                    "mcp_tool": None,
+                    "description": "Workflow orchestration and load balancing (agent coordination)",
+                    "capabilities": ["workflow_orchestration", "load_balancing", "state_persistence", "error_recovery"],
+                    "status": "operational"
+                }
+            ],
+            "infrastructure": {
+                "database": "PostgreSQL 16",
+                "cache": "Redis 7",
+                "llm": "Ollama (llama3.2:1b, llama3:latest)",
+                "deployment": "Docker Swarm",
+                "monitoring": "Prometheus + Grafana"
+            },
+            "api_base": "http://192.168.0.30:8000",
+            "mcp_protocol": "2024-11-05"
+        }
+        
+        logger.info("list_autonomous_agents called - returning 7 agents")
+        return MCPResponse(status="ok", data=agents_data)
+    
+    except Exception as e:
+        logger.error(f"Error in list_autonomous_agents: {e}", exc_info=True)
+        return MCPResponse(status="error", error=str(e))
+
+
+# ============================================================================
 # PYDANTIC MODELS - Input Validation
 # ============================================================================
 

@@ -19,13 +19,16 @@ def test_yaml_config():
         assert 'version' in config, "version manquante"
         assert 'schema' in config, "schema manquant"
         assert 'models' in config, "models manquant"
-        assert 'mcpServers' in config, "mcpServers manquant"
+        # MCP est optionnel (peut être commenté)
         
         print(f"   ✅ YAML valide")
         print(f"   ✅ {len(config['models'])} modèles configurés")
-        print(f"   ✅ {len(config['mcpServers'])} MCP server configuré")
-        print(f"   ✅ {len(config['rules'])} rules configurées")
-        print(f"   ✅ {len(config['context'])} context providers")
+        if 'mcpServers' in config:
+            print(f"   ✅ {len(config['mcpServers'])} MCP server configuré")
+        else:
+            print(f"   ℹ️  MCP désactivé (optionnel)")
+        print(f"   ✅ {len(config.get('rules', []))} rules configurées")
+        print(f"   ✅ {len(config.get('context', []))} context providers")
         return True
     except Exception as e:
         print(f"   ❌ Erreur: {e}")

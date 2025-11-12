@@ -4,16 +4,16 @@ from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException, Response, Depends
 
-# Azure AD Authentication
+# Hybrid Authentication (Azure AD + Local fallback)
 try:
-    from api.auth import router as auth_router, get_current_user
+    from api.auth_hybrid import router as auth_router, get_current_user
     AUTH_AVAILABLE = True
 except ImportError:
     AUTH_AVAILABLE = False
     auth_router = None
     get_current_user = None
     logger = logging.getLogger(__name__)
-    logger.warning("Azure AD auth module not available; authentication disabled")
+    logger.warning("Hybrid auth module not available; authentication disabled")
 
 # Prometheus metrics
 try:
@@ -73,9 +73,9 @@ app = FastAPI(
 # Include authentication routes if available
 if AUTH_AVAILABLE and auth_router:
     app.include_router(auth_router, prefix="/auth", tags=["authentication"])
-    logger.info("Azure AD authentication enabled")
+    logger.info("Hybrid authentication enabled (Azure AD + Local fallback)")
 else:
-    logger.warning("Authentication disabled - Azure AD module not available")
+    logger.warning("Authentication disabled - Hybrid auth module not available")
 
 # Mock data for agents
 AGENTS = [

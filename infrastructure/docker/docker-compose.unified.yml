@@ -254,11 +254,17 @@ services:
     image: twisterlab/api:${VERSION:-latest}
     environment:
       <<: *common-env
-      # Azure AD OAuth2 Authentication
-      AZURE_TENANT_ID: ${AZURE_TENANT_ID}
-      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
-      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET}
+      # Hybrid Authentication (Azure AD + Local fallback)
+      # Azure AD credentials (optional - if not set, uses local auth)
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
       AZURE_REDIRECT_URI: ${AZURE_REDIRECT_URI:-http://192.168.0.30:8000/auth/callback}
+      # Local JWT authentication (always available as fallback)
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme_admin_2024!}
       # Redis connection for session management
       REDIS_HOST: redis
       REDIS_PORT: 6379

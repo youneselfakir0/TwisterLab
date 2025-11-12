@@ -137,6 +137,9 @@ async def test_authenticate_disabled_user(local_auth):
 @pytest.mark.asyncio
 async def test_verify_token_success(local_auth):
     """Test successful token verification."""
+    # Create a test user first
+    local_auth.create_user("testuser", "password123", email="test@example.com", roles=["user"])
+    
     # Create token
     token = local_auth.create_access_token({
         "sub": "testuser",

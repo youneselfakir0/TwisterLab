@@ -213,12 +213,12 @@ class CreateBackupRequest(BaseModel):
 @router.post("/classify_ticket", response_model=MCPResponse)
 async def classify_ticket(
     request: ClassifyTicketRequest,
-    session: AsyncSession = Depends(get_db_session)
+    session: Optional[AsyncSession] = Depends(get_db_session)
 ) -> MCPResponse:
     """
     Classify a helpdesk ticket using RealClassifierAgent.
     
-    **Database Integration**: Creates ticket record and logs execution.
+    **Database Integration**: Creates ticket record and logs execution (graceful fallback if DB down).
     
     **Input**:
     - `description`: Ticket description (10-5000 chars)
@@ -226,7 +226,7 @@ async def classify_ticket(
     
     **Output**:
     - `status`: "ok" or "error"
-    - `data`: Classification results + ticket_id from database
+    - `data`: Classification results + ticket_id from database (if available)
     - `error`: Error message if status="error"
     
     **Example**:
@@ -246,40 +246,51 @@ async def classify_ticket(
             "confidence": 0.92,
             "priority": "high",
             "routed_to": "DesktopCommanderAgent",
-            "method": "llm"
+            "method": "llm",
+            "ticket_id": 123
         },
         "error": null,
         "timestamp": "2025-11-11T12:00:00.000000+00:00"
     }
     ```
     """
+    ticket_id = None
     try:
         logger.info(f"🔍 Classifying ticket: {request.description[:50]}...")
         start_time = time.time()
         
-        # 1. Create ticket repository
-        ticket_repo = TicketRepository(session)
-        log_repo = AgentLogRepository(session)
+        # 1. Try to save to database (with fallback if DB is down)
+        if session:
+            try:
+                ticket_repo = TicketRepository(session)
+                log_repo = AgentLogRepository(session)
+                
+                # Create ticket in database
+                priority_enum = TicketPriority(request.priority) if request.priority else TicketPriority.MEDIUM
+                ticket_db = await ticket_repo.create(
+                    description=request.description,
+                    priority=priority_enum
+                )
+                ticket_id = ticket_db.id
+                logger.info(f"✅ Ticket saved to database: ticket_id={ticket_id}")
+            except Exception as db_error:
+                logger.warning(f"⚠️ Database unavailable, continuing without persistence: {db_error}")
+                session = None  # Disable DB for rest of request
+        else:
+            logger.warning("⚠️ Database session not available, classification will not be persisted")
         
-        # 2. Create ticket in database
-        priority_enum = TicketPriority(request.priority) if request.priority else TicketPriority.MEDIUM
-        ticket_db = await ticket_repo.create(
-            description=request.description,
-            priority=priority_enum
-        )
-        
-        # 3. Initialize agent
+        # 2. Initialize agent
         agent = RealClassifierAgent()
         
         # Build ticket context
         ticket = {
-            "id": ticket_db.id,  # Include DB ticket ID
+            "id": ticket_id,  # Include DB ticket ID if available
             "description": request.description,
             "title": request.description[:100],
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
-        # 4. Execute classification
+        # 3. Execute classification
         result = await agent.execute({
             "operation": "classify_ticket",
             "ticket": ticket
@@ -287,16 +298,25 @@ async def classify_ticket(
         
         # Check if classification succeeded
         if result.get("status") != "success":
-            # Log failure
-            await log_repo.log_execution(
-                agent_name="RealClassifierAgent",
-                action="classify_ticket",
-                ticket_id=ticket_db.id,
-                error=result.get("error", "Unknown error")
-            )
+            error_msg = result.get("error", "Unknown error")
+            logger.error(f"❌ Classification failed: {error_msg}")
+            
+            # Try to log failure to database
+            if session and ticket_id:
+                try:
+                    await log_repo.log_execution(
+                        agent_name="RealClassifierAgent",
+                        action="classify_ticket",
+                        ticket_id=ticket_id,
+                        error=error_msg
+                    )
+                    await session.commit()
+                except Exception as log_error:
+                    logger.warning(f"⚠️ Failed to log error to database: {log_error}")
+            
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Classification failed: {result.get('error', 'Unknown error')}"
+                detail=f"Classification failed: {error_msg}"
             )
         
         # Extract classification data
@@ -306,34 +326,42 @@ async def classify_ticket(
         if request.priority:
             classification["priority"] = request.priority
         
-        # 5. Update ticket with category
-        category = classification.get("category", "unknown")
-        await ticket_repo.update_category(ticket_db.id, category)
-        
-        # 6. Log successful execution
+        # 4. Update database (if available)
         execution_time_ms = int((time.time() - start_time) * 1000)
-        await log_repo.log_execution(
-            agent_name="RealClassifierAgent",
-            action="classify_ticket",
-            ticket_id=ticket_db.id,
-            result=classification,
-            execution_time_ms=execution_time_ms
-        )
-        
-        # 7. Commit transaction
-        await session.commit()
+        if session and ticket_id:
+            try:
+                category = classification.get("category", "unknown")
+                await ticket_repo.update_category(ticket_id, category)
+                
+                # Log successful execution
+                await log_repo.log_execution(
+                    agent_name="RealClassifierAgent",
+                    action="classify_ticket",
+                    ticket_id=ticket_id,
+                    result=classification,
+                    execution_time_ms=execution_time_ms
+                )
+                
+                # Commit transaction
+                await session.commit()
+                logger.info(f"✅ Database updated: category={category}, execution_time={execution_time_ms}ms")
+            except Exception as db_error:
+                logger.warning(f"⚠️ Failed to update database: {db_error}")
+                # Continue anyway - classification succeeded even if DB update failed
         
         logger.info(
-            f"✅ Classification complete: {category} (confidence: {classification.get('confidence')}) "
-            f"[ticket_id={ticket_db.id}, {execution_time_ms}ms]"
+            f"✅ Classification complete: {classification.get('category')} "
+            f"(confidence: {classification.get('confidence')}) "
+            f"[ticket_id={ticket_id}, {execution_time_ms}ms]"
         )
         
         return MCPResponse(
             status="ok",
             data={
                 **classification,
-                "ticket_id": ticket_db.id,  # Return DB ticket ID
-                "execution_time_ms": execution_time_ms
+                "ticket_id": ticket_id,  # Will be None if DB is down
+                "execution_time_ms": execution_time_ms,
+                "database_persisted": ticket_id is not None
             }
         )
         

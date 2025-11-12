@@ -38,7 +38,7 @@ class ClassifyTicketRequest(BaseModel):
         pattern="^(critical|high|medium|low)$",
         description="Optional manual priority override"
     )
-    
+
     @validator('description')
     def validate_description(cls, v):
         """Ensure description is not just whitespace."""
@@ -99,16 +99,16 @@ class MCPResponse(BaseModel):
 async def classify_ticket(request: ClassifyTicketRequest) -> MCPResponse:
     """
     Classify a helpdesk ticket using RealClassifierAgent.
-    
+
     **Input**:
     - `description`: Ticket description (10-5000 chars)
     - `priority`: Optional priority override (critical|high|medium|low)
-    
+
     **Output**:
     - `status`: "ok" or "error"
     - `data`: Classification results (category, confidence, routed_to, priority)
     - `error`: Error message if status="error"
-    
+
     **Example**:
     ```json
     POST /v1/mcp/tools/classify_ticket
@@ -116,7 +116,7 @@ async def classify_ticket(request: ClassifyTicketRequest) -> MCPResponse:
         "description": "WiFi connection keeps dropping every few minutes",
         "priority": null
     }
-    
+
     Response:
     {
         "status": "ok",
@@ -135,47 +135,47 @@ async def classify_ticket(request: ClassifyTicketRequest) -> MCPResponse:
     """
     try:
         logger.info(f"🔍 Classifying ticket: {request.description[:50]}...")
-        
+
         # Initialize agent
         agent = RealClassifierAgent()
-        
+
         # Build ticket context
         ticket = {
             "description": request.description,
             "title": request.description[:100],  # Use first 100 chars as title
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
-        
+
         # Execute classification
         result = await agent.execute({
             "operation": "classify_ticket",
             "ticket": ticket
         })
-        
+
         # Check if classification succeeded
         if result.get("status") != "success":
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Classification failed: {result.get('error', 'Unknown error')}"
             )
-        
+
         # Extract classification data
         classification = result.get("classification", {})
-        
+
         # Override priority if provided
         if request.priority:
             classification["priority"] = request.priority
-        
+
         logger.info(
             f"✅ Classification complete: {classification.get('category')} "
             f"(confidence: {classification.get('confidence')})"
         )
-        
+
         return MCPResponse(
             status="ok",
             data=classification
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -190,17 +190,17 @@ async def classify_ticket(request: ClassifyTicketRequest) -> MCPResponse:
 async def resolve_ticket(request: ResolveTicketRequest) -> MCPResponse:
     """
     Resolve a ticket using RealResolverAgent (executes SOPs).
-    
+
     **Input**:
     - `ticket_id`: Optional ticket ID
     - `category`: Ticket category (network|software|hardware|security|performance|database)
     - `description`: Optional description for context
-    
+
     **Output**:
     - `status`: "ok" or "error"
     - `data`: Resolution steps, SOP executed, estimated time
     - `error`: Error message if status="error"
-    
+
     **Example**:
     ```json
     POST /v1/mcp/tools/resolve_ticket
@@ -209,7 +209,7 @@ async def resolve_ticket(request: ResolveTicketRequest) -> MCPResponse:
         "category": "network",
         "description": "WiFi not working"
     }
-    
+
     Response:
     {
         "status": "ok",
@@ -234,10 +234,10 @@ async def resolve_ticket(request: ResolveTicketRequest) -> MCPResponse:
     """
     try:
         logger.info(f"🔧 Resolving ticket (category: {request.category}, ID: {request.ticket_id})")
-        
+
         # Initialize agent
         agent = RealResolverAgent()
-        
+
         # Build ticket context
         ticket = {
             "category": request.category,
@@ -245,33 +245,33 @@ async def resolve_ticket(request: ResolveTicketRequest) -> MCPResponse:
             "ticket_id": request.ticket_id,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
-        
+
         # Execute resolution
         result = await agent.execute({
             "operation": "resolve_ticket",
             "ticket": ticket
         })
-        
+
         # Check if resolution succeeded
         if result.get("status") != "success":
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Resolution failed: {result.get('error', 'Unknown error')}"
             )
-        
+
         # Extract resolution data
         resolution = result.get("resolution", {})
-        
+
         logger.info(
             f"✅ Resolution complete: SOP {resolution.get('sop_id')} "
             f"({len(resolution.get('steps', []))} steps)"
         )
-        
+
         return MCPResponse(
             status="ok",
             data=resolution
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -286,22 +286,22 @@ async def resolve_ticket(request: ResolveTicketRequest) -> MCPResponse:
 async def monitor_system_health(request: MonitorSystemHealthRequest = MonitorSystemHealthRequest()) -> MCPResponse:
     """
     Monitor system health using RealMonitoringAgent.
-    
+
     **Input**:
     - `detailed`: Return detailed metrics (default: false)
-    
+
     **Output**:
     - `status`: "ok" or "error"
     - `data`: System health metrics (CPU, RAM, disk, services, ports)
     - `error`: Error message if status="error"
-    
+
     **Example**:
     ```json
     POST /v1/mcp/tools/monitor_system_health
     {
         "detailed": true
     }
-    
+
     Response:
     {
         "status": "ok",
@@ -325,36 +325,36 @@ async def monitor_system_health(request: MonitorSystemHealthRequest = MonitorSys
     """
     try:
         logger.info(f"🏥 Monitoring system health (detailed: {request.detailed})")
-        
+
         # Initialize agent
         agent = RealMonitoringAgent()
-        
+
         # Execute health check
         result = await agent.execute({
             "operation": "health_check",
             "detailed": request.detailed
         })
-        
+
         # Check if health check succeeded
         if result.get("status") != "success":
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Health check failed: {result.get('error', 'Unknown error')}"
             )
-        
+
         # Extract health data
         health = result.get("health", {})
-        
+
         logger.info(
             f"✅ Health check complete: {health.get('overall_status')} "
             f"(CPU: {health.get('cpu_percent')}%, RAM: {health.get('memory_percent')}%)"
         )
-        
+
         return MCPResponse(
             status="ok",
             data=health
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -369,22 +369,22 @@ async def monitor_system_health(request: MonitorSystemHealthRequest = MonitorSys
 async def create_backup(request: CreateBackupRequest) -> MCPResponse:
     """
     Create system backup using RealBackupAgent.
-    
+
     **Input**:
     - `backup_type`: Backup type (full|incremental|config)
-    
+
     **Output**:
     - `status`: "ok" or "error"
     - `data`: Backup details (backup_id, path, size, checksum)
     - `error`: Error message if status="error"
-    
+
     **Example**:
     ```json
     POST /v1/mcp/tools/create_backup
     {
         "backup_type": "full"
     }
-    
+
     Response:
     {
         "status": "ok",
@@ -406,36 +406,36 @@ async def create_backup(request: CreateBackupRequest) -> MCPResponse:
     """
     try:
         logger.info(f"💾 Creating backup (type: {request.backup_type})")
-        
+
         # Initialize agent
         agent = RealBackupAgent()
-        
+
         # Execute backup
         result = await agent.execute({
             "operation": "create_backup",
             "backup_type": request.backup_type
         })
-        
+
         # Check if backup succeeded
         if result.get("status") not in ["success", "completed"]:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Backup failed: {result.get('error', 'Unknown error')}"
             )
-        
+
         # Extract backup data
         backup = result.get("backup", result)  # Handle different response formats
-        
+
         logger.info(
             f"✅ Backup complete: {backup.get('backup_id')} "
             f"({backup.get('size_mb', 0)}MB in {backup.get('duration_seconds', 0)}s)"
         )
-        
+
         return MCPResponse(
             status="ok",
             data=backup
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -454,7 +454,7 @@ async def create_backup(request: CreateBackupRequest) -> MCPResponse:
 async def mcp_health() -> Dict[str, Any]:
     """
     MCP service health check.
-    
+
     Returns:
         Service status, mode, available tools count
     """

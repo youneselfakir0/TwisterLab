@@ -1,7 +1,7 @@
 # Phase 1 : Authentification Azure AD - Guide d'Implémentation
 
-**Status** : 🚧 EN COURS (Jour 6-7/10)  
-**Branche** : `feature/azure-ad-auth`  
+**Status** : 🚧 EN COURS (Jour 6-7/10)
+**Branche** : `feature/azure-ad-auth`
 **Durée estimée** : 2 semaines (10 jours ouvrés)
 
 ## 📊 Statut Actuel (2025-11-11)
@@ -232,6 +232,6 @@ curl http://192.168.0.30:8000/api/profile -H "Authorization: Bearer $token"
 
 ---
 
-**Dernière mise à jour** : 2025-11-11  
-**Responsable** : Équipe TwisterLab  
+**Dernière mise à jour** : 2025-11-11
+**Responsable** : Équipe TwisterLab
 **Contact** : N/A

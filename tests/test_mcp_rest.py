@@ -14,10 +14,10 @@ client = TestClient(app)
 def test_health_check():
     """Test MCP REST API health endpoint."""
     response = client.get("/v1/mcp/health")
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["status"] == "healthy"
     assert data["service"] == "twisterlab-mcp-rest"
     assert data["transport"] == "http"
@@ -26,14 +26,14 @@ def test_health_check():
 def test_list_tools():
     """Test listing tools via GET /v1/mcp/tools."""
     response = client.get("/v1/mcp/tools")
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["status"] == "success"
     assert "tools" in data
     assert len(data["tools"]) > 0
-    
+
     tool_names = [t["name"] for t in data["tools"]]
     assert "monitor_system_health" in tool_names
     assert "classify_ticket" in tool_names
@@ -42,13 +42,13 @@ def test_list_tools():
 def test_list_resources():
     """Test listing resources via GET /v1/mcp/resources."""
     response = client.get("/v1/mcp/resources")
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["status"] == "success"
     assert "resources" in data
-    
+
     resource_uris = [r["uri"] for r in data["resources"]]
     assert "twisterlab://system/health" in resource_uris
     assert "twisterlab://agents/status" in resource_uris
@@ -57,13 +57,13 @@ def test_list_resources():
 def test_list_prompts():
     """Test listing prompts via GET /v1/mcp/prompts."""
     response = client.get("/v1/mcp/prompts")
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["status"] == "success"
     assert "prompts" in data
-    
+
     prompt_names = [p["name"] for p in data["prompts"]]
     assert "classify_it_ticket" in prompt_names
     assert "resolve_network_issue" in prompt_names
@@ -78,10 +78,10 @@ def test_call_tool_simplified():
             "arguments": {"include_docker": True},
         },
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["status"] == "success"
     assert data["tool"] == "monitor_system_health"
     assert "result" in data
@@ -98,10 +98,10 @@ def test_call_tool_classify():
             },
         },
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["status"] == "success"
     assert data["tool"] == "classify_ticket"
 
@@ -114,10 +114,10 @@ def test_read_resource_simplified():
             "uri": "twisterlab://system/health",
         },
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["status"] == "success"
     assert data["uri"] == "twisterlab://system/health"
     assert "contents" in data
@@ -132,10 +132,10 @@ def test_mcp_message_tools_list():
             "params": {},
         },
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["jsonrpc"] == "2.0"
     assert "result" in data
     assert "tools" in data["result"]
@@ -153,10 +153,10 @@ def test_mcp_message_tools_call():
             },
         },
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["jsonrpc"] == "2.0"
     assert "result" in data
 
@@ -172,10 +172,10 @@ def test_mcp_message_resources_read():
             },
         },
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["jsonrpc"] == "2.0"
     assert "result" in data
     assert "contents" in data["result"]
@@ -195,10 +195,10 @@ def test_mcp_message_prompts_get():
             },
         },
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["jsonrpc"] == "2.0"
     assert "result" in data
     assert "messages" in data["result"]
@@ -213,7 +213,7 @@ def test_invalid_tool():
             "arguments": {},
         },
     )
-    
+
     # Should return 500 with error details
     assert response.status_code == 500
 
@@ -226,7 +226,7 @@ def test_invalid_resource():
             "uri": "twisterlab://unknown/resource",
         },
     )
-    
+
     # Should return 404
     assert response.status_code == 404
 
@@ -240,10 +240,10 @@ def test_mcp_message_invalid_method():
             "params": {},
         },
     )
-    
+
     assert response.status_code == 200  # Still 200, error in JSON-RPC response
     data = response.json()
-    
+
     assert "error" in data
     assert data["error"]["code"] == -32601
 
@@ -253,7 +253,7 @@ def test_mcp_message_invalid_method():
 def test_curl_example():
     """
     Example curl command for REST API:
-    
+
     curl -X POST http://192.168.0.30:8000/v1/mcp/tools/call \
       -H "Content-Type: application/json" \
       -d '{
@@ -267,9 +267,9 @@ def test_curl_example():
 def test_python_example():
     """
     Example Python client code:
-    
+
     import requests
-    
+
     response = requests.post(
         "http://192.168.0.30:8000/v1/mcp/tools/call",
         json={
@@ -279,7 +279,7 @@ def test_python_example():
             }
         }
     )
-    
+
     print(response.json())
     """
     pass
@@ -288,9 +288,9 @@ def test_python_example():
 def test_node_example():
     """
     Example Node.js client code:
-    
+
     const axios = require('axios');
-    
+
     axios.post('http://192.168.0.30:8000/v1/mcp/tools/call', {
       tool: 'monitor_system_health',
       arguments: { include_docker: true }

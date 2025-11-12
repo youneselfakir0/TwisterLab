@@ -80,7 +80,7 @@ def record_request(
 ):
     """
     Record métriques pour une requête Ollama.
-    
+
     Args:
         endpoint: URL de l'endpoint utilisé
         model: Modèle Ollama (ex: llama3.2:1b)
@@ -94,13 +94,13 @@ def record_request(
         model=model,
         status=status
     ).inc()
-    
+
     # Histogramme latence
     ollama_request_duration_seconds.labels(
         endpoint=endpoint,
         model=model
     ).observe(duration_seconds)
-    
+
     # Histogramme tokens
     if tokens > 0:
         ollama_tokens_generated.labels(
@@ -117,7 +117,7 @@ def record_failover():
 def update_endpoint_health(endpoint: str, is_healthy: bool):
     """
     Update le status de santé d'un endpoint.
-    
+
     Args:
         endpoint: URL de l'endpoint
         is_healthy: True si healthy, False si down
@@ -128,7 +128,7 @@ def update_endpoint_health(endpoint: str, is_healthy: bool):
 def update_current_endpoint(endpoint: str):
     """
     Update l'endpoint actuellement actif.
-    
+
     Args:
         endpoint: URL de l'endpoint actif
     """
@@ -138,7 +138,7 @@ def update_current_endpoint(endpoint: str):
 def update_success_rate(rate_percent: float):
     """
     Update le taux de succès global.
-    
+
     Args:
         rate_percent: Taux de succès en %
     """

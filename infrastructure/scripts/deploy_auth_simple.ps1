@@ -105,35 +105,35 @@ Write-Host "================================================================" -F
 
 if ($Environment -eq "staging") {
     Write-Host "[INFO] Starting docker-compose (staging)..." -ForegroundColor Cyan
-    
+
     # Copy env file
     Copy-Item $envPath "infrastructure\configs\.env.staging" -Force
-    
+
     # Start services
     docker-compose -f infrastructure\docker\docker-compose.unified.yml --env-file infrastructure\configs\.env.staging up -d
-    
+
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] Docker deployment failed" -ForegroundColor Red
         exit 1
     }
-    
+
     $apiUrl = "http://localhost:8000"
     Write-Host "[OK] Services started on localhost" -ForegroundColor Green
-    
+
 } else {
     Write-Host "[INFO] Deploying to production (edgeserver)..." -ForegroundColor Cyan
-    
+
     # Copy to edgeserver
     scp $envPath twister@192.168.0.30:/home/twister/.env.production
-    
+
     # Deploy via existing script
     & "infrastructure\scripts\deploy.ps1" -Environment production
-    
+
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] Production deployment failed" -ForegroundColor Red
         exit 1
     }
-    
+
     $apiUrl = "http://192.168.0.30:8000"
     Write-Host "[OK] Deployed to edgeserver" -ForegroundColor Green
 }
@@ -150,24 +150,24 @@ try {
     Write-Host "  - Health check..." -ForegroundColor Gray
     $health = Invoke-RestMethod -Uri "$apiUrl/health" -Method GET -TimeoutSec 10
     Write-Host "  [OK] API healthy: $($health.status)" -ForegroundColor Green
-    
+
     # Test 2: Auth status
     Write-Host "  - Auth status..." -ForegroundColor Gray
     $authStatus = Invoke-RestMethod -Uri "$apiUrl/auth/status" -Method GET -TimeoutSec 10
     Write-Host "  [OK] Mode: $($authStatus.mode), Provider: $($authStatus.provider)" -ForegroundColor Green
-    
+
     # Test 3: Login
     Write-Host "  - Login test..." -ForegroundColor Gray
     $body = "username=admin&password=$adminPassword"
     $response = Invoke-RestMethod -Uri "$apiUrl/auth/token" -Method POST `
         -ContentType "application/x-www-form-urlencoded" `
         -Body $body -TimeoutSec 10
-    
+
     if ($response.access_token) {
         Write-Host "  [OK] Login successful, token received" -ForegroundColor Green
         Write-Host "     Token: $($response.access_token.Substring(0,20))..." -ForegroundColor Gray
     }
-    
+
 } catch {
     Write-Host "[ERROR] Endpoint tests failed: $_" -ForegroundColor Red
     exit 1

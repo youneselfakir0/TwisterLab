@@ -33,9 +33,9 @@ async def test_initialize(mcp_server):
             },
         },
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert response["id"] == "test-1"
     assert "result" in response
@@ -55,16 +55,16 @@ async def test_tools_list(mcp_server):
         "method": "tools/list",
         "params": {},
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert "result" in response
     assert "tools" in response["result"]
-    
+
     tools = response["result"]["tools"]
     tool_names = [t["name"] for t in tools]
-    
+
     assert "monitor_system_health" in tool_names
     assert "create_backup" in tool_names
     assert "sync_cache_db" in tool_names
@@ -86,9 +86,9 @@ async def test_tools_call_monitor(mcp_server):
             },
         },
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert "result" in response
     assert "content" in response["result"]
@@ -110,16 +110,16 @@ async def test_tools_call_classify(mcp_server):
             },
         },
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert "result" in response
     assert "content" in response["result"]
-    
+
     content_text = response["result"]["content"][0]["text"]
     result_data = json.loads(content_text)
-    
+
     assert "category" in result_data
     assert "confidence" in result_data
 
@@ -133,16 +133,16 @@ async def test_resources_list(mcp_server):
         "method": "resources/list",
         "params": {},
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert "result" in response
     assert "resources" in response["result"]
-    
+
     resources = response["result"]["resources"]
     resource_uris = [r["uri"] for r in resources]
-    
+
     assert "twisterlab://system/health" in resource_uris
     assert "twisterlab://agents/status" in resource_uris
     assert "twisterlab://audit/mcp-log" in resource_uris
@@ -159,14 +159,14 @@ async def test_resources_read_health(mcp_server):
             "uri": "twisterlab://system/health",
         },
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert "result" in response
     assert "contents" in response["result"]
     assert len(response["result"]["contents"]) > 0
-    
+
     content = response["result"]["contents"][0]
     assert content["uri"] == "twisterlab://system/health"
     assert content["mimeType"] == "application/json"
@@ -181,16 +181,16 @@ async def test_prompts_list(mcp_server):
         "method": "prompts/list",
         "params": {},
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert "result" in response
     assert "prompts" in response["result"]
-    
+
     prompts = response["result"]["prompts"]
     prompt_names = [p["name"] for p in prompts]
-    
+
     assert "classify_it_ticket" in prompt_names
     assert "resolve_network_issue" in prompt_names
 
@@ -209,14 +209,14 @@ async def test_prompts_get(mcp_server):
             },
         },
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert "result" in response
     assert "messages" in response["result"]
     assert len(response["result"]["messages"]) > 0
-    
+
     message = response["result"]["messages"][0]
     assert message["role"] == "user"
     assert "Printer offline error" in message["content"]["text"]
@@ -231,9 +231,9 @@ async def test_invalid_method(mcp_server):
         "method": "invalid/method",
         "params": {},
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert "error" in response
     assert response["error"]["code"] == -32601
@@ -252,9 +252,9 @@ async def test_tool_not_found(mcp_server):
             "arguments": {},
         },
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert "result" in response
     assert response["result"].get("isError") is True
@@ -271,9 +271,9 @@ async def test_resource_not_found(mcp_server):
             "uri": "twisterlab://unknown/resource",
         },
     }
-    
+
     response = await mcp_server.handle_request(request)
-    
+
     assert response["jsonrpc"] == "2.0"
     assert "result" in response
     # Error is embedded in result, not as JSON-RPC error

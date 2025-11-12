@@ -69,24 +69,24 @@ async def main():
     print("=" * 60)
     print("MCP REAL AGENTS - DIRECT TEST")
     print("=" * 60)
-    
+
     results = {
         "classify_ticket": await test_classify(),
         "resolve_ticket": await test_resolve(),
         "monitor_system_health": await test_monitor(),
         "create_backup": await test_backup()
     }
-    
+
     print("\n" + "=" * 60)
     print("TEST RESULTS:")
     print("=" * 60)
     for tool, passed in results.items():
         status = "✅ PASS" if passed else "❌ FAIL"
         print(f"{status} - {tool}")
-    
+
     total = sum(results.values())
     print(f"\n{total}/4 tests passed")
-    
+
     if total == 4:
         print("\n🚀 ALL TESTS PASSED - Ready for API integration!")
         return 0

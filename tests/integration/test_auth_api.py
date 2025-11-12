@@ -42,7 +42,7 @@ def mock_azure_auth():
         "scope": "User.Read"
     })
     mock_instance.validate_token_structure.return_value = True
-    
+
     # Patch the get_azure_ad_auth function to return our mock
     with patch("api.auth.get_azure_ad_auth") as mock_get_auth:
         mock_get_auth.return_value = mock_instance
@@ -64,7 +64,7 @@ def mock_redis():
 def test_auth_login_redirect(client, mock_azure_auth):
     """Test that /auth/login redirects to Azure AD."""
     response = client.get("/auth/login", follow_redirects=False)
-    
+
     assert response.status_code == 307  # Redirect
     assert "login.microsoftonline.com" in response.headers["location"]
     mock_azure_auth.get_authorization_url.assert_called_once()
@@ -77,7 +77,7 @@ def test_auth_login_with_redirect_uri(client, mock_azure_auth):
         "/auth/login?redirect_uri=/dashboard",
         follow_redirects=False
     )
-    
+
     assert response.status_code == 307
     # State should contain redirect URI
     mock_azure_auth.get_authorization_url.assert_called_once()
@@ -92,16 +92,16 @@ async def test_auth_callback_success(client, mock_azure_auth, mock_redis):
     response = client.get(
         "/auth/callback?code=mock_auth_code_123&state=redirect=/"
     )
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     assert data["status"] == "success"
     assert "access_token" in data
     assert data["access_token"] == "mock_access_token_12345"
     assert data["token_type"] == "Bearer"
     assert data["expires_in"] == 3600
-    
+
     # Verify token acquisition was called
     mock_azure_auth.acquire_token_by_code.assert_called_once_with("mock_auth_code_123")
 
@@ -112,7 +112,7 @@ def test_auth_callback_error(client):
     response = client.get(
         "/auth/callback?error=access_denied&error_description=User cancelled"
     )
-    
+
     assert response.status_code == 401
     data = response.json()
     assert "Authentication failed" in data["detail"]
@@ -122,7 +122,7 @@ def test_auth_callback_error(client):
 def test_auth_callback_missing_code(client):
     """Test OAuth2 callback without authorization code."""
     response = client.get("/auth/callback")
-    
+
     assert response.status_code == 400
     data = response.json()
     assert "Missing authorization code" in data["detail"]
@@ -132,7 +132,7 @@ def test_auth_callback_missing_code(client):
 def test_auth_me_without_token(client):
     """Test /auth/me endpoint without authentication."""
     response = client.get("/auth/me")
-    
+
     # Should return 403 (Forbidden) because no Bearer token
     assert response.status_code == 403
 
@@ -148,18 +148,18 @@ def test_auth_me_with_valid_token(client):
         "roles": ["user", "admin"],
         "tid": "tenant-123"
     }
-    
+
     with patch("api.auth.verify_jwt_token", new_callable=AsyncMock) as mock_verify:
         mock_verify.return_value = mock_user
-        
+
         response = client.get(
             "/auth/me",
             headers={"Authorization": "Bearer mock_valid_token"}
         )
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         assert data["user_id"] == "user-123"
         assert data["name"] == "Test User"
         assert data["email"] == "test@example.com"
@@ -174,21 +174,21 @@ async def test_auth_logout_success(client, mock_redis):
         "sub": "user-456",
         "name": "Logout User"
     }
-    
+
     with patch("api.auth.verify_jwt_token", new_callable=AsyncMock) as mock_verify:
         mock_verify.return_value = mock_user
-        
+
         response = client.post(
             "/auth/logout",
             headers={"Authorization": "Bearer mock_token"}
         )
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         assert data["status"] == "success"
         assert "Logged out successfully" in data["message"]
-        
+
         # Verify Redis delete was called
         mock_redis.delete.assert_called_once_with("user:user-456")
 
@@ -200,7 +200,7 @@ def test_protected_route_without_auth(client):
         "/api/v1/autonomous/agents/MonitoringAgent/execute",
         json={"operation": "health_check"}
     )
-    
+
     # Should return 403 (no auth) or 200 if auth is optional
     # Depends on AUTH_AVAILABLE flag in main.py
     assert response.status_code in [200, 403]
@@ -214,7 +214,7 @@ def test_protected_route_with_auth(client):
         "name": "Authorized User",
         "roles": ["admin"]
     }
-    
+
     with patch("api.auth.verify_jwt_token", new_callable=AsyncMock) as mock_verify:
         with patch("api.main.execute_monitoring_agent", new_callable=AsyncMock) as mock_exec:
             mock_verify.return_value = mock_user
@@ -222,13 +222,13 @@ def test_protected_route_with_auth(client):
                 "status": "success",
                 "data": {"cpu": 25.5, "memory": 60.2}
             }
-            
+
             response = client.post(
                 "/api/v1/autonomous/agents/MonitoringAgent/execute",
                 json={"operation": "health_check"},
                 headers={"Authorization": "Bearer valid_token"}
             )
-            
+
             # Should succeed with valid token
             assert response.status_code == 200
 
@@ -239,11 +239,11 @@ def test_public_routes_accessible(client):
     # /health should always be public
     response = client.get("/health")
     assert response.status_code == 200
-    
+
     # Root endpoint should be public
     response = client.get("/")
     assert response.status_code == 200
-    
+
     # Metrics should be public (for Prometheus)
     response = client.get("/metrics")
     assert response.status_code in [200, 503]  # 503 if Prometheus not available
@@ -255,24 +255,24 @@ def test_auth_flow_complete(client, mock_azure_auth, mock_redis):
     # Step 1: Initiate login
     response = client.get("/auth/login", follow_redirects=False)
     assert response.status_code == 307
-    
+
     # Step 2: Callback with code
     response = client.get("/auth/callback?code=test_code&state=redirect=/")
     assert response.status_code == 200
     token_data = response.json()
     access_token = token_data["access_token"]
-    
+
     # Step 3: Access protected resource
     mock_user = {"sub": "user-complete", "name": "Complete User"}
     with patch("api.auth.verify_jwt_token", new_callable=AsyncMock) as mock_verify:
         mock_verify.return_value = mock_user
-        
+
         response = client.get(
             "/auth/me",
             headers={"Authorization": f"Bearer {access_token}"}
         )
         assert response.status_code == 200
-        
+
         # Step 4: Logout
         response = client.post(
             "/auth/logout",

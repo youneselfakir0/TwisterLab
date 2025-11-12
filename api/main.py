@@ -189,21 +189,21 @@ async def execute_agent_operation(
 ):
     """
     Execute agent operation (PROTECTED ROUTE - requires authentication).
-    
+
     Requires valid Azure AD JWT token in Authorization header:
         Authorization: Bearer <access_token>
-    
+
     Args:
         agent_name: Name of the agent to execute
         payload: Operation parameters
         user: Current authenticated user (auto-injected if auth enabled)
-    
+
     Returns:
         Agent execution result with status and metrics
     """
     import time
     start_time = time.time()
-    
+
     # Log authenticated user if available
     if user:
         logger.info(f"User {user.get('name')} executing {agent_name}")

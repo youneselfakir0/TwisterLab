@@ -28,7 +28,7 @@ def mock_msal_app():
 def test_azure_auth_init_success(mock_env, mock_msal_app):
     """Test AzureADAuth initializes correctly with valid credentials"""
     auth = AzureADAuth()
-    
+
     assert auth.client_id == "test-client-id-5678"
     assert auth.tenant_id == "test-tenant-id-1234"
     assert auth.client_secret == "test-secret-abcd"
@@ -42,7 +42,7 @@ def test_azure_auth_init_missing_client_id(monkeypatch):
     monkeypatch.setenv("AZURE_TENANT_ID", "test-tenant")
     monkeypatch.setenv("AZURE_CLIENT_SECRET", "test-secret")
     # AZURE_CLIENT_ID intentionally not set
-    
+
     with pytest.raises(ValueError, match="Missing Azure AD credentials"):
         AzureADAuth()
 
@@ -53,7 +53,7 @@ def test_azure_auth_init_missing_tenant_id(monkeypatch):
     monkeypatch.setenv("AZURE_CLIENT_ID", "test-client")
     monkeypatch.setenv("AZURE_CLIENT_SECRET", "test-secret")
     # AZURE_TENANT_ID intentionally not set
-    
+
     with pytest.raises(ValueError, match="Missing Azure AD credentials"):
         AzureADAuth()
 
@@ -64,7 +64,7 @@ def test_azure_auth_init_missing_secret(monkeypatch):
     monkeypatch.setenv("AZURE_CLIENT_ID", "test-client")
     monkeypatch.setenv("AZURE_TENANT_ID", "test-tenant")
     # AZURE_CLIENT_SECRET intentionally not set
-    
+
     with pytest.raises(ValueError, match="Missing Azure AD credentials"):
         AzureADAuth()
 
@@ -80,10 +80,10 @@ async def test_get_app_token_success(mock_env, mock_msal_app):
         "expires_in": 3600
     }
     mock_msal_app.return_value = mock_instance
-    
+
     auth = AzureADAuth()
     token = await auth.get_app_token()
-    
+
     assert token == "test-token-123456789"
     mock_instance.acquire_token_for_client.assert_called_once_with(
         scopes=["https://graph.microsoft.com/.default"]
@@ -100,12 +100,12 @@ async def test_get_app_token_auth_failure(mock_env, mock_msal_app):
         "error_description": "Client credentials are invalid"
     }
     mock_msal_app.return_value = mock_instance
-    
+
     auth = AzureADAuth()
-    
+
     with pytest.raises(HTTPException) as exc_info:
         await auth.get_app_token()
-    
+
     assert exc_info.value.status_code == 500
     assert "Client credentials are invalid" in exc_info.value.detail
 
@@ -117,12 +117,12 @@ async def test_get_app_token_unexpected_error(mock_env, mock_msal_app):
     mock_instance = MagicMock()
     mock_instance.acquire_token_for_client.side_effect = Exception("Network error")
     mock_msal_app.return_value = mock_instance
-    
+
     auth = AzureADAuth()
-    
+
     with pytest.raises(HTTPException) as exc_info:
         await auth.get_app_token()
-    
+
     assert exc_info.value.status_code == 500
     assert "Network error" in exc_info.value.detail
 
@@ -136,13 +136,13 @@ def test_get_authorization_url(mock_env, mock_msal_app):
         "client_id=test-client&redirect_uri=http://localhost/callback"
     )
     mock_msal_app.return_value = mock_instance
-    
+
     auth = AzureADAuth()
     url = auth.get_authorization_url(
         redirect_uri="http://localhost:8000/auth/callback",
         state="random-state-123"
     )
-    
+
     assert "login.microsoftonline.com" in url
     assert "test-tenant" in url or "test-client" in url
     mock_instance.get_authorization_request_url.assert_called_once()
@@ -161,13 +161,13 @@ async def test_acquire_token_by_code_success(mock_env, mock_msal_app):
         "expires_in": 3600
     }
     mock_msal_app.return_value = mock_instance
-    
+
     auth = AzureADAuth()
     result = await auth.acquire_token_by_code(
         code="auth-code-123",
         redirect_uri="http://localhost:8000/auth/callback"
     )
-    
+
     assert result["access_token"] == "user-token-abc123"
     assert "refresh_token" in result
     mock_instance.acquire_token_by_authorization_code.assert_called_once_with(
@@ -187,15 +187,15 @@ async def test_acquire_token_by_code_failure(mock_env, mock_msal_app):
         "error_description": "Authorization code expired"
     }
     mock_msal_app.return_value = mock_instance
-    
+
     auth = AzureADAuth()
-    
+
     with pytest.raises(HTTPException) as exc_info:
         await auth.acquire_token_by_code(
             code="expired-code",
             redirect_uri="http://localhost:8000/auth/callback"
         )
-    
+
     assert exc_info.value.status_code == 400
     assert "expired" in exc_info.value.detail.lower()
 
@@ -204,10 +204,10 @@ async def test_acquire_token_by_code_failure(mock_env, mock_msal_app):
 def test_validate_token_structure_valid(mock_env, mock_msal_app):
     """Test token structure validation with valid JWT"""
     auth = AzureADAuth()
-    
+
     # Valid JWT structure (3 parts separated by dots)
     valid_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc123def456"
-    
+
     assert auth.validate_token_structure(valid_token) is True
 
 
@@ -215,7 +215,7 @@ def test_validate_token_structure_valid(mock_env, mock_msal_app):
 def test_validate_token_structure_invalid(mock_env, mock_msal_app):
     """Test token structure validation with invalid token"""
     auth = AzureADAuth()
-    
+
     # Invalid tokens (not 3 parts or empty parts)
     assert auth.validate_token_structure("not-a-jwt-token") is False
     assert auth.validate_token_structure("only.two") is False  # Only 2 parts

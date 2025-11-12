@@ -23,12 +23,12 @@ logger = logging.getLogger(__name__)
 class MCPServer:
     """
     Native MCP Server implementing the Model Context Protocol.
-    
+
     Supports:
     - tools/* - Callable agent operations
     - resources/* - Read-only data access
     - prompts/* - Template prompts
-    
+
     Transport: stdio (JSON-RPC 2.0)
     """
 
@@ -40,7 +40,7 @@ class MCPServer:
             "resources": True,
             "prompts": True,
         }
-        
+
         # Available tools (exposed agent operations)
         self.tools = [
             {
@@ -118,7 +118,7 @@ class MCPServer:
                 },
             },
         ]
-        
+
         # Available resources (read-only data)
         self.resources = [
             {
@@ -140,7 +140,7 @@ class MCPServer:
                 "mimeType": "application/json",
             },
         ]
-        
+
         # Available prompts (templates)
         self.prompts = [
             {
@@ -170,7 +170,7 @@ class MCPServer:
     async def handle_initialize(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle initialize request (JSON-RPC method: initialize).
-        
+
         Returns server capabilities and metadata.
         """
         return {
@@ -185,7 +185,7 @@ class MCPServer:
     async def handle_tools_list(self) -> Dict[str, Any]:
         """
         Handle tools/list request.
-        
+
         Returns available agent operations as tools.
         """
         return {"tools": self.tools}
@@ -193,14 +193,14 @@ class MCPServer:
     async def handle_tools_call(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle tools/call request.
-        
+
         Execute agent operation via MCP router.
         """
         tool_name = params.get("name")
         arguments = params.get("arguments", {})
-        
+
         logger.info(f"MCP Tool Call: {tool_name} with args {arguments}")
-        
+
         # Map tool calls to agent operations
         try:
             if tool_name == "monitor_system_health":
@@ -218,7 +218,7 @@ class MCPServer:
                         }
                     ],
                 }
-            
+
             elif tool_name == "create_backup":
                 result = await self.router.route_to_mcp(
                     agent_name="MCP-Client",
@@ -234,7 +234,7 @@ class MCPServer:
                         }
                     ],
                 }
-            
+
             elif tool_name == "sync_cache_db":
                 result = await self.router.route_to_mcp(
                     agent_name="MCP-Client",
@@ -250,7 +250,7 @@ class MCPServer:
                         }
                     ],
                 }
-            
+
             elif tool_name == "classify_ticket":
                 # Route to classifier agent (placeholder)
                 return {
@@ -265,7 +265,7 @@ class MCPServer:
                         }
                     ],
                 }
-            
+
             elif tool_name == "resolve_ticket":
                 # Route to resolver agent (placeholder)
                 return {
@@ -280,7 +280,7 @@ class MCPServer:
                         }
                     ],
                 }
-            
+
             else:
                 return {
                     "content": [
@@ -291,7 +291,7 @@ class MCPServer:
                     ],
                     "isError": True,
                 }
-        
+
         except Exception as e:
             logger.error(f"Tool call failed: {tool_name}: {e}")
             return {
@@ -307,7 +307,7 @@ class MCPServer:
     async def handle_resources_list(self) -> Dict[str, Any]:
         """
         Handle resources/list request.
-        
+
         Returns available read-only resources.
         """
         return {"resources": self.resources}
@@ -315,13 +315,13 @@ class MCPServer:
     async def handle_resources_read(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle resources/read request.
-        
+
         Return resource data.
         """
         uri = params.get("uri")
-        
+
         logger.info(f"MCP Resource Read: {uri}")
-        
+
         if uri == "twisterlab://system/health":
             # Get current system health
             health_data = await self.router.route_to_mcp(
@@ -339,7 +339,7 @@ class MCPServer:
                     }
                 ],
             }
-        
+
         elif uri == "twisterlab://agents/status":
             # Get agent statuses
             status_data = await self.router.route_to_mcp(
@@ -357,7 +357,7 @@ class MCPServer:
                     }
                 ],
             }
-        
+
         elif uri == "twisterlab://audit/mcp-log":
             # Get MCP audit log
             audit_log = self.router.get_audit_log()
@@ -370,7 +370,7 @@ class MCPServer:
                     }
                 ],
             }
-        
+
         else:
             return {
                 "contents": [
@@ -386,7 +386,7 @@ class MCPServer:
     async def handle_prompts_list(self) -> Dict[str, Any]:
         """
         Handle prompts/list request.
-        
+
         Returns available prompt templates.
         """
         return {"prompts": self.prompts}
@@ -394,14 +394,14 @@ class MCPServer:
     async def handle_prompts_get(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle prompts/get request.
-        
+
         Return rendered prompt template.
         """
         name = params.get("name")
         arguments = params.get("arguments", {})
-        
+
         logger.info(f"MCP Prompt Get: {name}")
-        
+
         if name == "classify_it_ticket":
             ticket_desc = arguments.get("ticket_description", "")
             prompt = f"""Classify this IT helpdesk ticket into one of these categories:
@@ -430,7 +430,7 @@ Provide:
                     }
                 ],
             }
-        
+
         elif name == "resolve_network_issue":
             error_msg = arguments.get("error_message", "")
             prompt = f"""Network Troubleshooting SOP
@@ -458,7 +458,7 @@ Document findings and recommend solution.
                     }
                 ],
             }
-        
+
         else:
             return {
                 "messages": [
@@ -476,13 +476,13 @@ Document findings and recommend solution.
     async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle JSON-RPC request.
-        
+
         Routes to appropriate handler based on method.
         """
         method = request.get("method")
         params = request.get("params", {})
         request_id = request.get("id")
-        
+
         try:
             # Route to handlers
             if method == "initialize":
@@ -508,13 +508,13 @@ Document findings and recommend solution.
                         "message": f"Method not found: {method}",
                     },
                 }
-            
+
             return {
                 "jsonrpc": "2.0",
                 "id": request_id,
                 "result": result,
             }
-        
+
         except Exception as e:
             logger.error(f"Request handler error: {method}: {e}", exc_info=True)
             return {
@@ -529,11 +529,11 @@ Document findings and recommend solution.
     async def run_stdio(self):
         """
         Run MCP server with stdio transport.
-        
+
         Reads JSON-RPC requests from stdin, writes responses to stdout.
         """
         logger.info("TwisterLab MCP Server starting (stdio transport)")
-        
+
         async with self.router:
             while True:
                 try:
@@ -541,20 +541,20 @@ Document findings and recommend solution.
                     line = await asyncio.get_event_loop().run_in_executor(
                         None, sys.stdin.readline
                     )
-                    
+
                     if not line:
                         # EOF reached
                         break
-                    
+
                     # Parse JSON-RPC request
                     request = json.loads(line.strip())
-                    
+
                     # Handle request
                     response = await self.handle_request(request)
-                    
+
                     # Write response to stdout
                     print(json.dumps(response), flush=True)
-                
+
                 except json.JSONDecodeError as e:
                     logger.error(f"Invalid JSON received: {e}")
                     error_response = {
@@ -566,7 +566,7 @@ Document findings and recommend solution.
                         },
                     }
                     print(json.dumps(error_response), flush=True)
-                
+
                 except Exception as e:
                     logger.error(f"Server error: {e}", exc_info=True)
                     error_response = {
@@ -588,7 +588,7 @@ async def main():
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         stream=sys.stderr,
     )
-    
+
     server = MCPServer()
     await server.run_stdio()
 

@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Audit complet de toutes les instances Ollama dans TwisterLab
-    
+
 .DESCRIPTION
     Analyse:
     - Ollama CLI sur edgeserver (192.168.0.30:11434)
@@ -9,7 +9,7 @@
     - Ollama WSL sur corertx (si installé)
     - Modèles téléchargés sur chaque instance
     - Utilisation dans le code TwisterLab
-    
+
 .OUTPUTS
     Fichier audit_ollama_results_<timestamp>.txt
 #>
@@ -20,21 +20,21 @@ $ErrorActionPreference = "Continue"
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $outputFile = "audit_ollama_results_$timestamp.txt"
 
-function Write-Section { 
-    param($title) 
+function Write-Section {
+    param($title)
     $line = "=" * 64
     Write-Host "`n$line" -ForegroundColor Cyan
     Write-Host "  $title" -ForegroundColor Cyan
     Write-Host "$line" -ForegroundColor Cyan
 }
 
-function Write-SubSection { 
-    param($title) 
+function Write-SubSection {
+    param($title)
     Write-Host "`n--- $title ---" -ForegroundColor Yellow
 }
 
-function Write-Result { 
-    param($status, $msg) 
+function Write-Result {
+    param($status, $msg)
     $icon = if ($status -eq "ok") { "[OK]" } elseif ($status -eq "warn") { "[WARN]" } else { "[ERROR]" }
     $color = if ($status -eq "ok") { "Green" } elseif ($status -eq "warn") { "Yellow" } else { "Red" }
     Write-Host "  $icon $msg" -ForegroundColor $color
@@ -62,7 +62,7 @@ try {
     } else {
         Write-Result "error" "Service Ollama non actif: $edgeStatus"
     }
-    
+
     Write-SubSection "Version"
     $edgeVersion = ssh twister@192.168.0.30 "ollama --version 2>/dev/null" 2>$null
     if ($edgeVersion) {
@@ -70,7 +70,7 @@ try {
     } else {
         Write-Result "error" "Impossible de recuperer la version"
     }
-    
+
     Write-SubSection "API Test"
     try {
         $edgeApi = Invoke-RestMethod -Uri "http://192.168.0.30:11434/api/tags" -TimeoutSec 5 2>$null
@@ -78,7 +78,7 @@ try {
     } catch {
         Write-Result "error" "API non accessible: $_"
     }
-    
+
     Write-SubSection "Modeles Installes"
     $edgeModels = ssh twister@192.168.0.30 @"
 curl -s http://localhost:11434/api/tags 2>/dev/null | python3 -c "
@@ -92,7 +92,7 @@ except:
     pass
 "
 "@ 2>$null
-    
+
     if ($edgeModels) {
         $modelList = $edgeModels -split "`n" | Where-Object { $_ -ne "" }
         foreach ($model in $modelList) {
@@ -104,15 +104,15 @@ except:
     } else {
         Write-Result "warn" "Aucun modele trouve ou erreur de parsing"
     }
-    
+
     Write-SubSection "Espace Disque"
     $edgeDisk = ssh twister@192.168.0.30 "du -sh ~/.ollama/models 2>/dev/null || echo 'N/A'" 2>$null
     Write-Result "ok" "Dossier modeles: $edgeDisk"
-    
+
     Write-SubSection "Processus Ollama"
     $edgeProcess = ssh twister@192.168.0.30 "ps aux | grep -E 'ollama|llama' | grep -v grep | wc -l" 2>$null
     Write-Result "ok" "$edgeProcess processus Ollama actifs"
-    
+
 } catch {
     Write-Result "error" "Erreur connexion edgeserver: $_"
 }
@@ -162,7 +162,7 @@ Write-SubSection "API Test (localhost:11434)"
 try {
     $localResponse = Invoke-RestMethod -Uri "http://localhost:11434/api/tags" -Method GET -TimeoutSec 5
     Write-Result "ok" "API accessible"
-    
+
     if ($localResponse.models) {
         Write-SubSection "Modeles Installes (localhost)"
         foreach ($model in $localResponse.models) {
@@ -189,7 +189,7 @@ foreach ($path in $modelPaths) {
         $size = (Get-ChildItem $path -Recurse -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
         $sizeGB = [math]::Round($size / 1GB, 2)
         Write-Result "ok" "Dossier: $path ($sizeGB GB)"
-        
+
         # Liste des fichiers modeles
         $modelFiles = Get-ChildItem $path -Recurse -Include "*.bin","*.gguf" -ErrorAction SilentlyContinue
         if ($modelFiles) {
@@ -211,28 +211,28 @@ try {
         Write-Result "ok" "WSL installe"
         Write-Host "     Distributions:" -ForegroundColor Gray
         wsl --list --verbose | ForEach-Object { Write-Host "       $_" -ForegroundColor DarkGray }
-        
+
         Write-SubSection "Ollama dans WSL"
         $wslOllamaCheck = wsl bash -c "which ollama 2>/dev/null" 2>$null
         if ($wslOllamaCheck) {
             Write-Result "warn" "Ollama trouve dans WSL: $wslOllamaCheck"
-            
+
             $wslVersion = wsl bash -c "ollama --version 2>/dev/null" 2>$null
             Write-Host "     Version: $wslVersion" -ForegroundColor Gray
-            
+
             $wslService = wsl bash -c "systemctl is-active ollama 2>/dev/null || service ollama status 2>/dev/null | head -1" 2>$null
             if ($wslService -match "active|running") {
                 Write-Result "warn" "Service Ollama ACTIF dans WSL (CONFLIT potentiel avec Desktop)"
             } else {
                 Write-Result "ok" "Service Ollama non actif dans WSL"
             }
-            
+
             # Check processus
             $wslProcess = wsl bash -c "ps aux | grep ollama | grep -v grep | wc -l" 2>$null
             if ($wslProcess -gt 0) {
                 Write-Result "warn" "$wslProcess processus Ollama dans WSL"
             }
-            
+
             # Check modeles
             $wslModels = wsl bash -c "ls -lh ~/.ollama/models 2>/dev/null | grep -v total | wc -l" 2>$null
             if ($wslModels -gt 0) {
@@ -241,7 +241,7 @@ try {
         } else {
             Write-Result "ok" "Ollama non installe dans WSL"
         }
-        
+
     } else {
         Write-Result "ok" "WSL non installe (pas de conflit)"
     }
@@ -262,18 +262,18 @@ $ollamaRefs = Get-ChildItem -Path "agents","api","tests" -Recurse -Include *.py 
 if ($ollamaRefs) {
     $grouped = $ollamaRefs | Group-Object Path
     Write-Result "ok" "$($grouped.Count) fichiers referencent Ollama"
-    
+
     foreach ($group in $grouped | Select-Object -First 5) {
         $fileName = Split-Path $group.Name -Leaf
         Write-Host "     [FILE] $fileName ($($group.Count) refs)" -ForegroundColor Cyan
-        
+
         $group.Group | Select-Object -First 2 | ForEach-Object {
             $line = $_.Line.Trim()
             if ($line.Length -gt 70) { $line = $line.Substring(0, 67) + "..." }
             Write-Host "        L$($_.LineNumber): $line" -ForegroundColor DarkGray
         }
     }
-    
+
     if ($grouped.Count -gt 5) {
         Write-Host "     ... et $($grouped.Count - 5) autres fichiers" -ForegroundColor Gray
     }
@@ -288,7 +288,7 @@ $llmImports = Get-ChildItem -Path "agents" -Recurse -Include *.py -ErrorAction S
 if ($llmImports) {
     $importGroups = $llmImports | Group-Object Path
     Write-Result "ok" "$($importGroups.Count) fichiers avec imports LLM"
-    
+
     foreach ($group in $importGroups | Select-Object -First 5) {
         $fileName = Split-Path $group.Name -Leaf
         Write-Host "     [IMPORT] $fileName" -ForegroundColor Cyan
@@ -321,7 +321,7 @@ $realAgents = Get-ChildItem -Path "agents\real" -Filter "*.py" -ErrorAction Sile
 if ($realAgents) {
     foreach ($agent in $realAgents) {
         $content = Get-Content $agent.FullName -Raw
-        
+
         # Check import LLMClient
         if ($content -match "from agents\.base\.llm_client import") {
             Write-Result "warn" "$($agent.Name) - Utilise ancien agents.base.llm_client"
@@ -332,7 +332,7 @@ if ($realAgents) {
         } else {
             Write-Host "     [SKIP] $($agent.Name) - Pas de reference LLM" -ForegroundColor Gray
         }
-        
+
         # Check logger
         if ($content -notmatch "logger\s*=\s*logging\.getLogger") {
             if ($content -match "\blogger\b") {

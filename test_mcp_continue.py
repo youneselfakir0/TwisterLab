@@ -15,24 +15,24 @@ def send_request(request):
         stderr=subprocess.PIPE,
         env={"PYTHONPATH": "C:\\TwisterLab"}
     )
-    
+
     request_str = json.dumps(request) + "\n"
     stdout, stderr = proc.communicate(input=request_str.encode())
-    
+
     print(f"\n{'='*60}")
     print(f"REQUEST: {request['method']}")
     print(f"{'='*60}")
-    
+
     if stderr:
         print("STDERR (logs):")
         print(stderr.decode())
-    
+
     if stdout:
         print("\nRESPONSE:")
         response = json.loads(stdout.decode().strip())
         print(json.dumps(response, indent=2))
         return response
-    
+
     return None
 
 # Test 1: Initialize

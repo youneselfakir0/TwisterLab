@@ -9,9 +9,9 @@ This module provides:
 
 Usage:
     from api.auth import get_current_user, router as auth_router
-    
+
     app.include_router(auth_router, prefix="/auth", tags=["authentication"])
-    
+
     @app.get("/protected")
     async def protected_route(user: dict = Depends(get_current_user)):
         return {"message": f"Hello {user['name']}"}
@@ -60,7 +60,7 @@ async def get_redis_client() -> aioredis.Redis:
         redis_host = os.getenv("REDIS_HOST", "localhost")
         redis_port = int(os.getenv("REDIS_PORT", "6379"))
         redis_password = os.getenv("REDIS_PASSWORD")
-        
+
         _redis_client = await aioredis.from_url(
             f"redis://{redis_host}:{redis_port}",
             password=redis_password,
@@ -74,18 +74,18 @@ async def get_redis_client() -> aioredis.Redis:
 async def verify_jwt_token(token: str) -> Dict[str, Any]:
     """
     Verify JWT token from Azure AD.
-    
+
     Args:
         token: JWT access token from Authorization header
-        
+
     Returns:
         Dict with user claims (sub, name, email, roles, etc.)
-        
+
     Raises:
         HTTPException: If token is invalid, expired, or malformed
     """
     azure_auth = get_azure_ad_auth()
-    
+
     # Basic structure validation
     if not azure_auth.validate_token_structure(token):
         raise HTTPException(
@@ -93,27 +93,27 @@ async def verify_jwt_token(token: str) -> Dict[str, Any]:
             detail="Invalid token format",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     try:
         # Decode without verification first to get tenant/issuer info
         unverified_claims = jwt.get_unverified_claims(token)
-        
+
         # In production, you would:
         # 1. Fetch Azure AD public keys from https://login.microsoftonline.com/{tenant}/discovery/v2.0/keys
         # 2. Verify signature using public key
         # 3. Validate issuer, audience, expiration
-        
+
         # For now, basic validation (MUST enhance for production)
         tenant_id = os.getenv("AZURE_TENANT_ID")
         client_id = os.getenv("AZURE_CLIENT_ID")
-        
+
         if not unverified_claims.get("aud") == client_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token audience",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         # Check expiration
         exp = unverified_claims.get("exp")
         if exp and datetime.fromtimestamp(exp) < datetime.now():
@@ -122,9 +122,9 @@ async def verify_jwt_token(token: str) -> Dict[str, Any]:
                 detail="Token expired",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         return unverified_claims
-        
+
     except JWTError as e:
         logger.error(f"JWT verification failed: {e}")
         raise HTTPException(
@@ -139,34 +139,34 @@ async def get_current_user(
 ) -> Dict[str, Any]:
     """
     FastAPI dependency to get current authenticated user.
-    
+
     Usage:
         @app.get("/protected")
         async def protected_route(user: dict = Depends(get_current_user)):
             return {"user_id": user["sub"], "name": user["name"]}
-    
+
     Args:
         credentials: HTTP Bearer token from Authorization header
-        
+
     Returns:
         User claims dictionary with keys:
             - sub: User ID (Azure AD object ID)
             - name: User display name
             - email: User email
             - roles: List of user roles (if configured)
-            
+
     Raises:
         HTTPException: 401 if token is missing or invalid
     """
     token = credentials.credentials
     user_claims = await verify_jwt_token(token)
-    
+
     # Cache user info in Redis for 1 hour
     try:
         redis = await get_redis_client()
         user_id = user_claims.get("sub")
         cache_key = f"user:{user_id}"
-        
+
         await redis.setex(
             cache_key,
             3600,  # 1 hour TTL
@@ -174,7 +174,7 @@ async def get_current_user(
         )
     except Exception as e:
         logger.warning(f"Failed to cache user in Redis: {e}")
-    
+
     return user_claims
 
 
@@ -182,29 +182,29 @@ async def get_current_user(
 async def login(request: Request):
     """
     Initiate OAuth2 login flow.
-    
+
     Redirects user to Azure AD login page. After successful authentication,
     Azure AD will redirect back to /auth/callback with authorization code.
-    
+
     Query params:
         redirect_uri (optional): URL to redirect after successful login
                                 Default: /
-    
+
     Returns:
         RedirectResponse to Azure AD authorization URL
     """
     azure_auth = get_azure_ad_auth()
-    
+
     # Get redirect URI from query params or use default
     redirect_after_login = request.query_params.get("redirect_uri", "/")
-    
+
     # Store redirect URI in session (use Redis in production)
     # For now, encode in state parameter
     state = f"redirect={redirect_after_login}"
-    
+
     # Generate authorization URL
     auth_url = azure_auth.get_authorization_url(state=state)
-    
+
     logger.info(f"Redirecting to Azure AD login: {auth_url}")
     return RedirectResponse(url=auth_url)
 
@@ -213,16 +213,16 @@ async def login(request: Request):
 async def callback(request: Request):
     """
     OAuth2 callback endpoint.
-    
+
     Azure AD redirects here after user authentication with authorization code.
     Exchanges code for access token and redirects to application.
-    
+
     Query params:
         code: Authorization code from Azure AD
         state: State parameter with redirect URI
         error (optional): Error code if auth failed
         error_description (optional): Error details
-    
+
     Returns:
         RedirectResponse to application with token in query params
         (In production, use httponly cookies instead)
@@ -236,7 +236,7 @@ async def callback(request: Request):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Authentication failed: {error_desc}"
         )
-    
+
     # Get authorization code
     code = request.query_params.get("code")
     if not code:
@@ -244,23 +244,23 @@ async def callback(request: Request):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Missing authorization code"
         )
-    
+
     # Exchange code for token
     azure_auth = get_azure_ad_auth()
     token_response = await azure_auth.acquire_token_by_code(code)
-    
+
     # Extract redirect URI from state
     state = request.query_params.get("state", "")
     redirect_uri = "/"
     if state.startswith("redirect="):
         redirect_uri = state.split("=", 1)[1]
-    
+
     # In production, store token in httponly cookie or secure session
     # For demo, return token in response (NOT SECURE for production)
     access_token = token_response.get("access_token")
-    
+
     logger.info(f"Successfully authenticated user, redirecting to {redirect_uri}")
-    
+
     # TODO: In production, use httponly cookies:
     # response = RedirectResponse(url=redirect_uri)
     # response.set_cookie(
@@ -272,7 +272,7 @@ async def callback(request: Request):
     #     max_age=3600
     # )
     # return response
-    
+
     return {
         "status": "success",
         "access_token": access_token,
@@ -287,12 +287,12 @@ async def callback(request: Request):
 async def logout(user: Dict[str, Any] = Depends(get_current_user)):
     """
     Logout current user.
-    
+
     Clears user session from Redis cache and invalidates token.
-    
+
     Args:
         user: Current authenticated user (auto-injected)
-    
+
     Returns:
         Success message
     """
@@ -300,12 +300,12 @@ async def logout(user: Dict[str, Any] = Depends(get_current_user)):
         redis = await get_redis_client()
         user_id = user.get("sub")
         cache_key = f"user:{user_id}"
-        
+
         # Remove user from cache
         await redis.delete(cache_key)
-        
+
         logger.info(f"User {user_id} logged out successfully")
-        
+
         return {
             "status": "success",
             "message": "Logged out successfully"
@@ -322,12 +322,12 @@ async def logout(user: Dict[str, Any] = Depends(get_current_user)):
 async def get_current_user_info(user: Dict[str, Any] = Depends(get_current_user)):
     """
     Get current authenticated user information.
-    
+
     Protected endpoint that returns user profile from JWT claims.
-    
+
     Args:
         user: Current authenticated user (auto-injected)
-    
+
     Returns:
         User profile with ID, name, email, roles
     """

@@ -12,32 +12,32 @@ def test_mcp_method(method, params=None):
         "method": method,
         "params": params or {}
     }
-    
+
     proc = subprocess.Popen(
         ["python", "agents/mcp/mcp_server_continue_sync.py"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
     )
-    
+
     request_str = json.dumps(request) + "\n"
     stdout, stderr = proc.communicate(input=request_str.encode(), timeout=5)
-    
+
     print(f"\n{'='*60}")
     print(f"TEST: {method}")
     print(f"{'='*60}")
-    
+
     if stderr:
         print("LOGS:")
         for line in stderr.decode().splitlines()[-5:]:  # Last 5 lines
             print(f"  {line}")
-    
+
     if stdout:
         print("\nRESPONSE:")
         response = json.loads(stdout.decode().strip())
         print(json.dumps(response, indent=2))
         return response
-    
+
     return None
 
 

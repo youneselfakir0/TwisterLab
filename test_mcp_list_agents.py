@@ -8,7 +8,7 @@ import sys
 
 def test_mcp_list_agents():
     """Test list_autonomous_agents via stdio"""
-    
+
     # MCP requests to send
     requests = [
         # 1. Initialize
@@ -43,7 +43,7 @@ def test_mcp_list_agents():
             }
         }
     ]
-    
+
     # Start MCP server
     proc = subprocess.Popen(
         [sys.executable, "agents/mcp/mcp_server_continue_sync.py"],
@@ -53,10 +53,10 @@ def test_mcp_list_agents():
         text=True,
         bufsize=1
     )
-    
+
     print("🧪 Testing MCP Server - list_autonomous_agents")
     print("=" * 60)
-    
+
     try:
         for i, request in enumerate(requests, 1):
             # Send request
@@ -64,19 +64,19 @@ def test_mcp_list_agents():
             print(f"\n📤 Request {i}: {request['method']}")
             proc.stdin.write(request_json)
             proc.stdin.flush()
-            
+
             # Read response
             response_line = proc.stdout.readline()
             if response_line:
                 response = json.loads(response_line)
                 print(f"📥 Response {i}:")
-                
+
                 if request['method'] == 'tools/list':
                     tools = response.get('result', {}).get('tools', [])
                     print(f"   ✅ {len(tools)} tools found:")
                     for tool in tools:
                         print(f"      - {tool['name']}: {tool['description'][:80]}...")
-                
+
                 elif request['method'] == 'tools/call' and request['params']['name'] == 'list_autonomous_agents':
                     content = response.get('result', {}).get('content', [])
                     if content:
@@ -89,15 +89,15 @@ def test_mcp_list_agents():
                             print(f"      {agent['name']:30} | {agent['description']}")
                 else:
                     print(f"   {json.dumps(response, indent=2)[:200]}...")
-        
+
         print("\n" + "=" * 60)
         print("✅ Test completed successfully!")
-        
+
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
         traceback.print_exc()
-    
+
     finally:
         proc.terminate()
         proc.wait(timeout=5)

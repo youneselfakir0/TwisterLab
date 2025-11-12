@@ -49,7 +49,7 @@ def test_password_hashing(local_auth):
     """Test password hashing and verification."""
     password = "secure_password_123"
     hashed = local_auth.hash_password(password)
-    
+
     assert hashed != password  # Should be hashed
     assert hashed.startswith("$2b$")  # Bcrypt format
     assert local_auth.verify_password(password, hashed) is True
@@ -62,10 +62,10 @@ def test_create_access_token(local_auth):
     token = local_auth.create_access_token(
         {"sub": "testuser", "roles": ["user"]}
     )
-    
+
     assert isinstance(token, str)
     assert len(token) > 50  # JWT tokens are long
-    
+
     # Token should contain 3 parts (header.payload.signature)
     parts = token.split(".")
     assert len(parts) == 3
@@ -78,7 +78,7 @@ def test_create_access_token_with_custom_expiry(local_auth):
         {"sub": "testuser"},
         expires_delta=timedelta(minutes=30)
     )
-    
+
     assert isinstance(token, str)
     # Verify token is valid
     from jose import jwt
@@ -95,7 +95,7 @@ def test_create_access_token_with_custom_expiry(local_auth):
 async def test_authenticate_user_success(local_auth):
     """Test successful user authentication."""
     user = await local_auth.authenticate_user("admin", "admin123")
-    
+
     assert user is not None
     assert user["username"] == "admin"
     assert user["email"] == "admin@twisterlab.local"
@@ -108,7 +108,7 @@ async def test_authenticate_user_success(local_auth):
 async def test_authenticate_user_wrong_password(local_auth):
     """Test authentication fails with wrong password."""
     user = await local_auth.authenticate_user("admin", "wrong_password")
-    
+
     assert user is None
 
 
@@ -117,7 +117,7 @@ async def test_authenticate_user_wrong_password(local_auth):
 async def test_authenticate_user_not_found(local_auth):
     """Test authentication fails for non-existent user."""
     user = await local_auth.authenticate_user("nonexistent", "password")
-    
+
     assert user is None
 
 
@@ -127,9 +127,9 @@ async def test_authenticate_disabled_user(local_auth):
     """Test authentication fails for disabled user."""
     # Disable admin user
     local_auth.users_db["admin"]["enabled"] = False
-    
+
     user = await local_auth.authenticate_user("admin", "admin123")
-    
+
     assert user is None
 
 
@@ -139,17 +139,17 @@ async def test_verify_token_success(local_auth):
     """Test successful token verification."""
     # Create a test user first
     local_auth.create_user("testuser", "password123", email="test@example.com", roles=["user"])
-    
+
     # Create token
     token = local_auth.create_access_token({
         "sub": "testuser",
         "email": "test@example.com",
         "roles": ["user"]
     })
-    
+
     # Verify token
     payload = await local_auth.verify_token(token)
-    
+
     assert payload is not None
     assert payload["sub"] == "testuser"
     assert payload["username"] == "testuser"
@@ -166,10 +166,10 @@ async def test_verify_token_expired(local_auth):
         {"sub": "testuser"},
         expires_delta=timedelta(seconds=-1)  # Already expired
     )
-    
+
     # Verify token
     payload = await local_auth.verify_token(token)
-    
+
     assert payload is None
 
 
@@ -178,7 +178,7 @@ async def test_verify_token_expired(local_auth):
 async def test_verify_token_invalid(local_auth):
     """Test token verification fails for invalid token."""
     payload = await local_auth.verify_token("invalid.token.here")
-    
+
     assert payload is None
 
 
@@ -188,13 +188,13 @@ async def test_verify_token_disabled_user(local_auth):
     """Test token verification fails if user is disabled."""
     # Create token for admin
     token = local_auth.create_access_token({"sub": "admin"})
-    
+
     # Disable admin user
     local_auth.users_db["admin"]["enabled"] = False
-    
+
     # Verify token
     payload = await local_auth.verify_token(token)
-    
+
     assert payload is None
 
 
@@ -207,12 +207,12 @@ def test_create_user(local_auth):
         email="newuser@example.com",
         roles=["user", "viewer"]
     )
-    
+
     assert user["username"] == "newuser"
     assert user["email"] == "newuser@example.com"
     assert "user" in user["roles"]
     assert "viewer" in user["roles"]
-    
+
     # Check user is in database
     assert "newuser" in local_auth.users_db
     assert local_auth.users_db["newuser"]["enabled"] is True
@@ -230,10 +230,10 @@ def test_disable_user(local_auth):
     """Test disabling user."""
     # Create test user
     local_auth.create_user("testuser", "password123")
-    
+
     # Disable user
     result = local_auth.disable_user("testuser")
-    
+
     assert result is True
     assert local_auth.users_db["testuser"]["enabled"] is False
 
@@ -242,7 +242,7 @@ def test_disable_user(local_auth):
 def test_disable_nonexistent_user(local_auth):
     """Test disabling non-existent user returns False."""
     result = local_auth.disable_user("nonexistent")
-    
+
     assert result is False
 
 
@@ -251,13 +251,13 @@ def test_list_users(local_auth):
     """Test listing all users."""
     # Create additional test user
     local_auth.create_user("testuser", "password123", email="test@example.com")
-    
+
     users = local_auth.list_users()
-    
+
     assert len(users) >= 2  # At least admin and testuser
     assert any(u["username"] == "admin" for u in users)
     assert any(u["username"] == "testuser" for u in users)
-    
+
     # Check password hashes are not included
     for user in users:
         assert "hashed_password" not in user

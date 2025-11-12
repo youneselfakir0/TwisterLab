@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
     Deploy Phase 1 Authentication (Local mode) to staging or production
-    
+
 .DESCRIPTION
     Script pour déployer le système d'authentification hybride en mode LOCAL
     (pas besoin d'Azure AD - utilise JWT local avec bcrypt)
-    
+
     Actions:
     - Génère JWT_SECRET_KEY sécurisé (64 caractères)
     - Crée .env.auth avec config locale
@@ -13,19 +13,19 @@
     - Exécute tests unitaires + intégration
     - Déploie sur environnement cible
     - Teste /auth/token endpoint
-    
+
 .PARAMETER Environment
     Environnement cible: staging ou production
-    
+
 .PARAMETER AdminPassword
     Mot de passe pour le compte admin (optionnel, défaut: généré aléatoirement)
-    
+
 .PARAMETER SkipTests
     Skip les tests (non recommandé pour production)
-    
+
 .EXAMPLE
     .\deploy_auth_phase1.ps1 -Environment staging
-    
+
 .EXAMPLE
     .\deploy_auth_phase1.ps1 -Environment production -AdminPassword "SecurePass123!"
 #>
@@ -34,10 +34,10 @@ param(
     [Parameter(Mandatory=$true)]
     [ValidateSet("staging", "production")]
     [string]$Environment,
-    
+
     [Parameter(Mandatory=$false)]
     [string]$AdminPassword = "",
-    
+
     [Parameter(Mandatory=$false)]
     [switch]$SkipTests = $false
 )
@@ -210,7 +210,7 @@ if (-not $SkipTests) {
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
     Write-Info "ÉTAPE 5/7: Exécution tests"
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Gray
-    
+
     # Tests unitaires LocalAuth
     Write-Info "Tests unitaires LocalAuth (18 tests)..."
     $testResult = pytest tests\test_local_auth.py -v --tb=short 2>&1
@@ -220,7 +220,7 @@ if (-not $SkipTests) {
         exit 1
     }
     Write-Success "18/18 tests LocalAuth passent"
-    
+
     # Tests intégration Hybrid
     Write-Info "Tests intégration HybridAuth (6 tests)..."
     $testResult = pytest tests\integration\test_hybrid_auth_flow.py -v --tb=short 2>&1
@@ -230,7 +230,7 @@ if (-not $SkipTests) {
         exit 1
     }
     Write-Success "6/6 tests HybridAuth passent"
-    
+
     Write-Success "Tous les tests passent (24/24)"
     Write-Host ""
 } else {
@@ -295,7 +295,7 @@ try {
     $authStatus = Invoke-RestMethod -Uri "$apiUrl/auth/status" -Method GET -TimeoutSec 10
     Write-Success "Mode auth: $($authStatus.mode)"
     Write-Success "Provider: $($authStatus.provider)"
-    
+
     if ($authStatus.mode -ne "local") {
         Write-Warning "Mode devrait être 'local', obtenu: $($authStatus.mode)"
     }
@@ -311,11 +311,11 @@ try {
     $response = Invoke-RestMethod -Uri "$apiUrl/auth/token" -Method POST `
         -ContentType "application/x-www-form-urlencoded" `
         -Body $body -TimeoutSec 10
-    
+
     if ($response.access_token) {
         Write-Success "Login réussi! Token reçu"
         Write-Host "   Token: $($response.access_token.Substring(0,20))...(truncated)" -ForegroundColor Gray
-        
+
         # Test 4: Vérifier token avec /auth/me
         Write-Info "Test 4: Vérification token..."
         $headers = @{ "Authorization" = "Bearer $($response.access_token)" }

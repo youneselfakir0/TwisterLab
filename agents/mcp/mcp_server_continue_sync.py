@@ -7,6 +7,8 @@ Usage:
 
 Protocol: MCP 2024-11-05 (Model Context Protocol)
 Transport: stdio (JSON-RPC 2.0)
+
+Mode: REAL (calls actual TwisterLab API)
 """
 import json
 import logging
@@ -14,6 +16,14 @@ import sys
 import os
 from typing import Any, Dict
 from datetime import datetime, timezone
+
+# Import httpx for API calls
+try:
+    import httpx
+    HTTPX_AVAILABLE = True
+except ImportError:
+    HTTPX_AVAILABLE = False
+    logging.warning("httpx not available - install with: pip install httpx")
 
 # Configure logging to stderr (stdout is for JSON-RPC)
 logging.basicConfig(
@@ -32,10 +42,18 @@ class MCPServerContinue:
         self.protocol_version = "2024-11-05"
         self.server_info = {
             "name": "twisterlab-mcp-continue",
-            "version": "1.0.0",
-            "description": "TwisterLab MCP Server for Continue IDE"
+            "version": "2.0.0",  # Version 2.0 - REAL mode
+            "description": "TwisterLab MCP Server for Continue IDE (REAL mode)"
         }
+        
+        # API configuration
+        self.api_url = os.getenv("API_URL", "http://192.168.0.30:8000")
+        self.api_timeout = 60.0  # 60 seconds for LLM operations
+        self.mode = "REAL" if HTTPX_AVAILABLE else "MOCK"
+        
         logger.info(f"Initialized: {self.server_info['name']} v{self.server_info['version']}")
+        logger.info(f"Mode: {self.mode}")
+        logger.info(f"API URL: {self.api_url}")
 
     def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Handle JSON-RPC 2.0 request"""
@@ -135,13 +153,98 @@ class MCPServerContinue:
         return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": tools}}
 
     def _handle_tools_call(self, request_id: int, params: Dict) -> Dict:
-        """Execute tool call (mock implementation)"""
+        """Execute tool call - REAL API mode"""
         tool_name = params.get("name")
         arguments = params.get("arguments", {})
 
-        logger.info(f"Tool: {tool_name} | Args: {arguments}")
+        logger.info(f"Tool: {tool_name} | Args: {arguments} | Mode: {self.mode}")
 
-        # Mock responses (replace with real agent calls when API is ready)
+        # Call REAL API if available
+        if self.mode == "REAL" and HTTPX_AVAILABLE:
+            try:
+                result = self._call_api(tool_name, arguments)
+            except Exception as api_error:
+                logger.error(f"API call failed: {api_error}, using fallback")
+                result = self._get_mock_response(tool_name, arguments)
+        else:
+            # Fallback to MOCK if httpx not available
+            result = self._get_mock_response(tool_name, arguments)
+
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {
+                "content": [{
+                    "type": "text",
+                    "text": json.dumps(result, indent=2)
+                }]
+            }
+        }
+    
+    def _call_api(self, tool_name: str, arguments: Dict) -> Dict:
+        """Call real TwisterLab API"""
+        endpoint_map = {
+            "classify_ticket": "/v1/mcp/tools/classify_ticket",
+            "resolve_ticket": "/v1/mcp/tools/resolve_ticket",
+            "monitor_system_health": "/v1/mcp/tools/monitor_system_health",
+            "create_backup": "/v1/mcp/tools/create_backup"
+        }
+        
+        endpoint = endpoint_map.get(tool_name)
+        if not endpoint:
+            raise ValueError(f"Unknown tool: {tool_name}")
+        
+        # Map arguments to API format
+        if tool_name == "classify_ticket":
+            payload = {
+                "description": arguments.get("ticket_text", ""),
+                "priority": arguments.get("priority")
+            }
+        elif tool_name == "resolve_ticket":
+            payload = {
+                "ticket_id": int(arguments.get("ticket_id", 0)) if arguments.get("ticket_id") else None,
+                "category": arguments.get("category", "network"),
+                "description": arguments.get("description")
+            }
+        elif tool_name == "monitor_system_health":
+            payload = {
+                "detailed": arguments.get("detailed", False)
+            }
+        elif tool_name == "create_backup":
+            payload = {
+                "backup_type": arguments.get("backup_type", "full")
+            }
+        else:
+            payload = arguments
+        
+        # Call API
+        url = f"{self.api_url}{endpoint}"
+        logger.info(f"Calling API: POST {url}")
+        
+        with httpx.Client(timeout=self.api_timeout) as client:
+            response = client.post(url, json=payload)
+            response.raise_for_status()
+            api_response = response.json()
+        
+        logger.info(f"API response status: {api_response.get('status')}")
+        
+        # Extract data from MCPResponse format
+        if api_response.get("status") == "ok":
+            return {
+                "status": "success",
+                "mode": "REAL",
+                **api_response.get("data", {})
+            }
+        else:
+            return {
+                "status": "error",
+                "mode": "REAL",
+                "error": api_response.get("error", "Unknown error")
+            }
+    
+    def _get_mock_response(self, tool_name: str, arguments: Dict) -> Dict:
+        """Fallback mock responses"""
+        # Mock responses (used when API is unreachable)
         if tool_name == "classify_ticket":
             ticket_text = arguments.get("ticket_text", "")
             result = {
@@ -150,6 +253,7 @@ class MCPServerContinue:
                 "category": "network" if "wifi" in ticket_text.lower() or "network" in ticket_text.lower() else "software",
                 "confidence": 0.85,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
+                "mode": "MOCK",
                 "note": "⚠️ Mock response - API service offline"
             }
 
@@ -165,6 +269,7 @@ class MCPServerContinue:
                     f"Step 4: Escalate if unresolved"
                 ],
                 "estimated_time": "15-30 minutes",
+                "mode": "MOCK",
                 "note": "⚠️ Mock response - API service offline"
             }
 
@@ -178,6 +283,7 @@ class MCPServerContinue:
                     "api": "down (0/1 replicas)",
                     "ollama": "running"
                 },
+                "mode": "MOCK",
                 "note": "⚠️ Mock response - API service offline"
             }
 
@@ -186,22 +292,18 @@ class MCPServerContinue:
                 "status": "success",
                 "agent": "RealBackupAgent",
                 "backup_location": "/backups/mock_backup.tar.gz",
+                "mode": "MOCK",
                 "note": "⚠️ Mock response - API service offline"
             }
 
         else:
-            return self._error_response(request_id, -32602, f"Unknown tool: {tool_name}")
-
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "result": {
-                "content": [{
-                    "type": "text",
-                    "text": json.dumps(result, indent=2)
-                }]
+            result = {
+                "status": "error",
+                "mode": "MOCK",
+                "error": f"Unknown tool: {tool_name}"
             }
-        }
+        
+        return result
 
     def _handle_resources_list(self, request_id: int) -> Dict:
         """List available resources"""

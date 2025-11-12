@@ -259,8 +259,14 @@ class HybridAuth:
         """
         status = {
             "mode": self.mode,
+            "provider": "AzureADAuth" if self.mode == "azure" else "LocalAuth",
             "azure_available": self.azure_auth is not None,
             "local_available": self.local_auth is not None,
+            "azure_configured": all([
+                os.getenv("AZURE_TENANT_ID"),
+                os.getenv("AZURE_CLIENT_ID"),
+                os.getenv("AZURE_CLIENT_SECRET")
+            ])
         }
         
         if self.mode == "azure":

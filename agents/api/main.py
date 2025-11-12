@@ -10,6 +10,7 @@ from .routes_tickets import router as tickets_router
 from .routes_agents import router as agents_router
 from .routes_sops import router as sops_router
 from .routes_orchestrator import router as orchestrator_router
+from .routes_mcp_real import router as mcp_real_router
 from .monitoring import setup_logging, MetricsMiddleware, create_health_endpoint
 from .security import (
     setup_security_middleware,
@@ -61,6 +62,8 @@ app.include_router(sops_router, prefix="/api/v1/sops", tags=["sops"])
 logger.info("SOPs router included")
 app.include_router(orchestrator_router, prefix="/api/v1/orchestrator", tags=["orchestrator"])
 logger.info("Orchestrator router included")
+app.include_router(mcp_real_router)  # MCP tools router (already has /v1/mcp/tools prefix)
+logger.info("MCP tools router included")
 
 
 @app.get("/")

@@ -9,16 +9,16 @@ from typing import Dict, Any
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agents.desktop_commander.desktop_commander_agent import (
-    DesktopCommanderAgent,
+from agents.real.real_desktop_commander_agent import (
+    RealDesktopCommanderAgent,
     CommandStatus
 )
 
 
 @pytest.fixture
 def commander_agent():
-    """Create DesktopCommanderAgent instance for testing"""
-    return DesktopCommanderAgent()
+    """Create RealDesktopCommanderAgent instance for testing"""
+    return RealDesktopCommanderAgent()
 
 
 @pytest.fixture

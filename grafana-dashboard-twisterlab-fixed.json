@@ -1,0 +1,429 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "TwisterLab - Complete Monitoring Dashboard",
+    "tags": ["twisterlab", "monitoring", "agents"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Overview",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "CPU Usage",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "targets": [
+          {
+            "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "CPU Usage %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 1}
+      },
+      {
+        "id": 3,
+        "title": "Memory Usage",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "targets": [
+          {
+            "expr": "100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)",
+            "legendFormat": "Memory Usage %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 1}
+      },
+      {
+        "id": 4,
+        "title": "Disk Usage",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "targets": [
+          {
+            "expr": "(1 - node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100",
+            "legendFormat": "Root /",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 9}
+      },
+      {
+        "id": 5,
+        "title": "Network I/O",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "targets": [
+          {
+            "expr": "rate(node_network_receive_bytes_total{device=\"enp0s31f6\"}[5m])",
+            "legendFormat": "RX",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(node_network_transmit_bytes_total{device=\"enp0s31f6\"}[5m])",
+            "legendFormat": "TX",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "Bps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 9}
+      },
+      {
+        "id": 6,
+        "title": "Services Health",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 17}
+      },
+      {
+        "id": 7,
+        "title": "Exporters Status",
+        "type": "table",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "targets": [
+          {
+            "expr": "up",
+            "legendFormat": "{{job}} ({{instance}})",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "center"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value"
+              },
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "type": "value",
+                      "options": {
+                        "0": {
+                          "text": "DOWN",
+                          "color": "red"
+                        },
+                        "1": {
+                          "text": "UP",
+                          "color": "green"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 18}
+      },
+      {
+        "id": 8,
+        "title": "Service Response Time (Not Implemented)",
+        "type": "text",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "options": {
+          "mode": "markdown",
+          "content": "⚠️ **Metrics not yet implemented**\n\nRequires instrumenting TwisterLab API with Prometheus metrics:\n- `http_request_duration_seconds`"
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 18}
+      },
+      {
+        "id": 9,
+        "title": "HTTP Status Codes (Not Implemented)",
+        "type": "text",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "options": {
+          "mode": "markdown",
+          "content": "⚠️ **Metrics not yet implemented**\n\nRequires instrumenting TwisterLab API with Prometheus metrics:\n- `http_requests_total`"
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 18}
+      },
+      {
+        "id": 10,
+        "title": "Autonomous Agents",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26}
+      },
+      {
+        "id": 11,
+        "title": "Agent Activity (Not Implemented)",
+        "type": "text",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "options": {
+          "mode": "markdown",
+          "content": "⚠️ **Metrics not yet implemented**\n\nRequires adding Prometheus instrumentation to TwisterLab agents:\n- `agent_requests_total`\n- `agent_execution_time_seconds`"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 27}
+      },
+      {
+        "id": 12,
+        "title": "Agent Success Rate (Not Implemented)",
+        "type": "text",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "options": {
+          "mode": "markdown",
+          "content": "⚠️ **Metrics not yet implemented**\n\nRequires adding Prometheus instrumentation to TwisterLab agents:\n- `agent_requests_total{status=\"success|failed\"}`"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 27}
+      },
+      {
+        "id": 13,
+        "title": "Ticket Processing (Not Implemented)",
+        "type": "text",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "options": {
+          "mode": "markdown",
+          "content": "⚠️ **Metrics not yet implemented**\n\nRequires adding Prometheus instrumentation:\n- `tickets_processed_total`\n- `tickets_failed_total`"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 35}
+      },
+      {
+        "id": 14,
+        "title": "Agent Performance (Not Implemented)",
+        "type": "text",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "options": {
+          "mode": "markdown",
+          "content": "⚠️ **Metrics not yet implemented**\n\nRequires adding Prometheus instrumentation:\n- `agent_execution_time_seconds`"
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 35}
+      },
+      {
+        "id": 15,
+        "title": "Database Metrics",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 43}
+      },
+      {
+        "id": 16,
+        "title": "PostgreSQL Connections (Exporter Config Issue)",
+        "type": "text",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "options": {
+          "mode": "markdown",
+          "content": "⚠️ **PostgreSQL Exporter not connected**\n\nExporter deployed but cannot connect to database.\n\nIssue: Docker Swarm environment variables not loaded.\n\nMetrics expected:\n- `pg_stat_activity_count`\n- `pg_stat_user_tables_*`\n- `pg_database_size_bytes`"
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 44}
+      },
+      {
+        "id": 19,
+        "title": "Cache Performance",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 52}
+      },
+      {
+        "id": 20,
+        "title": "Redis Memory Usage",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "targets": [
+          {
+            "expr": "redis_memory_used_bytes",
+            "legendFormat": "Memory Used (bytes)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 53}
+      },
+      {
+        "id": 21,
+        "title": "Redis Hit Rate",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "targets": [
+          {
+            "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) * 100",
+            "legendFormat": "Cache Hit Rate %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 53}
+      },
+      {
+        "id": 22,
+        "title": "Redis Operations",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "targets": [
+          {
+            "expr": "rate(redis_commands_processed_total[5m])",
+            "legendFormat": "Commands/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "redis_connected_clients",
+            "legendFormat": "Connected Clients",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 53}
+      },
+      {
+        "id": 23,
+        "title": "AI/LLM Metrics",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 61}
+      },
+      {
+        "id": 24,
+        "title": "Ollama / LLM Metrics (Not Implemented)",
+        "type": "text",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "df3y4j46jk4qoc"
+        },
+        "options": {
+          "mode": "markdown",
+          "content": "⚠️ **Metrics not yet implemented**\n\nRequires instrumenting Ollama wrapper in TwisterLab:\n- `ollama_requests_total`\n- `ollama_request_duration_seconds`\n- `ollama_model_requests_total`\n\nOllama currently running at http://192.168.0.30:11434 but not exposing Prometheus metrics."
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 62}
+      },
+      {
+        "id": 27,
+        "title": "Alerts & Incidents",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 70}
+      },
+      {
+        "id": 28,
+        "title": "Active Alerts",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ALERTS{alertstate=\"firing\"}",
+            "legendFormat": "{{alertname}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 71}
+      },
+      {
+        "id": 29,
+        "title": "Alert History",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(alerts_total[5m])",
+            "legendFormat": "{{alertname}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 71}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+}

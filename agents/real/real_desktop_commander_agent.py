@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 import logging
 
+from agents.metrics import track_agent_execution, tickets_processed_total
+
 # Import LLM client for intelligent command validation
 try:
     from agents.base.llm_client import ollama_client
@@ -63,33 +65,37 @@ class RealDesktopCommanderAgent:
         Returns:
             Command execution results
         """
-        operation = context.get("operation", "get_system_info")
+        with track_agent_execution("commander"):
+            operation = context.get("operation", "get_system_info")
 
-        logger.info(f"💻 RealDesktopCommanderAgent executing: {operation}")
+            logger.info(f"💻 RealDesktopCommanderAgent executing: {operation}")
 
-        try:
-            if operation == "execute_command":
-                command = context.get("command")
-                args = context.get("args", [])
-                return await self._execute_command(command, args)
-            elif operation == "check_service":
-                service_name = context.get("service_name")
-                return await self._check_service(service_name)
-            elif operation == "get_system_info":
-                return await self._get_system_info()
-            elif operation == "network_diagnostic":
-                target = context.get("target", "8.8.8.8")
-                return await self._network_diagnostic(target)
-            else:
-                raise ValueError(f"Unknown operation: {operation}")
+            try:
+                if operation == "execute_command":
+                    command = context.get("command")
+                    args = context.get("args", [])
+                    result = await self._execute_command(command, args)
+                    if result.get("status") == "success":
+                        tickets_processed_total.labels(agent_name="commander", status="success").inc()
+                    return result
+                elif operation == "check_service":
+                    service_name = context.get("service_name")
+                    return await self._check_service(service_name)
+                elif operation == "get_system_info":
+                    return await self._get_system_info()
+                elif operation == "network_diagnostic":
+                    target = context.get("target", "8.8.8.8")
+                    return await self._network_diagnostic(target)
+                else:
+                    raise ValueError(f"Unknown operation: {operation}")
 
-        except Exception as e:
-            logger.error(f"❌ Command execution failed: {e}", exc_info=True)
-            return {
-                "status": "error",
-                "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
+            except Exception as e:
+                logger.error(f"❌ Command execution failed: {e}", exc_info=True)
+                return {
+                    "status": "error",
+                    "error": str(e),
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
 
     async def _execute_command(self, command: str, args: List[str] = None) -> Dict[str, Any]:
         """

@@ -31,10 +31,28 @@ try:
         ["method", "endpoint", "status"],
     )
 
-    agent_operations_total = Counter(
-        "agent_operations_total",
-        "Total agent operations executed",
-        ["agent", "operation", "status"],
+    # Agent-specific metrics
+    agent_requests_total = Counter(
+        "agent_requests_total",
+        "Total agent requests",
+        ["agent_name", "status"],
+    )
+
+    agent_execution_time_seconds = Histogram(
+        "agent_execution_time_seconds",
+        "Agent execution time in seconds",
+        ["agent_name"],
+    )
+
+    tickets_processed_total = Counter(
+        "tickets_processed_total",
+        "Total tickets processed",
+        ["status"],
+    )
+
+    tickets_failed_total = Counter(
+        "tickets_failed_total",
+        "Total tickets failed",
     )
 
     active_agents = Gauge(
@@ -46,12 +64,6 @@ try:
         "http_request_duration_seconds",
         "HTTP request duration in seconds",
         ["method", "endpoint"],
-    )
-
-    agent_execution_duration_seconds = Histogram(
-        "agent_execution_duration_seconds",
-        "Agent execution duration in seconds",
-        ["agent", "operation"],
     )
 
 except ImportError:
@@ -201,18 +213,23 @@ async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
 
         # Track metrics
         if PROMETHEUS_AVAILABLE:
-            status = "success" if result else "error"
-            agent_operations_total.labels(
-                agent=agent_name,
-                operation=operation,
+            status = "success" if result.get("status") == "success" else "error"
+            agent_requests_total.labels(
+                agent_name=agent_name,
                 status=status
             ).inc()
 
             duration = time.time() - start_time
-            agent_execution_duration_seconds.labels(
-                agent=agent_name,
-                operation=operation
+            agent_execution_time_seconds.labels(
+                agent_name=agent_name
             ).observe(duration)
+
+            # Track tickets if this is a ticket-related operation
+            if operation in ["classify_ticket", "resolve_ticket", "execute_desktop_command"]:
+                if status == "success":
+                    tickets_processed_total.labels(status="success").inc()
+                else:
+                    tickets_failed_total.inc()
 
         return {
             "agent": agent_name,
@@ -225,12 +242,15 @@ async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
     except Exception as e:
         # Track error
         if PROMETHEUS_AVAILABLE:
-            operation = payload.get("operation", "unknown")
-            agent_operations_total.labels(
-                agent=agent_name,
-                operation=operation,
+            agent_requests_total.labels(
+                agent_name=agent_name,
                 status="error"
             ).inc()
+
+            # Track failed tickets
+            operation = payload.get("operation", "unknown")
+            if operation in ["classify_ticket", "resolve_ticket", "execute_desktop_command"]:
+                tickets_failed_total.inc()
 
         logger.error(f"Error executing {agent_name}: {str(e)}")
         return {

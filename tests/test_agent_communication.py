@@ -13,10 +13,9 @@ from datetime import datetime
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from agents.orchestrator.maestro_agent import MaestroOrchestratorAgent
-from agents.helpdesk.classifier import TicketClassifierAgent
-from agents.base import HelpdeskAgent
-from agents.desktop_commander.desktop_commander_agent import DesktopCommanderAgent
+from agents.real.real_maestro_agent import RealMaestroAgent
+from agents.real.real_classifier_agent import RealClassifierAgent
+from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel

@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 import logging
 
+from agents.metrics import track_agent_execution, tickets_processed_total
+
 logger = logging.getLogger(__name__)
 
 
@@ -73,31 +75,35 @@ class RealMaestroAgent:
         Returns:
             Orchestration results
         """
-        operation = context.get("operation", "orchestrate_workflow")
+        with track_agent_execution("maestro"):
+            operation = context.get("operation", "orchestrate_workflow")
 
-        logger.info(f"🎭 RealMaestroAgent executing: {operation}")
+            logger.info(f"🎭 RealMaestroAgent executing: {operation}")
 
-        # Ensure agents are loaded
-        await self._load_agents()
+            # Ensure agents are loaded
+            await self._load_agents()
 
-        try:
-            if operation == "orchestrate_workflow":
-                ticket = context.get("ticket", {})
-                return await self._orchestrate_workflow(ticket)
-            elif operation == "coordinate_agents":
-                agents_to_run = context.get("agents", [])
-                return await self._coordinate_agents(agents_to_run)
-            elif operation == "health_check_all":
-                return await self._health_check_all()
-            elif operation == "load_balance":
-                tasks = context.get("tasks", [])
-                return await self._load_balance(tasks)
-            else:
-                raise ValueError(f"Unknown operation: {operation}")
+            try:
+                if operation == "orchestrate_workflow":
+                    ticket = context.get("ticket", {})
+                    result = await self._orchestrate_workflow(ticket)
+                    if result.get("workflow_status") == "completed":
+                        tickets_processed_total.labels(agent_name="maestro", status="success").inc()
+                    return result
+                elif operation == "coordinate_agents":
+                    agents_to_run = context.get("agents", [])
+                    return await self._coordinate_agents(agents_to_run)
+                elif operation == "health_check_all":
+                    return await self._health_check_all()
+                elif operation == "load_balance":
+                    tasks = context.get("tasks", [])
+                    return await self._load_balance(tasks)
+                else:
+                    raise ValueError(f"Unknown operation: {operation}")
 
-        except Exception as e:
-            logger.error(f"❌ Orchestration failed: {e}", exc_info=True)
-            return {
+            except Exception as e:
+                logger.error(f"❌ Orchestration failed: {e}", exc_info=True)
+                return {
                 "status": "error",
                 "error": str(e),
                 "timestamp": datetime.now(timezone.utc).isoformat()

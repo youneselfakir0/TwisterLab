@@ -12,6 +12,8 @@ import hashlib
 import tarfile
 import logging
 
+from agents.metrics import track_agent_execution, tickets_processed_total
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,31 +54,32 @@ class RealBackupAgent:
         Returns:
             Operation result with status and details
         """
-        operation = context.get("operation", "create_backup")
+        with track_agent_execution("backup"):
+            operation = context.get("operation", "create_backup")
 
-        logger.info(f"🔄 RealBackupAgent executing: {operation}")
+            logger.info(f"🔄 RealBackupAgent executing: {operation}")
 
-        try:
-            if operation == "create_backup":
-                return await self._create_real_backup(context)
-            elif operation == "list_backups":
-                return await self._list_backups()
-            elif operation == "verify_backup":
-                backup_id = context.get("backup_id")
-                return await self._verify_backup(backup_id)
-            elif operation == "cleanup_old":
-                days = context.get("retention_days", 7)
-                return await self._cleanup_old_backups(days)
-            else:
-                raise ValueError(f"Unknown operation: {operation}")
+            try:
+                if operation == "create_backup":
+                    return await self._create_real_backup(context)
+                elif operation == "list_backups":
+                    return await self._list_backups()
+                elif operation == "verify_backup":
+                    backup_id = context.get("backup_id")
+                    return await self._verify_backup(backup_id)
+                elif operation == "cleanup_old":
+                    days = context.get("retention_days", 7)
+                    return await self._cleanup_old_backups(days)
+                else:
+                    raise ValueError(f"Unknown operation: {operation}")
 
-        except Exception as e:
-            logger.error(f"❌ Backup operation failed: {e}", exc_info=True)
-            return {
-                "status": "failed",
-                "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
+            except Exception as e:
+                logger.error(f"❌ Backup operation failed: {e}", exc_info=True)
+                return {
+                    "status": "failed",
+                    "error": str(e),
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
 
     async def _create_real_backup(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """

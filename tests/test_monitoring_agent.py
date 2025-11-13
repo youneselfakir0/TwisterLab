@@ -1,21 +1,22 @@
 """
-Tests for MonitoringAgent
-==========================
+Tests for RealMonitoringAgent
+=============================
 
-Comprehensive test suite for the MonitoringAgent functionality.
+Comprehensive test suite for the RealMonitoringAgent functionality.
 
 Run with: pytest tests/test_monitoring_agent.py -v
 """
 
 import pytest
 from datetime import datetime, timezone
-from agents.support.monitoring_agent import MonitoringAgent, AlertSeverity
+from agents.real.real_monitoring_agent import RealMonitoringAgent
+from agents.support.monitoring_agent import AlertSeverity
 
 
 @pytest.fixture
 def monitoring_agent():
-    """Create a MonitoringAgent instance for testing"""
-    return MonitoringAgent()
+    """Create a RealMonitoringAgent instance for testing"""
+    return RealMonitoringAgent()
 
 
 # ============================================================================

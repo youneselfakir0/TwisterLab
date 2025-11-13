@@ -1,0 +1,398 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "TwisterLab - Complete Monitoring Dashboard",
+    "tags": ["twisterlab", "monitoring", "agents"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Overview",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "CPU Usage",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "targets": [
+          {
+            "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "CPU Usage %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 1}
+      },
+      {
+        "id": 3,
+        "title": "Memory Usage",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "targets": [
+          {
+            "expr": "100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)",
+            "legendFormat": "Memory Usage %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 1}
+      },
+      {
+        "id": 4,
+        "title": "Disk Usage",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "targets": [
+          {
+            "expr": "(1 - node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100",
+            "legendFormat": "Root /",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 9}
+      },
+      {
+        "id": 5,
+        "title": "Network I/O",
+        "type": "timeseries",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "targets": [
+          {
+            "expr": "rate(node_network_receive_bytes_total{device=\"enp0s31f6\"}[5m])",
+            "legendFormat": "RX",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(node_network_transmit_bytes_total{device=\"enp0s31f6\"}[5m])",
+            "legendFormat": "TX",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "Bps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 9}
+      },
+      {
+        "id": 6,
+        "title": "Services Health",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 17}
+      },
+      {
+        "id": 7,
+        "title": "Docker Services Status",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "up{job=\"docker\"}",
+            "legendFormat": "{{service_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 18}
+      },
+      {
+        "id": 8,
+        "title": "Service Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "http_request_duration_seconds{quantile=\"0.95\"}",
+            "legendFormat": "{{service}} P95"
+          },
+          {
+            "expr": "http_request_duration_seconds{quantile=\"0.5\"}",
+            "legendFormat": "{{service}} P50"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 18}
+      },
+      {
+        "id": 9,
+        "title": "HTTP Status Codes",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m])) by (status_code)",
+            "legendFormat": "{{status_code}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 18}
+      },
+      {
+        "id": 10,
+        "title": "Autonomous Agents",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26}
+      },
+      {
+        "id": 11,
+        "title": "Agent Activity",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(agent_requests_total[5m])",
+            "legendFormat": "{{agent_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 27}
+      },
+      {
+        "id": 12,
+        "title": "Agent Success Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(agent_requests_total{status=\"success\"}[5m]) / rate(agent_requests_total[5m]) * 100",
+            "legendFormat": "{{agent_name}} Success %"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 27}
+      },
+      {
+        "id": 13,
+        "title": "Ticket Processing",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(tickets_processed_total[5m])",
+            "legendFormat": "Tickets/min"
+          },
+          {
+            "expr": "rate(tickets_failed_total[5m])",
+            "legendFormat": "Failed/min"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 35}
+      },
+      {
+        "id": 14,
+        "title": "Agent Performance",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "agent_execution_time_seconds",
+            "legendFormat": "{{agent_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 35}
+      },
+      {
+        "id": 15,
+        "title": "Database Metrics",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 43}
+      },
+      {
+        "id": 16,
+        "title": "PostgreSQL Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_stat_activity_count",
+            "legendFormat": "Active Connections"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 44}
+      },
+      {
+        "id": 17,
+        "title": "PostgreSQL Query Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(pg_stat_user_tables_seq_scan[5m])",
+            "legendFormat": "Seq Scans"
+          },
+          {
+            "expr": "rate(pg_stat_user_tables_idx_scan[5m])",
+            "legendFormat": "Index Scans"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 44}
+      },
+      {
+        "id": 18,
+        "title": "Database Size",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_database_size_bytes",
+            "legendFormat": "{{datname}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 44}
+      },
+      {
+        "id": 19,
+        "title": "Cache Performance",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 52}
+      },
+      {
+        "id": 20,
+        "title": "Redis Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "redis_memory_used_bytes / redis_memory_max_bytes * 100",
+            "legendFormat": "Memory Usage %"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 53}
+      },
+      {
+        "id": 21,
+        "title": "Redis Hit Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) * 100",
+            "legendFormat": "Cache Hit Rate %"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 53}
+      },
+      {
+        "id": 22,
+        "title": "Redis Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(redis_commands_total[5m])",
+            "legendFormat": "{{cmd}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 53}
+      },
+      {
+        "id": 23,
+        "title": "AI/LLM Metrics",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 61}
+      },
+      {
+        "id": 24,
+        "title": "Ollama Requests",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(ollama_requests_total[5m])",
+            "legendFormat": "Requests/min"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 62}
+      },
+      {
+        "id": 25,
+        "title": "Ollama Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ollama_request_duration_seconds{quantile=\"0.95\"}",
+            "legendFormat": "P95 Response Time"
+          },
+          {
+            "expr": "ollama_request_duration_seconds{quantile=\"0.5\"}",
+            "legendFormat": "P50 Response Time"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 62}
+      },
+      {
+        "id": 26,
+        "title": "Model Usage",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ollama_model_requests_total",
+            "legendFormat": "{{model}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 62}
+      },
+      {
+        "id": 27,
+        "title": "Alerts & Incidents",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 70}
+      },
+      {
+        "id": 28,
+        "title": "Active Alerts",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ALERTS{alertstate=\"firing\"}",
+            "legendFormat": "{{alertname}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 71}
+      },
+      {
+        "id": 29,
+        "title": "Alert History",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(alerts_total[5m])",
+            "legendFormat": "{{alertname}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 71}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+}

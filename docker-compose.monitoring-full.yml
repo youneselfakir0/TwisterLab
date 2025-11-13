@@ -1,0 +1,159 @@
+version: '3.8'
+
+services:
+  # Prometheus - Serveur de métriques principal
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: twisterlab_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - twisterlab_prod
+      - traefik-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Node Exporter - Métriques système
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: twisterlab_node_exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - twisterlab_prod
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+
+  # PostgreSQL Exporter - Métriques base de données
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: twisterlab_postgres_exporter
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://twisterlab:twisterlab_password@twisterlab_postgres:5432/twisterlab?sslmode=disable"
+    depends_on:
+      - twisterlab_postgres
+    networks:
+      - twisterlab_prod
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twisterlab -d twisterlab -h twisterlab_postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Exporter - Métriques cache
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: twisterlab_redis_exporter
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: "twisterlab_redis:6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
+    depends_on:
+      - twisterlab_redis
+    networks:
+      - twisterlab_prod
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # Alertmanager - Gestion des alertes
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: twisterlab_alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - twisterlab_prod
+      - traefik-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # cAdvisor - Métriques containers Docker
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: twisterlab_cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - twisterlab_prod
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+
+  # Custom Exporter pour TwisterLab API
+  twisterlab-api-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: twisterlab_api_exporter
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./monitoring/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    command:
+      - '--config.file=/etc/blackbox_exporter/config.yml'
+    networks:
+      - twisterlab_prod
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+networks:
+  twisterlab_prod:
+    external: true
+  traefik-net:
+    external: true
+
+volumes:
+  prometheus_data:
+    driver: local

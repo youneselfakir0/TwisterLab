@@ -6,9 +6,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from agents.orchestrator.maestro_agent import MaestroOrchestratorAgent
-from agents.helpdesk.classifier import TicketClassifierAgent
-from agents.base import HelpdeskAgent
+from agents.real.real_maestro_agent import RealMaestroAgent
+from agents.real.real_classifier_agent import RealClassifierAgent
 
 async def test_agents():
     print("\n=== TwisterLab Agent Communication Test ===\n")

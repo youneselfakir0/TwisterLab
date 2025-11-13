@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 import logging
 
+from agents.metrics import track_agent_execution, tickets_processed_total
+
 logger = logging.getLogger(__name__)
 
 # Import LLM client for intelligent classification
@@ -77,38 +79,48 @@ class RealClassifierAgent:
         Returns:
             Classification results
         """
-        operation = context.get("operation", "classify_ticket")
+        with track_agent_execution("classifier"):
+            operation = context.get("operation", "classify_ticket")
 
-        logger.info(f"🔍 RealClassifierAgent executing: {operation}")
+            logger.info(f"🔍 RealClassifierAgent executing: {operation}")
 
-        try:
-            if operation == "classify_ticket":
-                ticket = context.get("ticket", {})
-                # Try LLM first, fallback to keywords if fails
-                if self.use_llm:
-                    try:
-                        return await self._classify_ticket_llm(ticket)
-                    except Exception as llm_error:
-                        logger.warning(f"⚠️ LLM classification failed: {llm_error}, using keywords")
-                        return await self._classify_ticket_keywords(ticket)
+            try:
+                if operation == "classify_ticket":
+                    ticket = context.get("ticket", {})
+                    # Try LLM first, fallback to keywords if fails
+                    if self.use_llm:
+                        try:
+                            result = await self._classify_ticket_llm(ticket)
+                            if result.get("status") == "success":
+                                tickets_processed_total.labels(agent_name="classifier", status="success").inc()
+                            return result
+                        except Exception as llm_error:
+                            logger.warning(f"⚠️ LLM classification failed: {llm_error}, using keywords")
+                            result = await self._classify_ticket_keywords(ticket)
+                            if result.get("status") == "success":
+                                tickets_processed_total.labels(agent_name="classifier", status="fallback").inc()
+                            return result
+                    else:
+                        result = await self._classify_ticket_keywords(ticket)
+                        if result.get("status") == "success":
+                            tickets_processed_total.labels(agent_name="classifier", status="keyword").inc()
+                        return result
+                elif operation == "analyze_logs":
+                    logs = context.get("logs", [])
+                    return await self._analyze_logs(logs)
+                elif operation == "detect_patterns":
+                    tickets = context.get("tickets", [])
+                    return await self._detect_patterns(tickets)
                 else:
-                    return await self._classify_ticket_keywords(ticket)
-            elif operation == "analyze_logs":
-                logs = context.get("logs", [])
-                return await self._analyze_logs(logs)
-            elif operation == "detect_patterns":
-                tickets = context.get("tickets", [])
-                return await self._detect_patterns(tickets)
-            else:
-                raise ValueError(f"Unknown operation: {operation}")
+                    raise ValueError(f"Unknown operation: {operation}")
 
-        except Exception as e:
-            logger.error(f"❌ Classification failed: {e}", exc_info=True)
-            return {
-                "status": "error",
-                "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
+            except Exception as e:
+                logger.error(f"❌ Classification failed: {e}", exc_info=True)
+                return {
+                    "status": "error",
+                    "error": str(e),
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
 
     async def _classify_ticket_llm(self, ticket: Dict[str, Any]) -> Dict[str, Any]:
         """

@@ -1,5 +1,5 @@
 """
-TwisterLab - ResolverAgent Tests
+TwisterLab - RealResolverAgent Tests
 Comprehensive test suite for ticket resolution functionality
 """
 
@@ -10,8 +10,8 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 import json
 
-from agents.resolver.resolver_agent import (
-    ResolverAgent,
+from agents.real.real_resolver_agent import (
+    RealResolverAgent,
     ResolutionStrategy,
     ResolutionStatus
 )
@@ -19,8 +19,8 @@ from agents.resolver.resolver_agent import (
 
 @pytest.fixture
 def resolver_agent():
-    """Create ResolverAgent instance for testing"""
-    return ResolverAgent()
+    """Create RealResolverAgent instance for testing"""
+    return RealResolverAgent()
 
 
 @pytest.fixture

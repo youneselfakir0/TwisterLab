@@ -3,9 +3,68 @@ Prometheus Metrics for TwisterLab LLM Agents
 Exposes performance metrics for monitoring and alerting
 """
 from prometheus_client import Counter, Histogram, Gauge, Info
+from typing import Optional
+from datetime import datetime
+from contextlib import contextmanager
 import logging
 
 logger = logging.getLogger(__name__)
+
+# ============================================================================
+# GENERAL AGENT METRICS (for all autonomous agents)
+# ============================================================================
+
+agent_requests_total = Counter(
+    'agent_requests_total',
+    'Total number of agent execution requests',
+    ['agent_name', 'status']  # status: success, failed
+)
+
+agent_execution_time_seconds = Histogram(
+    'agent_execution_time_seconds',
+    'Agent execution time in seconds',
+    ['agent_name'],
+    buckets=[0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0]
+)
+
+tickets_processed_total = Counter(
+    'tickets_processed_total',
+    'Total tickets processed by agents',
+    ['agent_name', 'status']  # status: success, failed
+)
+
+tickets_failed_total = Counter(
+    'tickets_failed_total', 
+    'Total tickets that failed processing',
+    ['agent_name', 'reason']
+)
+
+agents_active = Gauge(
+    'agents_active',
+    'Number of currently active agents',
+    ['agent_name']
+)
+
+
+@contextmanager
+def track_agent_execution(agent_name: str):
+    """Context manager for tracking agent execution metrics"""
+    start_time = datetime.now()
+    agents_active.labels(agent_name=agent_name).inc()
+    
+    try:
+        yield
+        # Success
+        agent_requests_total.labels(agent_name=agent_name, status='success').inc()
+    except Exception as e:
+        # Failure
+        agent_requests_total.labels(agent_name=agent_name, status='failed').inc()
+        raise
+    finally:
+        # Always record duration and decrement active count
+        duration = (datetime.now() - start_time).total_seconds()
+        agent_execution_time_seconds.labels(agent_name=agent_name).observe(duration)
+        agents_active.labels(agent_name=agent_name).dec()
 
 # ============================================================================
 # CLASSIFIER AGENT METRICS
@@ -301,6 +360,13 @@ def record_ticket_processing(duration: float, success: bool, failure_reason: str
 
 # Export all metrics for easy import
 __all__ = [
+    # General Agent Metrics
+    'agent_requests_total',
+    'agent_execution_time_seconds',
+    'tickets_processed_total',
+    'tickets_failed_total',
+    'agents_active',
+    'track_agent_execution',
     # Classifier
     'classifier_llm_duration',
     'classifier_keyword_duration',

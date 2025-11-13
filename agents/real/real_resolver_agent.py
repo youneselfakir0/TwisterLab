@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 import logging
 
+from agents.metrics import track_agent_execution, tickets_processed_total
+
 logger = logging.getLogger(__name__)
 
 # Import LLM client for intelligent SOP generation
@@ -128,34 +130,44 @@ class RealResolverAgent:
         Returns:
             Resolution results
         """
-        operation = context.get("operation", "resolve_ticket")
+        with track_agent_execution("resolver"):
+            operation = context.get("operation", "resolve_ticket")
 
-        logger.info(f"🔧 RealResolverAgent executing: {operation}")
+            logger.info(f"🔧 RealResolverAgent executing: {operation}")
 
-        try:
-            if operation == "resolve_ticket":
-                ticket = context.get("ticket", {})
-                # Try LLM first for dynamic SOP, fallback to static
-                if self.use_llm:
-                    try:
-                        return await self._resolve_ticket_llm(ticket)
-                    except Exception as llm_error:
-                        logger.warning(f"⚠️ LLM resolution failed: {llm_error}, using static SOP")
-                        return await self._resolve_ticket_static(ticket)
+            try:
+                if operation == "resolve_ticket":
+                    ticket = context.get("ticket", {})
+                    # Try LLM first for dynamic SOP, fallback to static
+                    if self.use_llm:
+                        try:
+                            result = await self._resolve_ticket_llm(ticket)
+                            if result.get("status") == "resolved":
+                                tickets_processed_total.labels(agent_name="resolver", status="success").inc()
+                            return result
+                        except Exception as llm_error:
+                            logger.warning(f"⚠️ LLM resolution failed: {llm_error}, using static SOP")
+                            result = await self._resolve_ticket_static(ticket)
+                            if result.get("status") == "resolved":
+                                tickets_processed_total.labels(agent_name="resolver", status="fallback").inc()
+                            return result
+                    else:
+                        result = await self._resolve_ticket_static(ticket)
+                        if result.get("status") == "resolved":
+                            tickets_processed_total.labels(agent_name="resolver", status="static").inc()
+                        return result
+                elif operation == "list_sops":
+                    category = context.get("category")
+                    return await self._list_sops(category)
+                elif operation == "execute_sop":
+                    sop_id = context.get("sop_id")
+                    params = context.get("params", {})
+                    return await self._execute_sop(sop_id, params)
                 else:
-                    return await self._resolve_ticket_static(ticket)
-            elif operation == "list_sops":
-                category = context.get("category")
-                return await self._list_sops(category)
-            elif operation == "execute_sop":
-                sop_id = context.get("sop_id")
-                params = context.get("params", {})
-                return await self._execute_sop(sop_id, params)
-            else:
-                raise ValueError(f"Unknown operation: {operation}")
+                    raise ValueError(f"Unknown operation: {operation}")
 
-        except Exception as e:
-            logger.error(f"❌ Resolution failed: {e}", exc_info=True)
+            except Exception as e:
+                logger.error(f"❌ Resolution failed: {e}", exc_info=True)
             return {
                 "status": "error",
                 "error": str(e),

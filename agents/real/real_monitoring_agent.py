@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional, List
 import logging
 import psutil
 import json
+from agents.metrics import track_agent_execution, agent_requests_total
 
 logger = logging.getLogger(__name__)
 
@@ -70,27 +71,28 @@ class RealMonitoringAgent:
 
         logger.info(f"🔍 RealMonitoringAgent executing: {operation}")
 
-        try:
-            if operation == "health_check":
-                return await self._health_check(context)
-            elif operation == "check_services":
-                return await self._check_docker_services()
-            elif operation == "check_ports":
-                return await self._check_ports()
-            elif operation == "check_gpu":
-                return await self._check_nvidia_gpu()
-            elif operation == "full_diagnostic":
-                return await self._full_diagnostic()
-            else:
-                raise ValueError(f"Unknown operation: {operation}")
+        with track_agent_execution("monitoring"):
+            try:
+                if operation == "health_check":
+                    return await self._health_check(context)
+                elif operation == "check_services":
+                    return await self._check_docker_services()
+                elif operation == "check_ports":
+                    return await self._check_ports()
+                elif operation == "check_gpu":
+                    return await self._check_nvidia_gpu()
+                elif operation == "full_diagnostic":
+                    return await self._full_diagnostic()
+                else:
+                    raise ValueError(f"Unknown operation: {operation}")
 
-        except Exception as e:
-            logger.error(f"❌ Monitoring operation failed: {e}", exc_info=True)
-            return {
-                "status": "error",
-                "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
+            except Exception as e:
+                logger.error(f"❌ Monitoring operation failed: {e}", exc_info=True)
+                return {
+                    "status": "error",
+                    "error": str(e),
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
 
     async def _health_check(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """

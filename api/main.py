@@ -85,6 +85,14 @@ try:
 except ImportError as e:
     logger.warning(f"MCP REAL API not available: {e}")
 
+# Include MCP REST API wrapper
+try:
+    from api.endpoints.mcp_rest import router as mcp_rest_router
+    app.include_router(mcp_rest_router, tags=["MCP REST"])
+    logger.info("MCP REST API enabled (/v1/mcp/*)")
+except ImportError as e:
+    logger.warning(f"MCP REST API not available: {e}")
+
 # Mock data for agents
 AGENTS = [
     {

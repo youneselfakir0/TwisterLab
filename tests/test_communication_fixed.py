@@ -4,15 +4,9 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from agents.orchestrator.maestro_agent import (
-    MaestroOrchestratorAgent,
-    LoadBalancingStrategy
-)
-from agents.base import (
-    ClassifierAgent,
-    HelpdeskAgent,
-    DesktopCommanderAgent
-)
+from agents.real.real_maestro_agent import RealMaestroAgent
+from agents.real.real_classifier_agent import RealClassifierAgent
+from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
 
 def main():
     print("\n=== TwisterLab Agent Communication Test (FIXED) ===\n")

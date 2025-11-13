@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  twisterlab_redis:
+    image: redis:7-alpine
+    container_name: twisterlab_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-twisterlab_redis_password}
+    networks:
+      - twisterlab_prod
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  twisterlab_prod:
+    external: true
+
+volumes:
+  redis_data:
+    driver: local

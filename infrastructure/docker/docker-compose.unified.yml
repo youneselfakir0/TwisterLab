@@ -192,7 +192,7 @@ services:
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     environment:
-      - DATA_SOURCE_NAME=postgresql://twisterlab:twisterlab_secure_db_password_2024!@postgres:5432/twisterlab_prod?sslmode=disable
+      - DATA_SOURCE_NAME=postgresql://twisterlab:twisterlab_prod_db_password_2024%21@postgres:5432/twisterlab_prod?sslmode=disable
     ports:
       - "9187:9187"
     networks:

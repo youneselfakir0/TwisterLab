@@ -3,7 +3,7 @@ TwisterLab MCP API Routes - Real Agent Endpoints
 Production-ready FastAPI routes for MCP tool integration
 """
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field, validator
@@ -20,6 +20,8 @@ from agents.real.real_classifier_agent import RealClassifierAgent
 from agents.real.real_resolver_agent import RealResolverAgent
 from agents.real.real_monitoring_agent import RealMonitoringAgent
 from agents.real.real_backup_agent import RealBackupAgent
+from agents.real.real_sync_agent import RealSyncAgent
+from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -81,7 +83,7 @@ async def list_autonomous_agents() -> MCPResponse:
                     "name": "RealSyncAgent",
                     "module": "agents.real.real_sync_agent",
                     "file": "agents/real/real_sync_agent.py",
-                    "mcp_tool": "sync_cache",
+                    "mcp_tool": "sync_cache_db",
                     "description": "Cache/Database synchronization (Redis ↔ PostgreSQL)",
                     "capabilities": ["redis_sync", "postgres_sync", "conflict_resolution"],
                     "status": "operational"
@@ -109,7 +111,7 @@ async def list_autonomous_agents() -> MCPResponse:
                     "name": "RealDesktopCommanderAgent",
                     "module": "agents.real.real_desktop_commander_agent",
                     "file": "agents/real/real_desktop_commander_agent.py",
-                    "mcp_tool": "execute_desktop_command",
+                    "mcp_tool": "execute_command",
                     "description": "Remote system command execution (PowerShell, Bash, SSH)",
                     "capabilities": ["powershell_execution", "bash_execution", "ssh_commands", "command_whitelisting"],
                     "status": "operational",
@@ -203,6 +205,36 @@ class CreateBackupRequest(BaseModel):
         "full",
         pattern="^(full|incremental|config)$",
         description="Backup type"
+    )
+
+
+class SyncCacheDBRequest(BaseModel):
+    """Input model for sync_cache_db endpoint."""
+    operation: str = Field(
+        "sync_all",
+        pattern="^(sync_all|verify_consistency|clear_stale|warm_cache)$",
+        description="Sync operation to perform"
+    )
+    force: Optional[bool] = Field(
+        False,
+        description="Force sync even if cache is fresh"
+    )
+
+
+class ExecuteCommandRequest(BaseModel):
+    """Input model for execute_command endpoint."""
+    command: str = Field(
+        ...,
+        pattern="^(ping|ipconfig|netstat|systeminfo|tasklist|whoami|hostname|route|nslookup)$",
+        description="Safe whitelisted command to execute"
+    )
+    args: Optional[List[str]] = Field(
+        None,
+        description="Optional command arguments"
+    )
+    target: Optional[str] = Field(
+        None,
+        description="Target for network commands (IP/hostname)"
     )
 
 
@@ -679,6 +711,171 @@ async def create_backup(request: CreateBackupRequest) -> MCPResponse:
         )
 
 
+@router.post("/sync_cache_db", response_model=MCPResponse)
+async def sync_cache_db(request: SyncCacheDBRequest) -> MCPResponse:
+    """
+    Synchronize Redis cache with PostgreSQL database using RealSyncAgent.
+
+    **Input**:
+    - `operation`: Sync operation (sync_all|verify_consistency|clear_stale|warm_cache)
+    - `force`: Force sync even if cache is fresh (default: false)
+
+    **Output**:
+    - `status`: "ok" or "error"
+    - `data`: Sync results with statistics (entries synced, duration, etc.)
+    - `error`: Error message if status="error"
+
+    **Example**:
+    ```json
+    POST /v1/mcp/tools/sync_cache_db
+    {
+        "operation": "sync_all",
+        "force": true
+    }
+
+    Response:
+    {
+        "status": "ok",
+        "data": {
+            "operation": "sync_all",
+            "entries_synced": 150,
+            "duration_seconds": 2.3,
+            "cache_entries_before": 120,
+            "cache_entries_after": 180,
+            "db_records_processed": 200
+        },
+        "error": null,
+        "timestamp": "2025-11-11T12:00:00.000000+00:00"
+    }
+    ```
+    """
+    try:
+        logger.info(f"🔄 Syncing cache/DB (operation: {request.operation}, force: {request.force})")
+
+        # Initialize agent
+        agent = RealSyncAgent()
+
+        # Execute sync
+        result = await agent.execute({
+            "operation": request.operation,
+            "force": request.force
+        })
+
+        # Check if sync succeeded
+        if result.get("status") not in ["success", "completed"]:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Sync failed: {result.get('error', 'Unknown error')}"
+            )
+
+        # Extract sync data
+        sync_data = result  # The result is already the sync data dict
+
+        logger.info(
+            f"✅ Sync complete: {request.operation} "
+            f"({sync_data.get('entries_synced', 0)} entries in {sync_data.get('duration_seconds', 0)}s)"
+        )
+
+        return MCPResponse(
+            status="ok",
+            data=sync_data
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ sync_cache_db failed: {e}", exc_info=True)
+        return MCPResponse(
+            status="error",
+            error=str(e)
+        )
+
+
+@router.post("/execute_command", response_model=MCPResponse)
+async def execute_command(request: ExecuteCommandRequest) -> MCPResponse:
+    """
+    Execute safe system command using RealDesktopCommanderAgent.
+
+    **Security**: Only whitelisted commands allowed (ping, ipconfig, netstat, etc.)
+
+    **Input**:
+    - `command`: Whitelisted command to execute
+    - `args`: Optional command arguments
+    - `target`: Target for network commands (IP/hostname)
+
+    **Output**:
+    - `status`: "ok" or "error"
+    - `data`: Command output, execution time, security validation
+    - `error`: Error message if status="error"
+
+    **Example**:
+    ```json
+    POST /v1/mcp/tools/execute_command
+    {
+        "command": "ping",
+        "args": ["-n", "4"],
+        "target": "8.8.8.8"
+    }
+
+    Response:
+    {
+        "status": "ok",
+        "data": {
+            "command": "ping",
+            "output": "Pinging 8.8.8.8 with 32 bytes of data:\nReply from 8.8.8.8: bytes=32 time=14ms TTL=118\n...",
+            "execution_time_seconds": 3.2,
+            "security_validated": true,
+            "os_type": "Windows"
+        },
+        "error": null,
+        "timestamp": "2025-11-11T12:00:00.000000+00:00"
+    }
+    ```
+    """
+    try:
+        logger.info(f"💻 Executing command: {request.command} (args: {request.args}, target: {request.target})")
+
+        # Initialize agent
+        agent = RealDesktopCommanderAgent()
+
+        # Execute command
+        result = await agent.execute({
+            "operation": "execute_command",
+            "command": request.command,
+            "args": request.args,
+            "target": request.target
+        })
+
+        # Check if command succeeded
+        if result.get("status") not in ["success", "completed"]:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Command failed: {result.get('error', 'Unknown error')}"
+            )
+
+        # Extract command data
+        command_data = result  # The result is already the command data dict
+
+        logger.info(
+            f"✅ Command complete: {request.command} "
+            f"(executed in {command_data.get('execution_time_seconds', 0)}s)"
+        )
+
+        return MCPResponse(
+            status="ok",
+            data=command_data
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ execute_command failed: {e}", exc_info=True)
+        return MCPResponse(
+            status="error",
+            error=str(e)
+        )
+
+
 # ============================================================================
 # HEALTH CHECK - MCP Service Status
 # ============================================================================
@@ -694,12 +891,14 @@ async def mcp_health() -> Dict[str, Any]:
     return {
         "status": "ok",
         "mode": "REAL",
-        "tools": 4,
+        "tools": 6,
         "tools_available": [
             "classify_ticket",
             "resolve_ticket",
             "monitor_system_health",
-            "create_backup"
+            "create_backup",
+            "sync_cache_db",
+            "execute_command"
         ],
         "timestamp": datetime.now(timezone.utc).isoformat()
     }

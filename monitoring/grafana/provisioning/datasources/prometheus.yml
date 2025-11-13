@@ -1,4 +1,4 @@
-apiVersion: 1
+﻿apiVersion: 1
 
 datasources:
   - name: Prometheus
@@ -6,9 +6,4 @@ datasources:
     access: proxy
     url: http://prometheus:9090
     isDefault: true
-    uid: df3qqymva25tsb
-    editable: false
-    jsonData:
-      timeInterval: 15s
-      queryTimeout: 60s
-      httpMethod: POST
+    editable: true

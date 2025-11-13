@@ -43,10 +43,15 @@ def mock_azure_auth():
     })
     mock_instance.validate_token_structure.return_value = True
 
-    # Patch the get_azure_ad_auth function to return our mock
-    with patch("api.auth.get_azure_ad_auth") as mock_get_auth:
-        mock_get_auth.return_value = mock_instance
-        yield mock_instance
+    # Patch the get_hybrid_auth function to return our mock in Azure mode
+    with patch("api.auth_hybrid.get_hybrid_auth") as mock_get_auth:
+        mock_hybrid_auth = Mock()
+        mock_hybrid_auth.mode = "azure"
+        mock_hybrid_auth.get_authorization_url.return_value = mock_instance.get_authorization_url.return_value
+        mock_hybrid_auth.acquire_token_by_code = mock_instance.acquire_token_by_code
+        mock_hybrid_auth.verify_token = AsyncMock(return_value={"sub": "test_user", "username": "test@example.com"})
+        mock_get_auth.return_value = mock_hybrid_auth
+        yield mock_hybrid_auth
 
 
 @pytest.fixture

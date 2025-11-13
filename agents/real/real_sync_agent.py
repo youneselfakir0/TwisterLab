@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 import logging
 
+from agents.metrics import track_agent_execution, tickets_processed_total
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,30 +42,34 @@ class RealSyncAgent:
         Returns:
             Sync results with statistics
         """
-        operation = context.get("operation", "sync_all")
+        with track_agent_execution("sync"):
+            operation = context.get("operation", "sync_all")
 
-        logger.info(f"🔄 RealSyncAgent executing: {operation}")
+            logger.info(f"🔄 RealSyncAgent executing: {operation}")
 
-        try:
-            if operation == "sync_all":
-                return await self._sync_all()
-            elif operation == "verify_consistency":
-                return await self._verify_consistency()
-            elif operation == "clear_stale":
-                max_age_hours = context.get("max_age_hours", 24)
-                return await self._clear_stale_cache(max_age_hours)
-            elif operation == "warm_cache":
-                return await self._warm_cache()
-            else:
-                raise ValueError(f"Unknown operation: {operation}")
+            try:
+                if operation == "sync_all":
+                    result = await self._sync_all()
+                    if result.get("status") == "success":
+                        tickets_processed_total.labels(agent_name="sync", status="success").inc()
+                    return result
+                elif operation == "verify_consistency":
+                    return await self._verify_consistency()
+                elif operation == "clear_stale":
+                    max_age_hours = context.get("max_age_hours", 24)
+                    return await self._clear_stale_cache(max_age_hours)
+                elif operation == "warm_cache":
+                    return await self._warm_cache()
+                else:
+                    raise ValueError(f"Unknown operation: {operation}")
 
-        except Exception as e:
-            logger.error(f"❌ Sync operation failed: {e}", exc_info=True)
-            return {
-                "status": "error",
-                "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
+            except Exception as e:
+                logger.error(f"❌ Sync operation failed: {e}", exc_info=True)
+                return {
+                    "status": "error",
+                    "error": str(e),
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
 
     async def _sync_all(self) -> Dict[str, Any]:
         """

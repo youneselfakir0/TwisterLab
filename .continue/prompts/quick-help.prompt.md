@@ -343,13 +343,13 @@ git push
 
 ## 📞 Contact & Support
 
-**Documentation** : `.continue/prompts/README.md`  
-**Config Continue** : `.continue/config.yaml`  
-**MCP Config** : `.continue/mcpServers/twisterlab-mcp.json`  
+**Documentation** : `.continue/prompts/README.md`
+**Config Continue** : `.continue/config.yaml`
+**MCP Config** : `.continue/mcpServers/twisterlab-mcp.json`
 **MCP Server** : `agents/mcp/mcp_server_continue_sync.py`
 
-**GitHub** : https://github.com/youneselfakir0/TwisterLab  
-**Version** : 1.0.0  
+**GitHub** : https://github.com/youneselfakir0/TwisterLab
+**Version** : 1.0.0
 **Date** : 2025-11-12
 
 ---

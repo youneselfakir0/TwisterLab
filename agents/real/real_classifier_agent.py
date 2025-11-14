@@ -172,23 +172,19 @@ Category:"""
         start_time = datetime.now(timezone.utc)
 
         try:
-            # Call Ollama LLM with timeout to prevent hanging
-            try:
-                result = await asyncio.wait_for(
-                    ollama_client.generate(
-                        prompt=prompt,
-                        agent_type="classifier"
-                    ),
-                    timeout=15.0  # 15-second timeout
-                )
-            except asyncio.TimeoutError:
-                logger.error("❌ Ollama LLM timeout (15s) - service may be down or overloaded")
-                # Record timeout metric
-                if LLM_AVAILABLE:
-                    classifier_llm_error.labels(error_type="TimeoutError").inc()
-                # Fallback to keyword classification
-                logger.info("🔄 Falling back to keyword classification due to timeout")
-                return await self._classify_ticket_keywords(ticket)
+            # Call Ollama LLM with automatic PRIMARY/BACKUP failover
+            # Note: generate_with_fallback() has built-in timeout and retry logic
+            result = await ollama_client.generate_with_fallback(
+                prompt=prompt,
+                agent_type="classifier"
+            )
+
+            # Log which Ollama server was used (for monitoring)
+            ollama_source = result.get("source", "unknown")
+            if ollama_source == "primary":
+                logger.info(f"✅ Classification used PRIMARY Ollama (Corertx RTX 3060)")
+            elif ollama_source == "fallback":
+                logger.warning(f"⚠️ Classification used BACKUP Ollama (Edgeserver GTX 1050) - PRIMARY may be down")
 
             end_time = datetime.now(timezone.utc)
             processing_time_ms = int((end_time - start_time).total_seconds() * 1000)

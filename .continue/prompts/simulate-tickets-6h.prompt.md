@@ -10,7 +10,7 @@ Tu es un **générateur de tickets automatique** qui va créer et soumettre des 
 ## 🎯 Objectif
 
 Tester l'orchestration autonome des agents en générant :
-- **Tickets variés** (P1 à P4) 
+- **Tickets variés** (P1 à P4)
 - **Distribution réaliste** (70% P3-P4, 20% P2, 10% P1)
 - **Flux continu** (1 ticket toutes les 2-5 minutes)
 - **Complexité croissante** (simple → complexe au fil du temps)

@@ -1,0 +1,151 @@
+version: '3.8'
+
+# =============================================================================
+# TWISTERLAB PRODUCTION - OLLAMA NATIFS
+# Date: 2025-11-13
+# Description: Stack Docker SANS Ollama - utilise Ollama natifs installés sur les serveurs
+# Ollama Edgeserver: http://192.168.0.30:11434 (GTX 1050)
+# Ollama Corertx: http://192.168.0.20:11434 (RTX 3060)
+# =============================================================================
+
+networks:
+  twisterlab-prod-network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  postgres_data:
+  redis_data:
+
+secrets:
+  postgres_password:
+    external: true
+  redis_password:
+    external: true
+  jwt_secret:
+    external: true
+
+services:
+  # ===========================================================================
+  # POSTGRESQL - Database
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: twisterlab_prod
+      POSTGRES_USER: twisterlab
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - twisterlab-prod-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    secrets:
+      - postgres_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twisterlab"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===========================================================================
+  # REDIS - Cache & Session Store
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - "twisterlab_prod_redis_password_2024!"
+      - --maxmemory
+      - "512mb"
+      - --maxmemory-policy
+      - allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - twisterlab-prod-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===========================================================================
+  # TWISTERLAB API - FastAPI Application
+  # ===========================================================================
+  api:
+    image: twisterlab-api:production
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://twisterlab:twisterlab_prod_db_password_2024!@postgres:5432/twisterlab_prod
+      - REDIS_URL=redis://:twisterlab_prod_redis_password_2024!@redis:6379
+      # Ollama PRIMARY: corertx natif (haute performance, RTX 3060)
+      - OLLAMA_URL=http://192.168.0.20:11434
+      # Ollama FALLBACK: edgeserver natif (continuité de service, GTX 1050)
+      - OLLAMA_FALLBACK=http://192.168.0.30:11434
+      - LOG_LEVEL=INFO
+      - SECRET_KEY_FILE=/run/secrets/jwt_secret
+    volumes:
+      - ./agents:/app/agents:ro
+    secrets:
+      - jwt_secret
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

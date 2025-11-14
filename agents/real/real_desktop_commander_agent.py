@@ -375,10 +375,18 @@ Unsafe commands MODIFY system: del, shutdown, reboot, format, net user, reg add
 Answer YES or NO."""
 
         try:
-            result = await ollama_client.generate(
+            # Call Ollama LLM with automatic PRIMARY/BACKUP failover
+            result = await ollama_client.generate_with_fallback(
                 prompt=prompt,
                 agent_type="commander"
             )
+
+            # Log which Ollama server was used (for monitoring)
+            ollama_source = result.get("source", "unknown")
+            if ollama_source == "primary":
+                logger.info(f"✅ Command validation used PRIMARY Ollama (Corertx RTX 3060)")
+            elif ollama_source == "fallback":
+                logger.warning(f"⚠️ Command validation used BACKUP Ollama (Edgeserver GTX 1050) - PRIMARY may be down")
 
             response = result["response"].strip().upper()
 

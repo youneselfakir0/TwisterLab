@@ -9,7 +9,7 @@ Voici tous les prompts système disponibles pour Continue, organisés par catég
 ## 🔧 Troubleshooting & Diagnostic
 
 ### `@prompt troubleshoot-system`
-**Durée** : ~90 minutes  
+**Durée** : ~90 minutes
 **Objectif** : Diagnostic complet de l'infrastructure TwisterLab (Docker Swarm, agents, API, monitoring)
 
 **Ce qu'il fait** :
@@ -36,7 +36,7 @@ Voici tous les prompts système disponibles pour Continue, organisés par catég
 ---
 
 ### `@prompt debug-mcp`
-**Durée** : ~10 minutes  
+**Durée** : ~10 minutes
 **Objectif** : Diagnostiquer et réparer les erreurs de connexion MCP Continue ↔ TwisterLab
 
 **Ce qu'il fait** :
@@ -71,7 +71,7 @@ Voici tous les prompts système disponibles pour Continue, organisés par catég
 ## ⚡ Optimisation & Performance
 
 ### `@prompt optimize-pc`
-**Durée** : ~2 heures  
+**Durée** : ~2 heures
 **Objectif** : Nettoyer et optimiser le PC Windows de développement TwisterLab
 
 **Ce qu'il fait** :
@@ -122,7 +122,7 @@ Voici tous les prompts système disponibles pour Continue, organisés par catég
 ## 🎭 Simulation & Tests
 
 ### `@prompt simulate-tickets-6h`
-**Durée** : 6 heures (non-stop)  
+**Durée** : 6 heures (non-stop)
 **Objectif** : Générer et traiter automatiquement ~100-120 tickets pour tester l'orchestration autonome
 
 **Ce qu'il fait** :
@@ -136,7 +136,7 @@ Voici tous les prompts système disponibles pour Continue, organisés par catég
    - **P2 (20%)** : Problèmes élevés (CPU 95%, queries lentes, backup fail)
    - **P3 (50%)** : Maintenance normale (cleanup logs, optimisation, sync)
    - **P4 (20%)** : Questions (versions, stats, documentation)
-   
+
    **Workflow par ticket** :
    - Générer ticket aléatoire (selon distribution)
    - `@mcp classify_ticket` → agent assigné + SOP
@@ -307,6 +307,6 @@ Ctrl+Shift+P → Continue: Reload Config
 
 ---
 
-**Version** : 1.0.0  
-**Dernière mise à jour** : 2025-11-12  
+**Version** : 1.0.0
+**Dernière mise à jour** : 2025-11-12
 **Prompts disponibles** : 4 (troubleshoot, debug-mcp, optimize-pc, simulate-tickets-6h)

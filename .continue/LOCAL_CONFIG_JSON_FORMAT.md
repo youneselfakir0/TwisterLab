@@ -272,8 +272,8 @@ models:
 
 ---
 
-**Status** : ✅ Format Local Config JSON Validé  
-**Date** : 2025-11-12  
-**Format** : Continue Local Config avec fichiers JSON séparés  
+**Status** : ✅ Format Local Config JSON Validé
+**Date** : 2025-11-12
+**Format** : Continue Local Config avec fichiers JSON séparés
 
 **🎉 FORMAT JSON LOCAL CONFIG - CORRECT ! 🎉**

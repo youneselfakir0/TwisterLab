@@ -270,6 +270,6 @@ ssh twister@192.168.0.30 "docker service logs twisterlab_api --tail 50"
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2025-11-12  
+**Version**: 1.0.0
+**Last Updated**: 2025-11-12
 **Status**: ✅ Operational (7/7 agents running)

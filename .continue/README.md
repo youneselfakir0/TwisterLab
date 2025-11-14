@@ -39,7 +39,7 @@ Ctrl+Shift+P → "Continue: Open Tools"
 
 ### 2️⃣ Sections Affichées
 - **Built-in Tools (17)**: Outils Continue natifs
-- **MCP Servers**: 
+- **MCP Servers**:
   - **TwisterLab MCP (7)**: Vos agents autonomes
 
 ### 3️⃣ Actions Possibles
@@ -185,7 +185,7 @@ Invoke-WebRequest -Uri "http://192.168.0.30:8000/v1/mcp/tools/monitor_system_hea
 
 ---
 
-**Status**: ✅ Operational  
-**API**: http://192.168.0.30:8000  
-**Agents**: 7/7 running  
+**Status**: ✅ Operational
+**API**: http://192.168.0.30:8000
+**Agents**: 7/7 running
 **Version**: 1.0.1

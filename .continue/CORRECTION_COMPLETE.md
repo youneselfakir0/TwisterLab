@@ -4,8 +4,8 @@
 
 **Erreur Continue** :
 ```
-Failed to parse config: name: Required, 
-metadata.total_tools: Expected string, received number, 
+Failed to parse config: name: Required,
+metadata.total_tools: Expected string, received number,
 metadata.enabled_tools: Expected string, received number
 ```
 
@@ -113,7 +113,7 @@ TOOL_POLICIES = {
     "sync_cache": "automatic",
     "classify_ticket": "automatic",
     "list_autonomous_agents": "automatic",
-    
+
     "create_backup": "ask",  # ⚠️ Demande confirmation
     "resolve_ticket": "ask",
     "execute_desktop_command": "ask",
@@ -121,7 +121,7 @@ TOOL_POLICIES = {
 
 async def handle_tool_call(tool_name: str, args: dict):
     policy = TOOL_POLICIES.get(tool_name, "ask")
-    
+
     if policy == "ask":
         # Demander confirmation via Continue
         response = await request_user_confirmation({
@@ -129,10 +129,10 @@ async def handle_tool_call(tool_name: str, args: dict):
             "args": args,
             "message": f"Autoriser l'exécution de {tool_name} ?"
         })
-        
+
         if not response.get("confirmed"):
             return {"error": "User cancelled operation"}
-    
+
     # Appeler l'API TwisterLab
     return await call_twisterlab_api(tool_name, args)
 ```
@@ -240,9 +240,9 @@ Dans Continue Chat:
 
 ---
 
-**Status** : ✅ Configuration Corrigée et Validée  
-**Date** : 2025-11-12  
-**Commit** : 6396334  
-**Format** : Continue MCP Schema v1 (strict)  
+**Status** : ✅ Configuration Corrigée et Validée
+**Date** : 2025-11-12
+**Commit** : 6396334
+**Format** : Continue MCP Schema v1 (strict)
 
 **🎉 ERREUR CORRIGÉE - FORMAT VALIDÉ ! 🎉**

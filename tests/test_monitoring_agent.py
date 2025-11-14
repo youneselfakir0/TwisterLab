@@ -61,7 +61,7 @@ async def test_collect_metrics(monitoring_agent):
     assert "metrics_collected" in result
     assert result["metrics_collected"] > 0
     assert "timestamp" in result
-    
+
     # Verify metrics were stored
     assert len(monitoring_agent.metrics) > 0
 
@@ -489,7 +489,7 @@ async def test_health_check_services(monitoring_agent):
     services = result["health"]["services"]
     assert "postgresql" in services
     assert "redis" in services
-    
+
     # Check all monitored agents
     for agent_name in monitoring_agent.monitored_agents:
         assert agent_name in services
@@ -544,7 +544,7 @@ async def test_export_prometheus_with_metrics(monitoring_agent):
     assert result["format"] == "prometheus"
     assert "metrics" in result
     assert len(result["metrics"]) > 0
-    
+
     # Check format
     lines = result["metrics"].split("\n")
     assert len(lines) > 0
@@ -646,7 +646,7 @@ async def test_metrics_storage_limit(monitoring_agent):
 
     # Should only have 1440 entries (24 hours @ 1 min)
     assert len(monitoring_agent.metrics["test_metric"]) == 1440
-    
+
     # Should have the latest values
     assert monitoring_agent.metrics["test_metric"][-1]["value"] == 1499.0
 

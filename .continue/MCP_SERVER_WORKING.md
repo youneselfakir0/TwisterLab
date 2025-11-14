@@ -250,9 +250,9 @@ Dans Continue, les resources devraient apparaître dans :
 
 ---
 
-**Status** : ✅ Serveur MCP Opérationnel avec Resources & Tools  
-**Date** : 2025-11-12  
-**Commit** : 08b90b1  
+**Status** : ✅ Serveur MCP Opérationnel avec Resources & Tools
+**Date** : 2025-11-12
+**Commit** : 08b90b1
 **Mode** : REAL (avec fallback MOCK)
 
 **🎉 SERVEUR MCP COMPLET - RESOURCES & TOOLS FONCTIONNELS ! 🎉**

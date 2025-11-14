@@ -16,7 +16,7 @@
 ## 🎯 Distinction Essentielle
 
 ### ❌ Built-in Tools (17) - Continue.dev natif
-**NE PAS CONFONDRE !**  
+**NE PAS CONFONDRE !**
 Ce sont les outils intégrés à Continue :
 - `file_search`, `grep_search`, `run_in_terminal`, etc.
 - **Pas de configuration JSON nécessaire**
@@ -179,7 +179,7 @@ Invoke-WebRequest -Uri "http://192.168.0.30:8000/v1/mcp/tools/list_autonomous_ag
 
 **Résultat attendu**:
 ```
-name                         mcp_tool                  status      
+name                         mcp_tool                  status
 ----                         --------                  ------
 RealMonitoringAgent          monitor_system_health     operational
 RealBackupAgent              create_backup             operational
@@ -263,8 +263,8 @@ RealMaestroAgent                                       operational
 
 ---
 
-**Status** : ✅ Operational  
-**API** : http://192.168.0.30:8000  
-**Agents** : 7/7 running  
-**Version** : 1.0.1  
+**Status** : ✅ Operational
+**API** : http://192.168.0.30:8000
+**Agents** : 7/7 running
+**Version** : 1.0.1
 **Date** : 2025-11-12

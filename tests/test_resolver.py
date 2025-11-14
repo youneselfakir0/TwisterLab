@@ -129,12 +129,12 @@ def sample_sop_low_confidence():
 async def test_select_strategy_direct_execution(resolver_agent, sample_classification, sample_sop_high_confidence):
     """Test strategy selection for high confidence scenario"""
     sop_recommendations = [sample_sop_high_confidence]
-    
+
     strategy, selected_sop, confidence = await resolver_agent._select_strategy(
         sample_classification,
         sop_recommendations
     )
-    
+
     assert strategy == ResolutionStrategy.DIRECT_EXECUTION
     assert selected_sop == sample_sop_high_confidence
     assert confidence >= resolver_agent.confidence_threshold_direct
@@ -145,12 +145,12 @@ async def test_select_strategy_direct_execution(resolver_agent, sample_classific
 async def test_select_strategy_adaptive_execution(resolver_agent, sample_classification, sample_sop_medium_confidence):
     """Test strategy selection for medium confidence scenario"""
     sop_recommendations = [sample_sop_medium_confidence]
-    
+
     strategy, selected_sop, confidence = await resolver_agent._select_strategy(
         sample_classification,
         sop_recommendations
     )
-    
+
     assert strategy == ResolutionStrategy.ADAPTIVE_EXECUTION
     assert selected_sop == sample_sop_medium_confidence
     assert resolver_agent.confidence_threshold_adaptive <= confidence < resolver_agent.confidence_threshold_direct
@@ -160,12 +160,12 @@ async def test_select_strategy_adaptive_execution(resolver_agent, sample_classif
 async def test_select_strategy_manual_execution(resolver_agent, sample_classification, sample_sop_low_confidence):
     """Test strategy selection for low confidence scenario"""
     sop_recommendations = [sample_sop_low_confidence]
-    
+
     strategy, selected_sop, confidence = await resolver_agent._select_strategy(
         sample_classification,
         sop_recommendations
     )
-    
+
     assert strategy in [ResolutionStrategy.MANUAL_EXECUTION, ResolutionStrategy.ESCALATION]
     assert confidence < resolver_agent.confidence_threshold_adaptive
 
@@ -177,12 +177,12 @@ async def test_select_strategy_hybrid_execution(resolver_agent, sample_classific
         sample_sop_medium_confidence,
         {**sample_sop_medium_confidence, "id": "SOP-EMAIL-004", "match_score": 0.68}
     ]
-    
+
     strategy, selected_sop, confidence = await resolver_agent._select_strategy(
         sample_classification,
         sop_recommendations
     )
-    
+
     # Should select ADAPTIVE or HYBRID based on confidence
     assert strategy in [ResolutionStrategy.ADAPTIVE_EXECUTION, ResolutionStrategy.HYBRID_EXECUTION]
 
@@ -191,12 +191,12 @@ async def test_select_strategy_hybrid_execution(resolver_agent, sample_classific
 async def test_select_strategy_escalation_no_sops(resolver_agent, sample_classification):
     """Test automatic escalation when no SOPs available"""
     sop_recommendations = []
-    
+
     strategy, selected_sop, confidence = await resolver_agent._select_strategy(
         sample_classification,
         sop_recommendations
     )
-    
+
     assert strategy == ResolutionStrategy.ESCALATION
     assert selected_sop is None
     assert confidence == 0.0
@@ -214,7 +214,7 @@ async def test_calculate_confidence_high_score(resolver_agent):
         prerequisite_met=True,
         historical_success=0.90
     )
-    
+
     assert 0.85 <= confidence <= 1.0
     assert confidence > resolver_agent.confidence_threshold_direct
 
@@ -227,13 +227,13 @@ async def test_calculate_confidence_prerequisites_failed(resolver_agent):
         prerequisite_met=True,
         historical_success=0.85
     )
-    
+
     confidence_without_prereqs = await resolver_agent._calculate_confidence(
         sop_match_score=0.90,
         prerequisite_met=False,
         historical_success=0.85
     )
-    
+
     assert confidence_without_prereqs < confidence_with_prereqs
 
 
@@ -247,7 +247,7 @@ async def test_calculate_confidence_bounds(resolver_agent):
         historical_success=1.0
     )
     assert confidence_high <= 1.0
-    
+
     # Test lower bound
     confidence_low = await resolver_agent._calculate_confidence(
         sop_match_score=0.0,
@@ -270,13 +270,13 @@ async def test_execute_direct_success(resolver_agent, sample_ticket_context, sam
             "exit_code": 0,
             "resolution_confirmed": True
         }
-        
+
         result = await resolver_agent._execute_direct(
             "TICKET-001",
             sample_sop_high_confidence,
             sample_ticket_context
         )
-        
+
         assert result["status"] == ResolutionStatus.SUCCESS.value
         assert result["sop_id"] == sample_sop_high_confidence["id"]
         assert result["strategy"] == ResolutionStrategy.DIRECT_EXECUTION.value
@@ -297,13 +297,13 @@ async def test_execute_direct_with_retries(resolver_agent, sample_ticket_context
                 "resolution_confirmed": True
             }
         ]
-        
+
         result = await resolver_agent._execute_direct(
             "TICKET-001",
             sample_sop_high_confidence,
             sample_ticket_context
         )
-        
+
         assert result["status"] in [ResolutionStatus.SUCCESS.value, ResolutionStatus.PARTIAL.value]
         assert mock_execute_step.call_count >= 2
 
@@ -318,13 +318,13 @@ async def test_execute_adaptive_with_variations(resolver_agent, sample_ticket_co
             "resolution_confirmed": True,
             "variations": ["param_adjusted"]
         }
-        
+
         result = await resolver_agent._execute_adaptive(
             "TICKET-001",
             sample_sop_medium_confidence,
             sample_ticket_context
         )
-        
+
         assert result["status"] == ResolutionStatus.SUCCESS.value
         assert result["strategy"] == ResolutionStrategy.ADAPTIVE_EXECUTION.value
         assert "variations_applied" in result["execution_log"][0]
@@ -338,19 +338,19 @@ async def test_execute_hybrid_multiple_sops(resolver_agent, sample_ticket_contex
         {"id": "SOP-002", "steps": [{"type": "command", "description": "Step 2"}]},
         {"id": "SOP-003", "steps": [{"type": "command", "description": "Step 3"}]}
     ]
-    
+
     with patch.object(resolver_agent, '_execute_step', new_callable=AsyncMock) as mock_execute_step:
         mock_execute_step.return_value = {
             "output": "Step executed",
             "resolution_confirmed": False
         }
-        
+
         result = await resolver_agent._execute_hybrid(
             "TICKET-001",
             sop_recommendations,
             sample_ticket_context
         )
-        
+
         assert result["strategy"] == ResolutionStrategy.HYBRID_EXECUTION.value
         assert len(result["sops_used"]) == 3
         assert len(result["execution_log"]) >= 3
@@ -364,7 +364,7 @@ async def test_execute_manual_generates_guide(resolver_agent, sample_ticket_cont
         sample_sop_high_confidence,
         sample_ticket_context
     )
-    
+
     assert result["strategy"] == ResolutionStrategy.MANUAL_EXECUTION.value
     assert "user_guide" in result
     assert len(result["user_guide"]) == len(sample_sop_high_confidence["steps"])
@@ -379,7 +379,7 @@ async def test_execute_manual_no_sop(resolver_agent, sample_ticket_context):
         None,
         sample_ticket_context
     )
-    
+
     assert result["status"] == ResolutionStatus.FAILED.value
     assert "message" in result
 
@@ -395,13 +395,13 @@ async def test_escalate_ticket(resolver_agent, sample_ticket_context, sample_cla
         "error": "Unable to resolve automatically",
         "execution_log": [{"step": 1, "status": "failed"}]
     }
-    
+
     result = await resolver_agent._escalate(
         "TICKET-001",
         sample_classification,
         context
     )
-    
+
     assert result["status"] == ResolutionStatus.ESCALATED.value
     assert result["strategy"] == ResolutionStrategy.ESCALATION.value
     assert "escalation_reason" in result
@@ -425,13 +425,13 @@ async def test_call_desktop_commander_success(resolver_agent):
         }
         mock_response.status_code = 200
         mock_post.return_value = mock_response
-        
+
         result = await resolver_agent._call_desktop_commander(
             command="ipconfig /all",
             target_device="WS-001",
             safety_checks=True
         )
-        
+
         assert result["success"] is True
         assert result["exit_code"] == 0
         mock_post.assert_called_once()
@@ -442,7 +442,7 @@ async def test_call_desktop_commander_failure(resolver_agent):
     """Test Desktop-CommanderAgent call failure"""
     with patch('httpx.AsyncClient.post', new_callable=AsyncMock) as mock_post:
         mock_post.side_effect = Exception("Connection refused")
-        
+
         with pytest.raises(RuntimeError, match="Command execution failed"):
             await resolver_agent._call_desktop_commander(
                 command="ipconfig /all",
@@ -463,25 +463,25 @@ async def test_full_resolution_workflow(resolver_agent, sample_ticket_context, s
         "classification": sample_classification,
         "sop_recommendations": [sample_sop_high_confidence]
     }
-    
+
     with patch.object(resolver_agent, '_execute_step', new_callable=AsyncMock) as mock_execute_step, \
          patch.object(resolver_agent, '_update_ticket_status', new_callable=AsyncMock) as mock_update, \
          patch.object(resolver_agent, '_log_resolution_metrics', new_callable=AsyncMock) as mock_log:
-        
+
         mock_execute_step.return_value = {
             "output": "Success",
             "resolution_confirmed": True
         }
-        
+
         result = await resolver_agent.execute(task)
-        
+
         assert result["agent"] == "resolver"
         assert result["ticket_id"] == "TICKET-001"
         assert "strategy" in result
         assert "confidence" in result
         assert "result" in result
         assert "timestamp" in result
-        
+
         mock_update.assert_called_once()
         mock_log.assert_called_once()
 
@@ -494,12 +494,12 @@ async def test_full_resolution_workflow_with_error(resolver_agent, sample_ticket
         "classification": sample_classification,
         "sop_recommendations": []  # No SOPs to force escalation
     }
-    
+
     with patch.object(resolver_agent, '_update_ticket_status', new_callable=AsyncMock) as mock_update, \
          patch.object(resolver_agent, '_log_resolution_metrics', new_callable=AsyncMock) as mock_log:
-        
+
         result = await resolver_agent.execute(task)
-        
+
         assert result["strategy"] == ResolutionStrategy.ESCALATION.value
         assert result["confidence"] == 0.0
 
@@ -515,7 +515,7 @@ async def test_validate_prerequisites_success(resolver_agent, sample_sop_high_co
         sample_sop_high_confidence,
         sample_ticket_context
     )
-    
+
     # Currently returns True by default (TODO implemented)
     assert isinstance(result, bool)
 
@@ -530,7 +530,7 @@ async def test_validate_prerequisites_failure(resolver_agent):
             "permissions": ["super_admin"]
         }
     }
-    
+
     with patch.object(resolver_agent, '_validate_prerequisites', return_value=False):
         result = await resolver_agent._validate_prerequisites(sop, {})
         assert result is False
@@ -545,19 +545,19 @@ async def test_health_check_all_healthy(resolver_agent):
     """Test health check when all systems healthy"""
     with patch('httpx.AsyncClient.get', new_callable=AsyncMock) as mock_get, \
          patch('agents.resolver.resolver_agent.get_db') as mock_db:
-        
+
         # Mock Desktop-Commander health
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_get.return_value = mock_response
-        
+
         # Mock database health
         mock_db_session = MagicMock()
         mock_db_session.execute = AsyncMock()
         mock_db.return_value.__aiter__.return_value = [mock_db_session]
-        
+
         health = await resolver_agent.health_check()
-        
+
         assert health["status"] == "healthy"
         assert health["checks"]["desktop_commander"] == "healthy"
         assert health["checks"]["database"] == "healthy"
@@ -568,9 +568,9 @@ async def test_health_check_degraded(resolver_agent):
     """Test health check when services degraded"""
     with patch('httpx.AsyncClient.get', new_callable=AsyncMock) as mock_get:
         mock_get.side_effect = Exception("Connection timeout")
-        
+
         health = await resolver_agent.health_check()
-        
+
         assert health["status"] == "degraded"
         assert "unhealthy" in health["checks"]["desktop_commander"]
 
@@ -586,9 +586,9 @@ async def test_execute_with_missing_ticket_id(resolver_agent):
         "classification": {},
         "sop_recommendations": []
     }
-    
+
     result = await resolver_agent.execute(task)
-    
+
     # Should handle gracefully (ticket_id = None)
     assert "error" in result or result["strategy"] == ResolutionStrategy.ESCALATION.value
 
@@ -601,9 +601,9 @@ async def test_execute_with_empty_classification(resolver_agent):
         "classification": {},
         "sop_recommendations": []
     }
-    
+
     result = await resolver_agent.execute(task)
-    
+
     assert result["strategy"] == ResolutionStrategy.ESCALATION.value
 
 
@@ -618,18 +618,18 @@ async def test_concurrent_resolutions(resolver_agent, sample_ticket_context, sam
         }
         for i in range(3)
     ]
-    
+
     with patch.object(resolver_agent, '_execute_step', new_callable=AsyncMock) as mock_execute_step, \
          patch.object(resolver_agent, '_update_ticket_status', new_callable=AsyncMock), \
          patch.object(resolver_agent, '_log_resolution_metrics', new_callable=AsyncMock):
-        
+
         mock_execute_step.return_value = {
             "output": "Success",
             "resolution_confirmed": True
         }
-        
+
         results = await asyncio.gather(*[resolver_agent.execute(task) for task in tasks])
-        
+
         assert len(results) == 3
         assert all(r["agent"] == "resolver" for r in results)
         assert all("ticket_id" in r for r in results)
@@ -647,7 +647,7 @@ async def test_log_resolution_metrics(resolver_agent):
         "execution_log": [{"step": 1}, {"step": 2}],
         "execution_time": 5.2
     }
-    
+
     # Should not raise exception
     await resolver_agent._log_resolution_metrics(
         "TICKET-001",
@@ -664,17 +664,17 @@ async def test_update_ticket_status_success(resolver_agent):
         "status": ResolutionStatus.SUCCESS.value,
         "execution_log": []
     }
-    
+
     with patch('agents.resolver.resolver_agent.get_db') as mock_db:
         mock_db_session = MagicMock()
         mock_ticket_service = MagicMock()
         mock_ticket_service.update_ticket_status = AsyncMock()
-        
+
         with patch('agents.resolver.resolver_agent.TicketService', return_value=mock_ticket_service):
             mock_db.return_value.__aiter__.return_value = [mock_db_session]
-            
+
             await resolver_agent._update_ticket_status("TICKET-001", result)
-            
+
             mock_ticket_service.update_ticket_status.assert_called_once()
 
 

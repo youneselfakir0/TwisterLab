@@ -1,0 +1,198 @@
+version: '3.8'
+
+# =============================================================================
+# TWISTERLAB PRODUCTION - ARCHITECTURE DISTRIBUÉE
+# Date: 2025-11-13
+# Description: Ollama avec GPU sur edgeserver + failover vers corertx
+# =============================================================================
+
+networks:
+  twisterlab-prod-network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  ollama_models:
+
+secrets:
+  postgres_password:
+    external: true
+  redis_password:
+    external: true
+  jwt_secret:
+    external: true
+
+services:
+  # ===========================================================================
+  # POSTGRESQL - Database
+  # ===========================================================================
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: twisterlab_prod
+      POSTGRES_USER: twisterlab
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - twisterlab-prod-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    secrets:
+      - postgres_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twisterlab"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===========================================================================
+  # REDIS - Cache & Session Store
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - "twisterlab_prod_redis_password_2024!"
+      - --maxmemory
+      - "512mb"
+      - --maxmemory-policy
+      - allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - twisterlab-prod-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===========================================================================
+  # OLLAMA - LLM Inference Engine avec GPU GTX 1050
+  # ===========================================================================
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - target: 11434
+        published: 11434
+        protocol: tcp
+        mode: host
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - twisterlab-prod-network
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - OLLAMA_HOST=0.0.0.0:11434
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.gpu == true
+          - node.hostname == edgeserver.twisterlab.local
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 3G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+          generic_resources:
+            - discrete_resource_spec:
+                kind: 'nvidia-gpu'
+                value: 1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # ===========================================================================
+  # TWISTERLAB API - FastAPI Application
+  # ===========================================================================
+  api:
+    image: twisterlab-api:production
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    ports:
+      - target: 8000
+        published: 8000
+        protocol: tcp
+        mode: host
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://twisterlab:twisterlab_prod_db_password_2024!@postgres:5432/twisterlab_prod
+      - REDIS_URL=redis://:twisterlab_prod_redis_password_2024!@redis:6379
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_FALLBACK=http://192.168.0.20:11434
+      - LOG_LEVEL=INFO
+      - SECRET_KEY_FILE=/run/secrets/jwt_secret
+    networks:
+      - twisterlab-prod-network
+    secrets:
+      - jwt_secret
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

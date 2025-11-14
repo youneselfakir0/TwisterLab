@@ -19,8 +19,8 @@ J'ai créé un fichier `mcp-tools-config.json` avec un format complexe qui n'est
 
 **Erreur Continue** :
 ```
-Failed to parse config: name: Required, 
-metadata.total_tools: Expected string, received number, 
+Failed to parse config: name: Required,
+metadata.total_tools: Expected string, received number,
 metadata.enabled_tools: Expected string, received number
 ```
 
@@ -138,13 +138,13 @@ TOOL_POLICIES = {
 
 async def handle_tool_call(tool_name: str, args: dict):
     policy = TOOL_POLICIES.get(tool_name, "ask")
-    
+
     if policy == "ask":
         # Demander confirmation à l'utilisateur
         confirmed = await ask_user_confirmation(tool_name, args)
         if not confirmed:
             return {"error": "User cancelled operation"}
-    
+
     # Exécuter l'outil
     return await call_api(tool_name, args)
 ```
@@ -230,6 +230,6 @@ Continue devrait **automatiquement** découvrir les 7 outils TwisterLab au déma
 
 ---
 
-**Status** : ✅ Format Corrigé  
-**Date** : 2025-11-12  
+**Status** : ✅ Format Corrigé
+**Date** : 2025-11-12
 **Leçon Apprise** : Continue est TRÈS strict sur le format YAML, pas de fantaisie !

@@ -11,7 +11,7 @@ from agents.real.real_classifier_agent import RealClassifierAgent
 
 async def test_agents():
     print("\n=== TwisterLab Agent Communication Test ===\n")
-    
+
     # Test 1: Maestro
     print("Test 1: Maestro Initialization")
     try:
@@ -21,7 +21,7 @@ async def test_agents():
     except Exception as e:
         print(f"  FAILED: {e}")
         return False
-    
+
     # Test 2: Load Balancer
     print("\nTest 2: Load Balancer")
     try:
@@ -29,26 +29,26 @@ async def test_agents():
         classifier_inst = lb.get_best_instance("classifier")
         resolver_inst = lb.get_best_instance("resolver")
         dc_inst = lb.get_best_instance("desktop_commander")
-        
+
         if classifier_inst:
             print(f"  SUCCESS: Classifier registered ({classifier_inst.instance_id})")
         else:
             print("  FAILED: No classifier registered")
-            
+
         if resolver_inst:
             print(f"  SUCCESS: Resolver registered ({resolver_inst.instance_id})")
         else:
             print("  FAILED: No resolver registered")
-            
+
         if dc_inst:
             print(f"  SUCCESS: Desktop Commander registered ({dc_inst.instance_id})")
         else:
             print("  FAILED: No desktop commander registered")
-            
+
     except Exception as e:
         print(f"  FAILED: {e}")
         return False
-    
+
     # Test 3: Classifier
     print("\nTest 3: Classifier Agent")
     try:
@@ -58,7 +58,7 @@ async def test_agents():
     except Exception as e:
         print(f"  FAILED: {e}")
         return False
-    
+
     # Test 4: Resolver
     print("\nTest 4: Resolver Agent")
     try:
@@ -67,7 +67,7 @@ async def test_agents():
     except Exception as e:
         print(f"  FAILED: {e}")
         return False
-    
+
     # Test 5: Metrics
     print("\nTest 5: Maestro Metrics")
     try:
@@ -80,7 +80,7 @@ async def test_agents():
     except Exception as e:
         print(f"  FAILED: {e}")
         return False
-    
+
     print("\n=== ALL TESTS PASSED ===")
     print("\nAGENT COMMUNICATION STATUS: OPERATIONAL")
     print("- Maestro Orchestrator: READY")

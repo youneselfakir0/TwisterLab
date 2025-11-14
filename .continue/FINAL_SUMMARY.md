@@ -6,9 +6,9 @@
 > "ne confond pas les built in avec ceux de twister lab, ceux de twister la doit etre ajouter par json, pour voir les tool les ressouorce, activer desactiver et set automatic ou ask befor pour les mcp de twisterlab"
 
 ### Solution Implémentée
-✅ **Configuration JSON complète** pour distinguer et gérer les 7 outils MCP TwisterLab  
-✅ **Documentation détaillée** avec guides d'utilisation  
-✅ **Policies configurables** (automatic/ask/disabled) pour chaque outil  
+✅ **Configuration JSON complète** pour distinguer et gérer les 7 outils MCP TwisterLab
+✅ **Documentation détaillée** avec guides d'utilisation
+✅ **Policies configurables** (automatic/ask/disabled) pour chaque outil
 ✅ **Distinction claire** entre Built-in Tools (17) et TwisterLab MCP Tools (7)
 
 ---
@@ -290,10 +290,10 @@ Invoke-WebRequest -Uri "http://192.168.0.20:11434/api/tags" -UseBasicParsing
 
 ---
 
-**Status** : ✅ Configuration Complete  
-**Version** : 1.0.1  
-**Date** : 2025-11-12  
-**Commit** : 5bb1ece  
-**Author** : TwisterLab Team  
+**Status** : ✅ Configuration Complete
+**Version** : 1.0.1
+**Date** : 2025-11-12
+**Commit** : 5bb1ece
+**Author** : TwisterLab Team
 
 **🎉 CONFIGURATION TERMINÉE AVEC SUCCÈS ! 🎉**

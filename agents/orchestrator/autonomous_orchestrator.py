@@ -13,9 +13,15 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from agents.base.base_agent import BaseAgent
-from agents.core.backup_agent import BackupAgent
-from agents.core.monitoring_agent import MonitoringAgent
-from agents.core.sync_agent import SyncAgent
+
+# REAL AGENTS - Deployed on edgeserver (2025-11-11)
+from agents.real.real_monitoring_agent import RealMonitoringAgent
+from agents.real.real_backup_agent import RealBackupAgent
+from agents.real.real_sync_agent import RealSyncAgent
+from agents.real.real_classifier_agent import RealClassifierAgent
+from agents.real.real_resolver_agent import RealResolverAgent
+from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
+from agents.real.real_maestro_agent import RealMaestroAgent
 
 logger = logging.getLogger(__name__)
 
@@ -57,17 +63,21 @@ class AutonomousAgentOrchestrator:
         self.last_coordination = None
         self.coordination_lock = asyncio.Lock()
 
-        logger.info("🤖 Autonomous Agent Orchestrator initialized")
+        logger.info("🚀 Autonomous Agent Orchestrator initialized")
 
     async def initialize_agents(self) -> None:
         """Initialize all autonomous agents."""
-        logger.info("🚀 Initializing autonomous agents...")
+        logger.info("🔧 Initializing autonomous agents...")
 
-        # Create agent instances
+        # Create REAL agent instances (deployed 2025-11-11)
         self.agents = {
-            "monitoring": MonitoringAgent(),
-            "backup": BackupAgent(),
-            "sync": SyncAgent(),
+            "monitoring": RealMonitoringAgent(),
+            "backup": RealBackupAgent(),
+            "sync": RealSyncAgent(),
+            "classifier": RealClassifierAgent(),
+            "resolver": RealResolverAgent(),
+            "desktop_commander": RealDesktopCommanderAgent(),
+            "maestro": RealMaestroAgent(),
         }
 
         # Initialize agent health tracking
@@ -79,11 +89,11 @@ class AutonomousAgentOrchestrator:
                 "last_error": None,
             }
 
-        logger.info(f"✅ Initialized {len(self.agents)} autonomous agents")
+        logger.info(f"✓ Initialized {len(self.agents)} REAL autonomous agents")
 
     async def start_orchestration(self) -> None:
         """Start the agent orchestration system."""
-        logger.info("🎯 Starting autonomous agent orchestration...")
+        logger.info("▶ Starting autonomous agent orchestration...")
 
         # Initialize agents
         await self.initialize_agents()
@@ -98,11 +108,11 @@ class AutonomousAgentOrchestrator:
         asyncio.create_task(self._coordination_loop())
 
         self.system_status = "running"
-        logger.info("✅ Autonomous agent orchestration started")
+        logger.info("✓ Autonomous agent orchestration started")
 
     async def stop_orchestration(self) -> None:
         """Stop the agent orchestration system."""
-        logger.info("🛑 Stopping autonomous agent orchestration...")
+        logger.info("■ Stopping autonomous agent orchestration...")
 
         # Cancel all tasks
         for task in list(self.agent_tasks.values()) + list(
@@ -114,7 +124,7 @@ class AutonomousAgentOrchestrator:
         self.executor.shutdown(wait=True)
 
         self.system_status = "stopped"
-        logger.info("✅ Autonomous agent orchestration stopped")
+        logger.info("✓ Autonomous agent orchestration stopped")
 
     async def execute_agent_operation(
         self, agent_name: str, operation: str, context: Optional[Dict[str, Any]] = None
@@ -139,7 +149,7 @@ class AutonomousAgentOrchestrator:
         # Add operation to context
         context["operation"] = operation
 
-        logger.info(f"🤖 Executing {operation} on {agent_name}")
+        logger.info(f"🚀 Executing {operation} on {agent_name}")
 
         try:
             # Execute in thread pool to avoid blocking
@@ -153,7 +163,7 @@ class AutonomousAgentOrchestrator:
             self.agent_health[agent_name]["last_check"] = datetime.now()
             self.agent_health[agent_name]["error_count"] = 0
 
-            logger.info(f"✅ {agent_name} {operation} completed successfully")
+            logger.info(f"✓ {agent_name} {operation} completed successfully")
             return result
 
         except Exception as e:
@@ -163,7 +173,7 @@ class AutonomousAgentOrchestrator:
             self.agent_health[agent_name]["error_count"] += 1
             self.agent_health[agent_name]["last_error"] = str(e)
 
-            logger.error(f"❌ {agent_name} {operation} failed: {str(e)}")
+            logger.error(f"✗ {agent_name} {operation} failed: {str(e)}")
             raise
 
     async def get_agent_status(
@@ -225,7 +235,7 @@ class AutonomousAgentOrchestrator:
         Returns:
             Emergency response result
         """
-        logger.warning(f"🚨 Emergency response triggered: {issue_type} ({severity})")
+        logger.warning(f"🔥 Emergency response triggered: {issue_type} ({severity})")
 
         responses = []
 
@@ -311,7 +321,7 @@ class AutonomousAgentOrchestrator:
                         # Update status based on health
                         if health["healthy"]:
                             if current_status != "healthy":
-                                logger.info(f"✅ {agent_name} health restored")
+                                logger.info(f"✓ {agent_name} health restored")
                                 self.agent_health[agent_name]["status"] = "healthy"
                         else:
                             if current_status == "healthy":
@@ -346,7 +356,7 @@ class AutonomousAgentOrchestrator:
 
     async def _start_scheduled_tasks(self) -> None:
         """Start scheduled autonomous tasks."""
-        logger.info("📅 Starting scheduled autonomous tasks")
+        logger.info("⏰ Starting scheduled autonomous tasks")
 
         # Health check every 30 seconds
         self.scheduled_tasks["health_check"] = asyncio.create_task(
@@ -402,7 +412,7 @@ class AutonomousAgentOrchestrator:
             )
         )
 
-        logger.info(f"✅ Started {len(self.scheduled_tasks)} scheduled tasks")
+        logger.info(f"✓ Started {len(self.scheduled_tasks)} scheduled tasks")
 
     async def _schedule_task(
         self,
@@ -469,7 +479,7 @@ class AutonomousAgentOrchestrator:
                 overall_health = "degraded"
 
             if overall_health == "degraded":
-                logger.info("🔄 System degraded - triggering synchronization")
+                logger.info("🔧 System degraded - triggering synchronization")
                 await self.execute_agent_operation(
                     "sync", "sync", {"sync_type": "full"}
                 )

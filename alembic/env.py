@@ -26,6 +26,18 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
 
+# Get database URL from environment variable, fallback to alembic.ini
+# This allows for flexible configuration in different environments
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    DATABASE_URL = config.get_main_option("sqlalchemy.url")
+    if "localhost" in DATABASE_URL:
+        logger.warning("⚠️  DATABASE_URL not set, falling back to local alembic.ini configuration. "
+                       "This is not recommended for production.")
+
+# Update the config with the potentially environment-sourced URL
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

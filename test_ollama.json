@@ -1,0 +1,5 @@
+{
+  "model": "llama3.2:1b",
+  "prompt": "Hello, respond in 3 words",
+  "stream": false
+}

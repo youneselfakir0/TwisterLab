@@ -107,6 +107,13 @@ class OllamaClient:
                 }
             )
 
+        # Record request metric
+        ollama_requests_total.labels(
+            source="primary" if self.base_url == self.primary_url else "fallback",
+            agent_type=agent_type,
+            model=model
+        ).inc()
+
         # Retry loop
         last_error = None
         for attempt in range(1, LLM_MAX_RETRIES + 1):
@@ -124,6 +131,19 @@ class OllamaClient:
                     duration_ns = result.get("total_duration", 0)
                     duration_s = duration_ns / 1e9 if duration_ns > 0 else 0
                     tokens = result.get("eval_count", 0)
+
+                    # Record success metrics
+                    ollama_request_duration_seconds.labels(
+                        source="primary" if self.base_url == self.primary_url else "fallback",
+                        agent_type=agent_type,
+                        model=model
+                    ).observe(duration_s)
+
+                    ollama_tokens_generated_total.labels(
+                        source="primary" if self.base_url == self.primary_url else "fallback",
+                        agent_type=agent_type,
+                        model=model
+                    ).inc(tokens)
 
                     # Log success
                     if LOG_LLM_METRICS:
@@ -185,6 +205,13 @@ class OllamaClient:
                 if attempt < LLM_MAX_RETRIES:
                     await self._sleep(LLM_RETRY_DELAY)
 
+        # All retries failed - record error metrics
+        ollama_errors_total.labels(
+            source="primary" if self.base_url == self.primary_url else "fallback",
+            agent_type=agent_type,
+            error_type=type(last_error).__name__ if last_error else "unknown"
+        ).inc()
+
         # All retries failed
         logger.error(
             f"Ollama request failed after {LLM_MAX_RETRIES} attempts",
@@ -228,199 +255,56 @@ class OllamaClient:
 
         Raises:
             RuntimeError: If both PRIMARY and BACKUP fail
-
-        Example:
-            >>> client = OllamaClient()
-            >>> result = await client.generate_with_fallback(
-            ...     "Classify: network is slow",
-            ...     agent_type="classifier"
-            ... )
-            >>> print(result["response"], result["source"])
-            "network" "primary"
         """
         # Try PRIMARY first (Corertx RTX 3060 - optimal performance)
         try:
-            logger.info(
-                f"Attempting PRIMARY Ollama",
-                extra={
-                    "url": self.primary_url,
-                    "agent_type": agent_type,
-                    "gpu": "RTX 3060 12GB"
-                }
-            )
-
-            # Temporarily set to PRIMARY
-            original_url = self.base_url
+            logger.info(f"Attempting PRIMARY Ollama at {self.primary_url}")
             self.base_url = self.primary_url
-
             result = await self.generate(
-                prompt=prompt,
-                agent_type=agent_type,
-                custom_options=custom_options,
-                custom_timeout=custom_timeout
+                prompt, agent_type, custom_options, custom_timeout
             )
-
-            # Restore original URL
-            self.base_url = original_url
-
-            # Mark as PRIMARY success
             result["source"] = "primary"
-            result["url"] = self.primary_url
-
-            # Record metrics for PRIMARY success
-            model = result.get("model", "unknown")
-            duration = result.get("duration_seconds", 0)
-            tokens = result.get("tokens", 0)
-
-            ollama_requests_total.labels(
-                source="primary",
-                agent_type=agent_type,
-                model=model
-            ).inc()
-
-            ollama_request_duration_seconds.labels(
-                source="primary",
-                agent_type=agent_type,
-                model=model
-            ).observe(duration)
-
-            ollama_tokens_generated_total.labels(
-                source="primary",
-                agent_type=agent_type,
-                model=model
-            ).inc(tokens)
-
             ollama_source_active.labels(source="primary").set(1)
             ollama_source_active.labels(source="fallback").set(0)
-
-            logger.info(
-                f"PRIMARY Ollama responded successfully",
-                extra={
-                    "url": self.primary_url,
-                    "agent_type": agent_type,
-                    "duration": duration
-                }
-            )
-
+            logger.info(f"PRIMARY Ollama responded successfully from {self.primary_url}")
             return result
 
         except Exception as primary_error:
             logger.warning(
-                f"PRIMARY Ollama failed, attempting FALLBACK",
-                extra={
-                    "primary_url": self.primary_url,
-                    "fallback_url": self.fallback_url,
-                    "agent_type": agent_type,
-                    "error": str(primary_error)
-                }
+                f"PRIMARY Ollama failed ({primary_error}), attempting FALLBACK to {self.fallback_url}"
             )
-
-            # Record failover metric
             ollama_failover_total.labels(
                 agent_type=agent_type,
                 reason=self._classify_error(primary_error)
             ).inc()
-
             ollama_source_active.labels(source="primary").set(0)
 
         # Try FALLBACK (Edgeserver GTX 1050 - continuity with degraded performance)
         try:
-            logger.info(
-                f"Attempting FALLBACK Ollama",
-                extra={
-                    "url": self.fallback_url,
-                    "agent_type": agent_type,
-                    "gpu": "GTX 1050 2GB"
-                }
-            )
-
-            # Temporarily set to FALLBACK
-            original_url = self.base_url
+            logger.info(f"Attempting FALLBACK Ollama at {self.fallback_url}")
             self.base_url = self.fallback_url
-
             result = await self.generate(
-                prompt=prompt,
-                agent_type=agent_type,
-                custom_options=custom_options,
-                custom_timeout=custom_timeout
+                prompt, agent_type, custom_options, custom_timeout
             )
-
-            # Restore original URL
-            self.base_url = original_url
-
-            # Mark as FALLBACK (degraded performance)
             result["source"] = "fallback"
-            result["url"] = self.fallback_url
-
-            # Record metrics for FALLBACK success
-            model = result.get("model", "unknown")
-            duration = result.get("duration_seconds", 0)
-            tokens = result.get("tokens", 0)
-
-            ollama_requests_total.labels(
-                source="fallback",
-                agent_type=agent_type,
-                model=model
-            ).inc()
-
-            ollama_request_duration_seconds.labels(
-                source="fallback",
-                agent_type=agent_type,
-                model=model
-            ).observe(duration)
-
-            ollama_tokens_generated_total.labels(
-                source="fallback",
-                agent_type=agent_type,
-                model=model
-            ).inc(tokens)
-
             ollama_source_active.labels(source="fallback").set(1)
-
-            logger.warning(
-                f"FALLBACK Ollama responded (degraded performance)",
-                extra={
-                    "url": self.fallback_url,
-                    "agent_type": agent_type,
-                    "duration": duration,
-                    "performance_impact": "2-3x slower than PRIMARY"
-                }
-            )
-
+            logger.warning(f"FALLBACK Ollama responded successfully from {self.fallback_url} (degraded performance)")
             return result
 
         except Exception as fallback_error:
             logger.error(
-                f"All Ollama endpoints failed - service unavailable",
-                extra={
-                    "primary_url": self.primary_url,
-                    "primary_error": str(primary_error),
-                    "fallback_url": self.fallback_url,
-                    "fallback_error": str(fallback_error),
-                    "agent_type": agent_type
-                }
+                f"All Ollama endpoints failed. PRIMARY: {primary_error}, FALLBACK: {fallback_error}"
             )
-
-            # Record error metrics for both endpoints
-            ollama_errors_total.labels(
-                source="primary",
-                agent_type=agent_type,
-                error_type=self._classify_error(primary_error)
-            ).inc()
-
             ollama_errors_total.labels(
                 source="fallback",
                 agent_type=agent_type,
                 error_type=self._classify_error(fallback_error)
             ).inc()
-
-            ollama_source_active.labels(source="primary").set(0)
             ollama_source_active.labels(source="fallback").set(0)
-
             raise RuntimeError(
                 f"Ollama service completely unavailable. "
-                f"PRIMARY ({self.primary_url}): {str(primary_error)}. "
-                f"FALLBACK ({self.fallback_url}): {str(fallback_error)}."
+                f"PRIMARY ({self.primary_url}): {primary_error}. "
+                f"FALLBACK ({self.fallback_url}): {fallback_error}."
             ) from fallback_error
 
     async def health_check(self) -> Dict[str, Any]:

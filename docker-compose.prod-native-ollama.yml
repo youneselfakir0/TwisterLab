@@ -34,6 +34,7 @@ services:
     environment:
       POSTGRES_DB: twisterlab_prod
       POSTGRES_USER: twisterlab
+      # Le mot de passe est géré via le secret Docker ci-dessous
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -68,11 +69,13 @@ services:
   redis:
     image: redis:7-alpine
     command:
+      # Le mot de passe doit être fourni via un secret.
+      # Exemple: redis-server --requirepass $$(cat /run/secrets/redis_password)
       - redis-server
       - --appendonly
       - "yes"
       - --requirepass
-      - "twisterlab_prod_redis_password_2024!"
+      - "<REDIS_PASSWORD>" # BUG: Remplacer par un secret Docker
       - --maxmemory
       - "512mb"
       - --maxmemory-policy
@@ -114,12 +117,13 @@ services:
       - "8000:8000"
     environment:
       - ENVIRONMENT=production
-      - DATABASE_URL=postgresql://twisterlab:twisterlab_prod_db_password_2024!@postgres:5432/twisterlab_prod
-      - REDIS_URL=redis://:twisterlab_prod_redis_password_2024!@redis:6379
-      # Ollama PRIMARY: corertx natif (haute performance, RTX 3060)
-      - OLLAMA_URL=http://192.168.0.20:11434
-      # Ollama FALLBACK: edgeserver natif (continuité de service, GTX 1050)
-      - OLLAMA_FALLBACK=http://192.168.0.30:11434
+      # BUG: Les mots de passe ne doivent pas être codés en dur.
+      # Utilisez des secrets Docker et configurez l'application pour les lire.
+      - DATABASE_URL=postgresql://twisterlab:<DB_PASSWORD>@postgres:5432/twisterlab_prod
+      - REDIS_URL=redis://:<REDIS_PASSWORD>@redis:6379
+      # Les URLs d'Ollama sont maintenant configurables via des variables d'environnement
+      - OLLAMA_URL=${OLLAMA_URL:-http://192.168.0.20:11434}
+      - OLLAMA_FALLBACK=${OLLAMA_FALLBACK:-http://192.168.0.30:11434}
       - LOG_LEVEL=INFO
       - SECRET_KEY_FILE=/run/secrets/jwt_secret
     volumes:

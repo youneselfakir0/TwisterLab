@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Import LLM client for intelligent classification
 try:
     from agents.base.llm_client import ollama_client
-    from agents.config import VALID_TICKET_CATEGORIES
+    from agents.config import VALID_TICKET_CATEGORIES, AGENT_ROUTING_MAP
     from agents.metrics import record_classifier_llm, record_classifier_fallback, classifier_llm_error
     LLM_AVAILABLE = True
 except ImportError:
@@ -56,15 +56,8 @@ class RealClassifierAgent:
             "low": ["question", "request", "suggestion", "enhancement"]
         }
 
-        # Routing map
-        self.routing_map = {
-            "network": "DesktopCommanderAgent",  # Network diagnostics
-            "software": "ResolverAgent",          # SOP execution
-            "hardware": "DesktopCommanderAgent",  # System checks
-            "security": "ResolverAgent",          # Security SOPs
-            "performance": "MonitoringAgent",     # Performance analysis
-            "database": "SyncAgent"               # Database sync/repair
-        }
+        # Routing map - USE CENTRAL CONFIG
+        self.routing_map = AGENT_ROUTING_MAP
 
         self.classification_count = 0
 

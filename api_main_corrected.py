@@ -24,6 +24,21 @@ try:
 
     PROMETHEUS_AVAILABLE = True
 
+    # Import Ollama metrics from agents.metrics to ensure they're registered
+    try:
+        from agents.metrics import (
+            ollama_requests_total,
+            ollama_request_duration_seconds,
+            ollama_failover_total,
+            ollama_tokens_generated_total,
+            ollama_errors_total,
+            ollama_source_active
+        )
+        OLLAMA_METRICS_AVAILABLE = True
+    except ImportError:
+        OLLAMA_METRICS_AVAILABLE = False
+        print("Warning: Ollama metrics not available")
+
     # Define metrics
     http_requests_total = Counter(
         "http_requests_total",
@@ -75,6 +90,27 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+# STARTUP DIAGNOSTICS - Test critical imports before creating FastAPI app
+logger.info("🔍 STARTUP DIAGNOSTICS: Testing critical imports...")
+
+try:
+    from agents.orchestrator.autonomous_orchestrator import AutonomousAgentOrchestrator
+    logger.info("✅ Orchestrator import successful")
+except Exception as e:
+    logger.error(f"❌ Orchestrator import failed: {e}")
+    raise
+
+try:
+    from agents.real.real_monitoring_agent import RealMonitoringAgent
+    from agents.real.real_backup_agent import RealBackupAgent
+    from agents.real.real_sync_agent import RealSyncAgent
+    logger.info("✅ Agent imports successful")
+except Exception as e:
+    logger.error(f"❌ Agent imports failed: {e}")
+    raise
+
+logger.info("🎉 STARTUP DIAGNOSTICS: All critical imports successful!")
 
 # Create FastAPI app
 app = FastAPI(
@@ -305,6 +341,15 @@ async def metrics():
 if __name__ == "__main__":
     import uvicorn
 
-    logger.info("Starting TwisterLab API server...")
-    print("TwisterLab API server starting on port 8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    try:
+        logger.info("Starting TwisterLab API server...")
+        print("TwisterLab API server starting on port 8000")
+
+        logger.info("Starting uvicorn server...")
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    except Exception as e:
+        logger.error(f"❌ Failed to start API server: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise

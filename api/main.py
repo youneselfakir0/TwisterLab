@@ -1,19 +1,15 @@
 import logging
+import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict
 
-from fastapi import FastAPI, HTTPException, Response, Depends
+from fastapi import FastAPI, HTTPException, Response
 
-# Hybrid Authentication (Azure AD + Local fallback)
-try:
-    from api.auth_hybrid import router as auth_router, get_current_user
-    AUTH_AVAILABLE = True
-except ImportError:
-    AUTH_AVAILABLE = False
-    auth_router = None
-    get_current_user = None
-    logger = logging.getLogger(__name__)
-    logger.warning("Hybrid auth module not available; authentication disabled")
+# Add /app to Python path to allow importing agents package
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# NOTE: Orchestrator import is LAZY (in function) to avoid database connection at startup
 
 # Prometheus metrics
 try:
@@ -28,6 +24,21 @@ try:
 
     PROMETHEUS_AVAILABLE = True
 
+    # Import Ollama metrics from agents.metrics to ensure they're registered
+    try:
+        from agents.metrics import (
+            ollama_requests_total,
+            ollama_request_duration_seconds,
+            ollama_failover_total,
+            ollama_tokens_generated_total,
+            ollama_errors_total,
+            ollama_source_active
+        )
+        OLLAMA_METRICS_AVAILABLE = True
+    except ImportError:
+        OLLAMA_METRICS_AVAILABLE = False
+        print("Warning: Ollama metrics not available")
+
     # Define metrics
     http_requests_total = Counter(
         "http_requests_total",
@@ -35,10 +46,28 @@ try:
         ["method", "endpoint", "status"],
     )
 
-    agent_operations_total = Counter(
-        "agent_operations_total",
-        "Total agent operations executed",
-        ["agent", "operation", "status"],
+    # Agent-specific metrics
+    agent_requests_total = Counter(
+        "agent_requests_total",
+        "Total agent requests",
+        ["agent_name", "status"],
+    )
+
+    agent_execution_time_seconds = Histogram(
+        "agent_execution_time_seconds",
+        "Agent execution time in seconds",
+        ["agent_name"],
+    )
+
+    tickets_processed_total = Counter(
+        "tickets_processed_total",
+        "Total tickets processed",
+        ["status"],
+    )
+
+    tickets_failed_total = Counter(
+        "tickets_failed_total",
+        "Total tickets failed",
     )
 
     active_agents = Gauge(
@@ -52,133 +81,93 @@ try:
         ["method", "endpoint"],
     )
 
-    agent_execution_duration_seconds = Histogram(
-        "agent_execution_duration_seconds",
-        "Agent execution duration in seconds",
-        ["agent", "operation"],
-    )
-
 except ImportError:
     PROMETHEUS_AVAILABLE = False
-    logger = logging.getLogger(__name__)
-    logger.warning("prometheus_client not installed; metrics will not be available")
+    logging.warning("Prometheus client not available, metrics disabled")
 
-logging.basicConfig(level=logging.INFO)
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
+# Create FastAPI app
 app = FastAPI(
-    title="TwisterLab API", version="1.0.0", description="Autonomous IT Helpdesk API"
+    title="TwisterLab Autonomous Agents API",
+    description="API for TwisterLab autonomous agent orchestration system",
+    version="1.0.0",
 )
 
-# Include authentication routes if available
-if AUTH_AVAILABLE and auth_router:
-    app.include_router(auth_router, prefix="/auth", tags=["authentication"])
-    logger.info("Hybrid authentication enabled (Azure AD + Local fallback)")
-else:
-    logger.warning("Authentication disabled - Hybrid auth module not available")
-
-# Include MCP REST endpoints (REAL agents)
-try:
-    from api.routes_mcp_real import router as mcp_real_router
-    app.include_router(mcp_real_router, prefix="/v1/mcp/tools", tags=["MCP Real Agents"])
-    logger.info("MCP REAL API enabled (/v1/mcp/tools/*)")
-except ImportError as e:
-    logger.warning(f"MCP REAL API not available: {e}")
-
-# Include MCP REST API wrapper
-try:
-    from api.endpoints.mcp_rest import router as mcp_rest_router
-    app.include_router(mcp_rest_router, tags=["MCP REST"])
-    logger.info("MCP REST API enabled (/v1/mcp/*)")
-except ImportError as e:
-    logger.warning(f"MCP REST API not available: {e}")
-
-# Mock data for agents
+# Mock data for agents list
 AGENTS = [
     {
         "name": "ClassifierAgent",
+        "description": "Classifies incoming tickets and routes them appropriately",
         "status": "active",
         "priority": 1,
-        "capabilities": ["classification", "routing"],
+        "capabilities": ["ticket_classification", "routing", "priority_assignment"],
     },
     {
         "name": "ResolverAgent",
+        "description": "Resolves tickets based on SOPs and knowledge base",
         "status": "active",
         "priority": 2,
-        "capabilities": ["resolution", "execution"],
+        "capabilities": ["sop_execution", "ticket_resolution", "knowledge_search"],
     },
     {
         "name": "DesktopCommanderAgent",
+        "description": "Executes system commands on Windows/Linux desktops",
         "status": "active",
         "priority": 3,
-        "capabilities": ["system_commands", "automation"],
+        "capabilities": ["command_execution", "system_management", "process_control"],
     },
     {
         "name": "MaestroOrchestratorAgent",
+        "description": "Orchestrates multi-agent workflows",
         "status": "active",
         "priority": 4,
-        "capabilities": ["orchestration", "load_balancing"],
+        "capabilities": [
+            "workflow_orchestration",
+            "load_balancing",
+            "agent_coordination",
+        ],
     },
     {
         "name": "SyncAgent",
+        "description": "Synchronizes cache and database, ensures data consistency",
         "status": "active",
         "priority": 5,
-        "capabilities": ["synchronization", "consistency"],
+        "capabilities": ["cache_sync", "database_sync", "consistency_verification"],
     },
     {
         "name": "BackupAgent",
+        "description": "Manages backup and disaster recovery operations",
         "status": "active",
         "priority": 6,
-        "capabilities": ["backup", "recovery"],
+        "capabilities": [
+            "backup_creation",
+            "backup_verification",
+            "disaster_recovery",
+        ],
     },
     {
         "name": "MonitoringAgent",
+        "description": "Monitors system health and performance",
         "status": "active",
         "priority": 7,
-        "capabilities": ["monitoring", "alerting"],
+        "capabilities": ["health_monitoring", "metrics_collection", "alerting"],
     },
 ]
 
 
-@app.get("/")
-async def root():
-    return {"message": "TwisterLab API v1.0.0", "status": "operational"}
-
-
 @app.get("/health")
 async def health_check():
-    if PROMETHEUS_AVAILABLE:
-        http_requests_total.labels(method="GET", endpoint="/health", status="200").inc()
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0",
-        "uptime": "operational",
-    }
-
-
-@app.get("/api/v1/autonomous/status")
-async def get_autonomous_status():
-    if PROMETHEUS_AVAILABLE:
-        http_requests_total.labels(method="GET", endpoint="/api/v1/autonomous/status", status="200").inc()
-        active_agents.set(len([a for a in AGENTS if a["status"] == "active"]))
-
-    return {
-        "status": "operational",
-        "timestamp": datetime.now().isoformat(),
-        "agents_active": len([a for a in AGENTS if a["status"] == "active"]),
-        "total_agents": len(AGENTS),
-        "system_health": "good",
-    }
+    return {"status": "healthy", "version": "1.0.0", "timestamp": datetime.now().isoformat()}
 
 
 @app.get("/api/v1/autonomous/agents")
-async def get_agents():
-    return {
-        "agents": AGENTS,
-        "total": len(AGENTS),
-        "timestamp": datetime.now().isoformat(),
-    }
+async def list_agents():
+    return {"agents": AGENTS, "total": len(AGENTS)}
 
 
 @app.get("/api/v1/autonomous/agents/{agent_name}")
@@ -190,218 +179,101 @@ async def get_agent(agent_name: str):
 
 
 @app.post("/api/v1/autonomous/agents/{agent_name}/execute")
-async def execute_agent_operation(
-    agent_name: str,
-    payload: Dict[str, Any],
-    user: Dict[str, Any] = Depends(get_current_user) if AUTH_AVAILABLE else None
-):
-    """
-    Execute agent operation (PROTECTED ROUTE - requires authentication).
-
-    Requires valid Azure AD JWT token in Authorization header:
-        Authorization: Bearer <access_token>
-
-    Args:
-        agent_name: Name of the agent to execute
-        payload: Operation parameters
-        user: Current authenticated user (auto-injected if auth enabled)
-
-    Returns:
-        Agent execution result with status and metrics
-    """
+async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
+    """Execute an agent operation using the real orchestrator."""
     import time
     start_time = time.time()
-
-    # Log authenticated user if available
-    if user:
-        logger.info(f"User {user.get('name')} executing {agent_name}")
 
     agent = next((a for a in AGENTS if a["name"].lower() == agent_name.lower()), None)
     if not agent:
         raise HTTPException(status_code=404, detail=f"Agent {agent_name} not found")
 
     try:
-        # Route to specific agent implementations
-        if agent_name.lower() == "backupagent":
-            result = await execute_backup_agent(payload)
-        elif agent_name.lower() == "syncagent":
-            result = await execute_sync_agent(payload)
-        elif agent_name.lower() == "monitoringagent":
-            result = await execute_monitoring_agent(payload)
-        else:
-            # Mock execution for other agents
-            result = {
+        # Lazy import to avoid database connection at startup
+        from agents.orchestrator.autonomous_orchestrator import get_orchestrator
+
+        # Get orchestrator instance
+        orchestrator = await get_orchestrator()
+
+        # Map API agent names to orchestrator agent names
+        agent_mapping = {
+            "monitoringagent": "monitoring",
+            "backupagent": "backup",
+            "syncagent": "sync",
+            "classifieragent": "classifier",
+            "resolveragent": "resolver",
+            "desktopcommanderagent": "desktop_commander",
+            "maestroorchestratoragent": "maestro",
+        }
+
+        orchestrator_agent_name = agent_mapping.get(agent_name.lower())
+        if not orchestrator_agent_name:
+            return {
                 "agent": agent_name,
-                "operation": payload.get("operation", "unknown"),
-                "status": "success",
-                "timestamp": datetime.now().isoformat(),
-                "result": f"Mock execution completed for {agent_name}",
+                "status": "error",
+                "error": f"Unknown agent mapping: {agent_name}",
+                "timestamp": datetime.now().isoformat()
             }
+
+        # Extract operation and context from payload
+        operation = payload.get("operation", "health_check")
+        context = payload.get("context", {})
+
+        # Execute REAL agent operation via orchestrator
+        result = await orchestrator.execute_agent_operation(
+            orchestrator_agent_name,
+            operation,
+            context
+        )
 
         # Track metrics
         if PROMETHEUS_AVAILABLE:
-            operation = payload.get("operation", "unknown")
-            status = result.get("status", "unknown")
-            agent_operations_total.labels(
-                agent=agent_name,
-                operation=operation,
+            status = "success" if result.get("status") == "success" else "error"
+            agent_requests_total.labels(
+                agent_name=agent_name,
                 status=status
             ).inc()
 
             duration = time.time() - start_time
-            agent_execution_duration_seconds.labels(
-                agent=agent_name,
-                operation=operation
+            agent_execution_time_seconds.labels(
+                agent_name=agent_name
             ).observe(duration)
 
-        return result
+            # Track tickets if this is a ticket-related operation
+            if operation in ["classify_ticket", "resolve_ticket", "execute_desktop_command"]:
+                if status == "success":
+                    tickets_processed_total.labels(status="success").inc()
+                else:
+                    tickets_failed_total.inc()
+
+        return {
+            "agent": agent_name,
+            "operation": operation,
+            "status": "completed",
+            "timestamp": datetime.now().isoformat(),
+            "result": result
+        }
 
     except Exception as e:
         # Track error
         if PROMETHEUS_AVAILABLE:
-            operation = payload.get("operation", "unknown")
-            agent_operations_total.labels(
-                agent=agent_name,
-                operation=operation,
+            agent_requests_total.labels(
+                agent_name=agent_name,
                 status="error"
             ).inc()
-        raise
 
+            # Track failed tickets
+            operation = payload.get("operation", "unknown")
+            if operation in ["classify_ticket", "resolve_ticket", "execute_desktop_command"]:
+                tickets_failed_total.inc()
 
-async def execute_backup_agent(payload: Dict[str, Any]):
-    """Execute backup operations"""
-    operation = payload.get("operation", "status")
-
-    if operation == "status":
+        logger.error(f"Error executing {agent_name}: {str(e)}")
         return {
-            "agent": "BackupAgent",
-            "operation": "status",
-            "status": "success",
-            "timestamp": datetime.now().isoformat(),
-            "result": {
-                "last_backup": "2025-11-09T17:00:00Z",
-                "backup_status": "completed",
-                "next_backup": "2025-11-10T17:00:00Z",
-                "storage_used": "2.3GB",
-                "backups_count": 15,
-            },
+            "agent": agent_name,
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
         }
-    elif operation == "execute":
-        # Simulate backup execution
-        return {
-            "agent": "BackupAgent",
-            "operation": "execute",
-            "status": "success",
-            "timestamp": datetime.now().isoformat(),
-            "result": {
-                "backup_id": f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                "type": "full_system_backup",
-                "size": "2.4GB",
-                "duration": "45 seconds",
-                "status": "completed",
-            },
-        }
-    else:
-        raise HTTPException(
-            status_code=400, detail=f"Unknown backup operation: {operation}"
-        )
-
-
-async def execute_sync_agent(payload: Dict[str, Any]):
-    """Execute synchronization operations"""
-    operation = payload.get("operation", "status")
-
-    if operation == "status":
-        return {
-            "agent": "SyncAgent",
-            "operation": "status",
-            "status": "success",
-            "timestamp": datetime.now().isoformat(),
-            "result": {
-                "last_sync": "2025-11-09T16:45:00Z",
-                "sync_status": "completed",
-                "pending_changes": 0,
-                "cache_consistency": "verified",
-                "data_integrity": "intact",
-            },
-        }
-    elif operation == "execute":
-        # Simulate sync execution
-        return {
-            "agent": "SyncAgent",
-            "operation": "execute",
-            "status": "success",
-            "timestamp": datetime.now().isoformat(),
-            "result": {
-                "sync_id": f"sync_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                "type": "cache_database_sync",
-                "records_processed": 1250,
-                "duration": "12 seconds",
-                "status": "completed",
-                "consistency_check": "passed",
-            },
-        }
-    elif operation == "verify":
-        # Simulate consistency verification
-        return {
-            "agent": "SyncAgent",
-            "operation": "verify",
-            "status": "success",
-            "timestamp": datetime.now().isoformat(),
-            "result": {
-                "cache_database_consistency": "verified",
-                "orphaned_records": 0,
-                "data_integrity": "100%",
-                "last_verification": datetime.now().isoformat(),
-            },
-        }
-    else:
-        raise HTTPException(
-            status_code=400, detail=f"Unknown sync operation: {operation}"
-        )
-
-
-async def execute_monitoring_agent(payload: Dict[str, Any]):
-    """Execute monitoring operations"""
-    operation = payload.get("operation", "status")
-
-    if operation == "status":
-        return {
-            "agent": "MonitoringAgent",
-            "operation": "status",
-            "status": "completed",
-            "timestamp": datetime.now().isoformat(),
-            "result": {
-                "system_health": "excellent",
-                "active_alerts": 0,
-                "response_time": "45ms",
-                "uptime": "99.9%",
-                "last_check": datetime.now().isoformat(),
-            },
-        }
-    elif operation == "health_check":
-        check_type = payload.get("context", {}).get("check_type", "system")
-        return {
-            "agent": "MonitoringAgent",
-            "operation": "health_check",
-            "status": "completed",
-            "timestamp": datetime.now().isoformat(),
-            "result": {
-                "check_type": check_type,
-                "status": "healthy",
-                "details": f"{check_type} health check passed",
-                "metrics": {
-                    "cpu_usage": "23%",
-                    "memory_usage": "1.2GB",
-                    "disk_usage": "45%",
-                    "network_io": "normal",
-                },
-            },
-        }
-    else:
-        raise HTTPException(
-            status_code=400, detail=f"Unknown monitoring operation: {operation}"
-        )
 
 
 @app.get("/api/v1/monitoring/health")
@@ -448,6 +320,33 @@ async def metrics():
 if __name__ == "__main__":
     import uvicorn
 
-    logger.info("Starting TwisterLab API server...")
-    print("TwisterLab API server starting on port 8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    try:
+        logger.info("Starting TwisterLab API server...")
+        print("TwisterLab API server starting on port 8000")
+
+        # Test critical imports before starting server
+        logger.info("Testing critical imports...")
+        try:
+            from agents.orchestrator.autonomous_orchestrator import AutonomousAgentOrchestrator
+            logger.info("✅ Orchestrator import successful")
+        except Exception as e:
+            logger.error(f"❌ Orchestrator import failed: {e}")
+            raise
+
+        try:
+            from agents.real.real_monitoring_agent import RealMonitoringAgent
+            from agents.real.real_backup_agent import RealBackupAgent
+            from agents.real.real_sync_agent import RealSyncAgent
+            logger.info("✅ Agent imports successful")
+        except Exception as e:
+            logger.error(f"❌ Agent imports failed: {e}")
+            raise
+
+        logger.info("Starting uvicorn server...")
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    except Exception as e:
+        logger.error(f"❌ Failed to start API server: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise

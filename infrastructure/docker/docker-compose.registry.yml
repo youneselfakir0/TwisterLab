@@ -22,7 +22,7 @@ services:
 
   # Registry UI (web interface for managing images)
   registry-ui:
-    image: joxit/docker-registry-ui:latest
+    image: joxit/docker-registry-ui:2.5.0
     container_name: twisterlab_registry_ui
     restart: always
     ports:

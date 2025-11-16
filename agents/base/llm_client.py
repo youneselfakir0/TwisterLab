@@ -256,6 +256,9 @@ class OllamaClient:
         Raises:
             RuntimeError: If both PRIMARY and BACKUP fail
         """
+        primary_error = None
+        fallback_error = None
+
         # Try PRIMARY first (Corertx RTX 3060 - optimal performance)
         try:
             logger.info(f"Attempting PRIMARY Ollama at {self.primary_url}")
@@ -269,7 +272,8 @@ class OllamaClient:
             logger.info(f"PRIMARY Ollama responded successfully from {self.primary_url}")
             return result
 
-        except Exception as primary_error:
+        except Exception as e:
+            primary_error = e
             logger.warning(
                 f"PRIMARY Ollama failed ({primary_error}), attempting FALLBACK to {self.fallback_url}"
             )
@@ -291,7 +295,8 @@ class OllamaClient:
             logger.warning(f"FALLBACK Ollama responded successfully from {self.fallback_url} (degraded performance)")
             return result
 
-        except Exception as fallback_error:
+        except Exception as e:
+            fallback_error = e
             logger.error(
                 f"All Ollama endpoints failed. PRIMARY: {primary_error}, FALLBACK: {fallback_error}"
             )

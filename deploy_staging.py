@@ -265,7 +265,7 @@ def show_urls():
     print(f"  📊 API Docs:   http://localhost:8001/docs")
     print(f"  📈 Metrics:    http://localhost:9091/metrics")
     print(f"  🔍 Prometheus: http://localhost:9092")
-    print(f"  📊 Grafana:    http://localhost:3001 (admin/staging_grafana_password)")
+    print(f"  📊 Grafana:    http://localhost:3001")
     print(f"  🌐 OpenWebUI:  http://localhost:8081")
     
     print(f"\n{Colors.BOLD}Useful Commands:{Colors.ENDC}")

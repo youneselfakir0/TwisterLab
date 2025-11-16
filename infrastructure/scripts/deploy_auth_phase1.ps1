@@ -133,12 +133,12 @@ $envContent = @"
 # Mode: LOCAL (no Azure AD required)
 
 # JWT Configuration (REQUIRED for local auth)
-JWT_SECRET_KEY=$jwtSecret
+# JWT_SECRET_KEY is expected to be set as an environment variable when running docker-compose.
 JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
 
 # Admin User (default admin account)
-ADMIN_PASSWORD=$AdminPassword
+# ADMIN_PASSWORD is expected to be set as an environment variable when running docker-compose.
 
 # Azure AD Configuration (OPTIONAL - leave empty for local mode)
 # If these are set, system will try Azure AD first, then fallback to local
@@ -151,7 +151,7 @@ AZURE_REDIRECT_URI=
 REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_DB=0
-REDIS_PASSWORD=twisterlab-redis-prod
+REDIS_PASSWORD=${REDIS_PASSWORD}
 
 # API Configuration
 AUTH_MODE=local
@@ -247,7 +247,7 @@ Write-Host "━━━━━━━━━━━━━━━━━━━━━━�
 
 if ($Environment -eq "staging") {
     Write-Info "Déploiement staging (localhost)..."
-    & "infrastructure\scripts\deploy.ps1" -Environment staging
+    & "infrastructure\scripts\deploy.ps1" -Environment staging -JwtSecret $jwtSecret -AdminPassword $AdminPassword
 } elseif ($Environment -eq "production") {
     Write-Info "Déploiement production (edgeserver.twisterlab.local)..."
     & "infrastructure\scripts\deploy.ps1" -Environment production

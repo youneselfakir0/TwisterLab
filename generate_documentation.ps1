@@ -147,7 +147,7 @@ curl http://localhost:8000/health
 
 ### Accès Interfaces
 - **API**: http://localhost:8000
-- **Grafana**: http://localhost:3000 (admin/admin)
+- **Grafana**: http://localhost:3000 (admin account configured via GRAFANA_ADMIN_USER/GRAFANA_ADMIN_PASSWORD)
 - **Prometheus**: http://localhost:9090
 - **Jaeger**: http://localhost:16686
 

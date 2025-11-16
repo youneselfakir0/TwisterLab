@@ -33,7 +33,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: twisterlab-redis-prod
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    command: ["sh", "-c", "redis-server --appendonly yes --requirepass $(cat /run/secrets/redis_password) --maxmemory 512mb --maxmemory-policy allkeys-lru"]
     env_file:
       - .env.prod
     secrets:
@@ -46,7 +46,7 @@ services:
       - twisterlab_prod
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$(cat /run/secrets/redis_password)\" ping"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -192,6 +192,14 @@ secrets:
     file: ./secrets/postgres_password.txt
   redis_password:
     file: ./secrets/redis_password.txt
+  admin_password:
+    file: ./secrets/admin_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  webui_secret_key:
+    file: ./secrets/webui_secret_key.txt
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password.txt
 
 volumes:
   postgres_prod_data:

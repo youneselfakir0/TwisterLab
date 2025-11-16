@@ -14,7 +14,7 @@ datasources:
     url: postgres:5432
     user: twisterlab
     secureJsonData:
-      password: ${POSTGRES_PASSWORD}
+      password: ${POSTGRES_PASSWORD:-}
     jsonData:
       database: twisterlab
       sslmode: disable

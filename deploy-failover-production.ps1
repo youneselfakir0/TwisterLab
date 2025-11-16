@@ -70,16 +70,16 @@ Write-Host "`n5️⃣ Déploiement des fichiers agents..." -ForegroundColor Yell
 
 foreach ($file in $FILES_TO_DEPLOY) {
     Write-Host "   📤 Uploading $file..."
-    
+
     # Créer les répertoires distants si nécessaire
     $remoteDir = Split-Path -Parent $file
     if ($remoteDir) {
         ssh ${REMOTE_USER}@${REMOTE_HOST} "mkdir -p ${REMOTE_PATH}/${remoteDir}"
     }
-    
+
     # Copier le fichier
     scp $file "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/${file}"
-    
+
     if ($LASTEXITCODE -eq 0) {
         Write-Host "      ✅ $file déployé" -ForegroundColor Green
     } else {
@@ -138,12 +138,12 @@ $interval = 5
 while ($waited -lt $maxWait) {
     $replicas = ssh ${REMOTE_USER}@${REMOTE_HOST} "docker service ls --filter name=${STACK_NAME}_api --format '{{.Replicas}}'"
     Write-Host "   ⏳ Replicas: $replicas (${waited}s/${maxWait}s)"
-    
+
     if ($replicas -match "1/1") {
         Write-Host "   ✅ Service démarré !" -ForegroundColor Green
         break
     }
-    
+
     Start-Sleep -Seconds $interval
     $waited += $interval
 }

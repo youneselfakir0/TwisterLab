@@ -12,8 +12,10 @@ version: '3.8'
 # Variables communes réutilisables
 x-common-env: &common-env
   ENVIRONMENT: ${ENVIRONMENT:-production}
-  DATABASE_URL: postgresql://${POSTGRES_USER:-twisterlab}:file:///run/secrets/postgres_password@postgres:5432/${POSTGRES_DB:-twisterlab_prod}
-  REDIS_URL: redis://:file:///run/secrets/redis_password@redis:6379
+  DATABASE_URL: postgresql://${POSTGRES_USER:-twisterlab}@postgres:5432/${POSTGRES_DB:-twisterlab_prod}
+  DATABASE_URL__FILE: /run/secrets/postgres_password
+  REDIS_URL: redis://:@redis:6379
+  REDIS_PASSWORD_FILE: /run/secrets/redis_password
   SECRET_KEY: ${SECRET_KEY}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
 

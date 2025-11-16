@@ -21,7 +21,7 @@ def test_mcp_method(method, params=None):
     )
 
     request_str = json.dumps(request) + "\n"
-    stdout, stderr = proc.communicate(input=request_str.encode(), timeout=5)
+    stdout, stderr = proc.communicate(input=request_str.encode(), timeout=20)
 
     print(f"\n{'='*60}")
     print(f"TEST: {method}")

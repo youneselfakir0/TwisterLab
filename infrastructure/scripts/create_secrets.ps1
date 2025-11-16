@@ -13,39 +13,28 @@ param(
     [switch]$DryRun
 )
 
-# Configuration
+# Configuration - Do NOT include plaintext defaults here
 $secrets = @(
-    @{
-        Name = "postgres_password"
-        Description = "PostgreSQL database password"
-        DefaultValue = "twisterlab_prod_2024_secure!"
-    },
-    @{
-        Name = "redis_password"
-        Description = "Redis cache password"
-        DefaultValue = "twisterlab_redis_2024_secure!"
-    },
-    @{
-        Name = "grafana_admin_password"
-        Description = "Grafana admin password"
-        DefaultValue = "twisterlab_grafana_admin_2024!"
-    },
-    @{
-        Name = "jwt_secret_key"
-        Description = "JWT secret key for API authentication"
-        DefaultValue = "twisterlab_jwt_secret_2024_super_secure_key!"
-    },
-    @{
-        Name = "webui_secret_key"
-        Description = "Open WebUI secret key"
-        DefaultValue = "twisterlab_webui_secret_2024_secure!"
-    }
+    @{ Name = "postgres_password"; DefaultValue = "" },
+    @{ Name = "redis_password"; DefaultValue = "" },
+    @{ Name = "grafana_admin_password"; DefaultValue = "" },
+    @{ Name = "jwt_secret_key"; DefaultValue = "" },
+    @{ Name = "webui_secret_key"; DefaultValue = "" },
+    @{ Name = "smtp_password"; DefaultValue = "" }
 )
 
 function Write-Log {
     param([string]$Message, [string]$Level = "INFO")
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     Write-Host "[$timestamp] [$Level] $Message"
+}
+
+function Generate-SecretValue {
+    param([int]$Length = 32)
+    # Generate a secure random base64 string
+    $bytes = New-Object 'System.Byte[]' $Length
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    return [System.Convert]::ToBase64String($bytes)
 }
 
 function Test-DockerSwarm {
@@ -144,7 +133,7 @@ $createdCount = 0
 $updatedCount = 0
 $failedCount = 0
 
-foreach ($secret in $secrets) {
+    foreach ($secret in $secrets) {
     $secretName = $secret.Name
     $description = $secret.Description
     $defaultValue = $secret.DefaultValue
@@ -166,6 +155,13 @@ foreach ($secret in $secrets) {
             $failedCount++
         }
     } else {
+        # If there is no default value supplied, generate a strong random value for the secret
+        if ([string]::IsNullOrWhiteSpace($defaultValue)) {
+            $generated = Generate-SecretValue -Length 24
+            $defaultValue = $generated
+            Write-Log "Generated random secret for '$secretName'"
+        }
+
         Write-Log "Creating new secret '$secretName'"
         if (New-DockerSecret -SecretName $secretName -SecretValue $defaultValue -Description $description) {
             $createdCount++

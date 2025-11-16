@@ -110,7 +110,7 @@ async def validate_production_deployment():
                     print("   ✅ PRIMARY Ollama: OK")
                 else:
                     print(f"   ⚠️ PRIMARY Ollama: {response.status_code}")
-            except:
+            except Exception:
                 print("   ⚠️ PRIMARY Ollama: Unavailable")
 
             # BACKUP
@@ -120,7 +120,7 @@ async def validate_production_deployment():
                     print("   ✅ BACKUP Ollama: OK")
                 else:
                     print(f"   ⚠️ BACKUP Ollama: {response.status_code}")
-            except:
+            except Exception:
                 print("   ❌ BACKUP Ollama: Unavailable")
                 return False
 
@@ -150,7 +150,7 @@ async def main():
             print("   Changes:", result.stdout.strip()[:100])
         else:
             print("✅ Code local clean")
-    except:
+    except Exception:
         print("⚠️ Git status check failed")
 
     # Test local avant déploiement

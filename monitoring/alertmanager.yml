@@ -2,7 +2,7 @@ global:
   smtp_smarthost: 'smtp.twisterlab.local:587'
   smtp_from: 'alerts@twisterlab.local'
   smtp_auth_username: 'alerts@twisterlab.local'
-  smtp_auth_password: 'your-smtp-password-here'
+  smtp_auth_password_file: /run/secrets/smtp_password
 
 templates:
   - '/etc/alertmanager/templates/*.tmpl'

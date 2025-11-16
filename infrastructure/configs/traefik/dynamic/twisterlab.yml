@@ -1,0 +1,152 @@
+# =============================================================================
+# Traefik Dynamic Configuration - TwisterLab Routes
+# File: infrastructure/configs/traefik/dynamic/twisterlab.yml
+# =============================================================================
+
+http:
+  # Routers
+  routers:
+    # TwisterLab API
+    twisterlab-api:
+      rule: "Host(`api.twisterlab.local`) || PathPrefix(`/api`)"
+      service: twisterlab-api-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - sso-auth
+        - rate-limit
+        - security-headers
+        - compress
+
+    # Open WebUI (Chat Interface)
+    twisterlab-webui:
+      rule: "Host(`chat.twisterlab.local`)"
+      service: twisterlab-webui-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - sso-auth
+        - security-headers
+        - compress
+
+    # Grafana Dashboard
+    grafana:
+      rule: "Host(`grafana.twisterlab.local`)"
+      service: grafana-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - sso-auth
+        - security-headers
+        - compress
+
+    # Prometheus Metrics
+    prometheus:
+      rule: "Host(`prometheus.twisterlab.local`)"
+      service: prometheus-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - admin-auth
+        - security-headers
+        - compress
+
+    # Traefik Dashboard
+    traefik-dashboard:
+      rule: "Host(`traefik.twisterlab.local`)"
+      service: api@internal
+      entryPoints:
+        - websecure
+      middlewares:
+        - admin-auth
+        - security-headers
+
+  # Services
+  services:
+    twisterlab-api-service:
+      loadBalancer:
+        servers:
+          - url: "http://twisterlab_api:8000"
+        healthCheck:
+          path: /health
+          interval: 10s
+          timeout: 3s
+        sticky:
+          cookie:
+            name: twisterlab_session
+            httpOnly: true
+            secure: true
+
+    twisterlab-webui-service:
+      loadBalancer:
+        servers:
+          - url: "http://twisterlab_webui:8080"
+        healthCheck:
+          path: /
+          interval: 30s
+          timeout: 5s
+
+    grafana-service:
+      loadBalancer:
+        servers:
+          - url: "http://monitoring_grafana:3000"
+        healthCheck:
+          path: /api/health
+          interval: 30s
+          timeout: 5s
+
+    prometheus-service:
+      loadBalancer:
+        servers:
+          - url: "http://monitoring_prometheus:9090"
+        healthCheck:
+          path: /-/healthy
+          interval: 30s
+          timeout: 5s
+
+  # Middlewares
+  middlewares:
+    # SSO Authentication via Forward Auth
+    sso-auth:
+      forwardAuth:
+        address: "http://twisterlab_api:8000/auth/verify"
+        authResponseHeaders:
+          - "X-User-Id"
+          - "X-User-Email"
+          - "X-User-Roles"
+        trustForwardHeader: true
+
+    # Admin-only Authentication
+    admin-auth:
+      forwardAuth:
+        address: "http://twisterlab_api:8000/auth/verify?required_role=admin"
+        authResponseHeaders:
+          - "X-User-Id"
+          - "X-User-Email"
+          - "X-User-Roles"
+        trustForwardHeader: true
+
+    # Rate Limiting
+    rate-limit:
+      rateLimit:
+        average: 100
+        period: 1s
+        burst: 200
+
+    # Compression
+    compress:
+      compress: {}
+
+    # Security Headers
+    security-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        sslRedirect: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customResponseHeaders:
+          X-Powered-By: "TwisterLab"
+          Server: "TwisterLab-Gateway"

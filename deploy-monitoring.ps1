@@ -1,10 +1,31 @@
 # Script principal pour deployer le monitoring TwisterLab
 param(
-    [string]$GrafanaUrl = "http://192.168.0.30:3000",
-    [string]$Username = "admin",
-    [string]$Password = "admin",
+    [string]$GrafanaUrl = "$env:GRAFANA_URL",
+    [string]$Username = "$env:GRAFANA_ADMIN_USER",
     [string]$PrometheusUrl = "http://192.168.0.30:9090"
 )
+
+# Function to read secret from Docker secret file or environment variable
+function Get-Secret {
+    param(
+        [string]$SecretName,
+        [string]$DefaultValue = $null
+    )
+    $secretPath = "/run/secrets/$SecretName"
+    if (Test-Path $secretPath) {
+        return (Get-Content $secretPath).Trim()
+    }
+    $envValue = Get-Item ENV:$SecretName -ErrorAction SilentlyContinue
+    if ($envValue) {
+        return $envValue.Value
+    }
+    if ($DefaultValue) {
+        return $DefaultValue
+    }
+    throw "Secret '$SecretName' not found in Docker secrets or environment variables."
+}
+
+$Password = Get-Secret -SecretName "grafana_admin_password"
 
 Write-Host ">>> Deploiement du systeme de monitoring TwisterLab" -ForegroundColor Cyan
 Write-Host "=" * 50 -ForegroundColor Cyan
@@ -72,7 +93,7 @@ Write-Host "`nSUCCESS Deploiement termine avec succes!" -ForegroundColor Green
 Write-Host "=" * 50 -ForegroundColor Green
 Write-Host "`nProchaines etapes:" -ForegroundColor Yellow
 Write-Host "1. Ouvrez Grafana: $GrafanaUrl" -ForegroundColor White
-Write-Host "2. Connectez-vous avec: admin / admin" -ForegroundColor White
+Write-Host "2. Connectez-vous avec le compte admin Grafana (configuré via GRAFANA_ADMIN_USER/GRAFANA_ADMIN_PASSWORD ou Docker secret)" -ForegroundColor White
 Write-Host "3. Accedez au dashboard 'TwisterLab - Complete Monitoring Dashboard'" -ForegroundColor White
 Write-Host "4. Configurez des alertes si necessaire" -ForegroundColor White
 

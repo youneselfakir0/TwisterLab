@@ -29,12 +29,6 @@
       "provider": "ollama",
       "model": "qwen3:8b",
       "apiBase": "http://192.168.0.20:11434"
-    },
-    {
-      "title": "☁️ GPT-OSS (120B) - Cloud Power",
-      "provider": "ollama",
-      "model": "gpt-oss:120b-cloud",
-      "apiBase": "http://192.168.0.20:11434"
     }
   ],
   "tabAutocompleteModel": {
@@ -48,65 +42,30 @@
     "model": "llama3.2:1b",
     "apiBase": "http://192.168.0.20:11434"
   },
-  "customCommands": [
-    {
-      "name": "quick",
-      "description": "Question rapide (Llama 3.2 1B)",
-      "prompt": "Réponds rapidement et concisément : {input}"
-    },
-    {
-      "name": "explain",
-      "description": "Explication détaillée (Llama 3 8B)",
-      "prompt": "Explique en détail : {input}"
-    },
-    {
-      "name": "reason",
-      "description": "Analyse complexe (DeepSeek R1)",
-      "prompt": "Analyse en profondeur et raisonne : {input}"
-    },
-    {
-      "name": "code",
-      "description": "Génération code (CodeLlama)",
-      "prompt": "Génère du code production-ready avec type hints, docstrings et error handling : {input}"
-    },
-    {
-      "name": "refactor",
-      "description": "Refactoring (Qwen 3 8B)",
-      "prompt": "Refactorise ce code en suivant les best practices TwisterLab : {input}"
-    },
-    {
-      "name": "research",
-      "description": "Recherche avancée (GPT-OSS 120B)",
-      "prompt": "Recherche approfondie avec analyse multi-étapes : {input}"
-    }
-  ],
-  "slashCommands": [
-    {
-      "name": "agents",
-      "description": "Liste les 7 agents TwisterLab RÉELS",
-      "prompt": "Exécute le script PowerShell: .continue/list_real_agents.ps1 pour lister tous les agents autonomes TwisterLab avec leurs statuts en temps réel"
-    },
-    {
-      "name": "health",
-      "description": "État de santé système (VRAIS agents)",
-      "prompt": "Appelle l'endpoint http://192.168.0.30:8000/v1/mcp/tools/monitor_system_health avec {\"detailed\": true} pour obtenir les métriques système réelles (CPU, RAM, Disk, Docker)"
-    },
-    {
-      "name": "classify",
-      "description": "Classifier un ticket IT",
-      "prompt": "Classifie ce ticket IT selon la taxonomie TwisterLab : {input}"
-    },
-    {
-      "name": "resolve",
-      "description": "Résoudre un problème IT",
-      "prompt": "Génère les étapes de résolution SOP pour : {input}"
-    },
-    {
-      "name": "monitor",
-      "description": "Surveiller le système",
-      "prompt": "Affiche l'état de santé du système TwisterLab (CPU, RAM, Disk, Docker)"
-    }
-  ],
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "name": "TwisterLab MCP",
+        "transport": {
+          "type": "stdio",
+          "command": "python",
+          "args": ["agents/mcp/mcp_server_continue_sync.py"],
+          "env": {
+            "PYTHONPATH": "C:\\TwisterLab",
+            "API_URL": "http://192.168.0.30:8000"
+          }
+        },
+        "autoApprove": [
+          "monitor_system_health",
+          "create_backup",
+          "sync_cache_db",
+          "classify_ticket",
+          "resolve_ticket",
+          "execute_desktop_command"
+        ]
+      }
+    ]
+  },
   "contextProviders": [
     {
       "name": "code",
@@ -119,100 +78,12 @@
     {
       "name": "terminal",
       "params": {}
-    },
-    {
-      "name": "problems",
-      "params": {}
-    },
-    {
-      "name": "folder",
-      "params": {}
-    },
-    {
-      "name": "codebase",
-      "params": {}
     }
   ],
   "rules": [
     {
-      "name": "TwisterLab Production-First",
-      "content": "Toujours générer du code production-ready avec type hints, docstrings Google-style, et error handling complet. Suivre les patterns TwisterAgent."
-    },
-    {
-      "name": "Choix LLM Automatique",
-      "content": "GUIDE DE SÉLECTION DES LLM:\n\n🚀 Llama 3.2 (1B) - Questions simples, réponses rapides, chat basique\n💬 Llama 3 (8B) - Explications détaillées, documentation, tutoriels\n🧠 DeepSeek R1 - Architecture complexe, analyse de systèmes, planification\n💻 CodeLlama - Génération de code, autocomplétion, snippets\n🔧 Qwen 3 (8B) - Refactoring, optimisation, code review\n☁️ GPT-OSS (120B) - Recherche avancée, raisonnement multi-étapes, problèmes complexes\n\nUtilise TOUJOURS le modèle le plus approprié selon la complexité de la tâche."
-    },
-    {
-      "name": "Async First",
-      "content": "Toutes les fonctions doivent être async avec asyncio. Utiliser asyncpg pour PostgreSQL, aioredis pour Redis."
-    },
-    {
-      "name": "Type Hints Obligatoires",
-      "content": "Tous les paramètres et retours doivent avoir des type hints (Dict[str, Any], Optional[T], List[T], etc.)"
-    },
-    {
-      "name": "Security First",
-      "content": "Jamais de credentials en dur. Toujours valider les inputs. Logger toutes les actions sensibles avec audit trail."
-    },
-    {
-      "name": "Docker Swarm Only",
-      "content": "Utiliser uniquement Docker Swarm pour les déploiements production. Pas de docker-compose standalone."
-    },
-    {
-      "name": "Ollama Local GPU",
-      "content": "LLM endpoint: http://192.168.0.20:11434 (GPU RTX 3060). API TwisterLab: http://192.168.0.30:8000"
-    },
-    {
-      "name": "Testing Required",
-      "content": "Générer des tests pytest avec asyncio pour toute nouvelle fonction. Minimum 80% coverage. Utiliser pytest.mark.asyncio."
-    },
-    {
-      "name": "Logging Structured",
-      "content": "Utiliser structlog avec contexte (agent_name, task_id, timestamp, status). Jamais de print(). Format JSON pour logs."
-    },
-    {
-      "name": "Error Handling",
-      "content": "Toujours capturer les exceptions avec try/except. Retourner {'status': 'error', 'error': str(e), 'timestamp': datetime.now().isoformat()}."
-    },
-    {
-      "name": "Documentation Inline",
-      "content": "Docstrings Google-style pour toutes les classes et fonctions publiques. Inclure Args, Returns, Raises, Examples."
-    },
-    {
-      "name": "Infrastructure as Code",
-      "content": "Toute config dans .env ou YAML. Jamais de hardcoded values. Utiliser pydantic pour validation."
-    },
-    {
-      "name": "Monitoring Always",
-      "content": "Exposer des métriques Prometheus pour toute opération critique. Grafana dashboards requis pour visualisation."
+      "name": "TwisterLab Agent Rules",
+      "content": "When working with TwisterLab, always use the available MCP tools for system monitoring, backup operations, ticket classification, and resolution. Prefer structured data responses over generic AI text."
     }
-  ],
-  "experimental": {
-    "modelContextProtocol": true,
-    "modelContextProtocolServers": [
-      {
-        "name": "TwisterLab MCP",
-        "autoApprove": [
-          "list_autonomous_agents",
-          "monitor_system_health",
-          "create_backup",
-          "sync_cache",
-          "classify_ticket",
-          "resolve_ticket",
-          "execute_desktop_command"
-        ],
-        "transport": {
-          "type": "stdio",
-          "command": "python",
-          "args": [
-            "agents/mcp/mcp_server_continue_sync.py"
-          ],
-          "env": {
-            "PYTHONPATH": "C:\\TwisterLab",
-            "API_URL": "http://192.168.0.30:8000"
-          }
-        }
-      }
-    ]
-  }
+  ]
 }

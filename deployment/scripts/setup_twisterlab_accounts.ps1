@@ -105,7 +105,7 @@ $helpdeskAccount = @{
     MailNickname = "svc-helpdesk-agent"
     AccountEnabled = $true
     PasswordProfile = @{
-        Password = "TwisterLab2024!$((Get-Random -Minimum 1000 -Maximum 9999))!"
+        Password = (python -c "import secrets, string; chars = string.ascii_letters + string.digits + '!@#$%^&*'; print(''.join(secrets.choice(chars) for _ in range(24)))") + "$((Get-Random -Minimum 1000 -Maximum 9999))!"
         ForceChangePasswordNextSignIn = $false
     }
 }

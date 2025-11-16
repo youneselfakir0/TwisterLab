@@ -4,7 +4,7 @@
 
 $GRAFANA_URL = "http://192.168.0.30:3000"
 $GRAFANA_USER = "admin"
-$GRAFANA_PASS = "admin"
+$GRAFANA_PASS = ""
 
 # Créer l'header d'authentification
 $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${GRAFANA_USER}:${GRAFANA_PASS}"))
@@ -93,6 +93,6 @@ try {
 
 Write-Host "`n[4] URLs des dashboards:" -ForegroundColor Cyan
 Write-Host "    Grafana: http://192.168.0.30:3000" -ForegroundColor White
-Write-Host "    Login: admin / admin" -ForegroundColor White
+Write-Host "    Login: admin / [password set during Grafana setup]" -ForegroundColor White
 
 Write-Host "`n[OK] Import termine!`n" -ForegroundColor Green

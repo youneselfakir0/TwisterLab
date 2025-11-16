@@ -13,15 +13,15 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
 from agents.base.base_agent import BaseAgent
+from agents.real.real_backup_agent import RealBackupAgent
+from agents.real.real_classifier_agent import RealClassifierAgent
+from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
+from agents.real.real_maestro_agent import RealMaestroAgent
 
 # REAL AGENTS - Deployed on edgeserver (2025-11-11)
 from agents.real.real_monitoring_agent import RealMonitoringAgent
-from agents.real.real_backup_agent import RealBackupAgent
-from agents.real.real_sync_agent import RealSyncAgent
-from agents.real.real_classifier_agent import RealClassifierAgent
 from agents.real.real_resolver_agent import RealResolverAgent
-from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
-from agents.real.real_maestro_agent import RealMaestroAgent
+from agents.real.real_sync_agent import RealSyncAgent
 
 logger = logging.getLogger(__name__)
 

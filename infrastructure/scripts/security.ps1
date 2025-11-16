@@ -20,23 +20,28 @@ $ProjectRoot = Split-Path -Parent $ScriptPath
 $SecretsConfig = @{
     "grafana_admin_password" = @{
         Description = "Grafana admin password"
-        DefaultValue = "TwisterLab_Grafana_Admin_2025!"
+        DefaultValue = ""
         Length = 24
     }
     "postgres_password" = @{
         Description = "PostgreSQL database password"
-        DefaultValue = "TwisterLab_PostgreSQL_2025!"
+        DefaultValue = ""
         Length = 32
     }
     "redis_password" = @{
         Description = "Redis cache password"
-        DefaultValue = "TwisterLab_Redis_2025!"
+        DefaultValue = ""
         Length = 24
     }
     "prometheus_basic_auth" = @{
         Description = "Prometheus basic auth credentials"
-        DefaultValue = "admin:TwisterLab_Prometheus_2025!"
+        DefaultValue = ""
         Length = 40
+    }
+    "smtp_password" = @{
+        Description = "SMTP password for Alertmanager"
+        DefaultValue = ""
+        Length = 32
     }
 }
 
@@ -168,29 +173,56 @@ function Update-ComposeFile {
 
     # Define replacements for hardcoded passwords
     $replacements = @(
+            @{
+                Pattern = 'GF_SECURITY_ADMIN_PASSWORD=admin'
+                Replacement = 'GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_admin_password'
+            },
         @{
-            Pattern = 'GF_SECURITY_ADMIN_PASSWORD=admin'
-            Replacement = 'GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_admin_password'
-        },
-        @{
-            Pattern = 'DATA_SOURCE_NAME=postgresql://twisterlab:twisterlab_prod_db_password_2024%21@postgres:5432/twisterlab_prod\?sslmode=disable'
+            # Generic pattern for Postgres DSN - replace credential with a file reference
+            Pattern = 'DATA_SOURCE_NAME=postgresql://twisterlab:[^@\s]+@postgres:5432/twisterlab_prod\?sslmode=disable'
             Replacement = 'DATA_SOURCE_NAME__FILE=/run/secrets/postgres_exporter_password'
         },
+        @{ 
+            # Convert inline POSTGRES_PASSWORD in env forms to file-based secret ref
+            Pattern = 'POSTGRES_PASSWORD=[^\s]+'
+            Replacement = 'POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password'
+        },
+        @{ 
+            # Convert YAML env style POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} to file-ref
+            Pattern = 'POSTGRES_PASSWORD:\s*\$\{?[^\}\s]+\}?'
+            Replacement = 'POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password'
+        },
+        @{ 
+            # Replace inline DATABASE_URL that includes a password with a URL without password (env form)
+            Pattern = 'DATABASE_URL=postgresql://twisterlab:[^@\s]+@postgres:5432/twisterlab(_prod)?'
+            Replacement = 'DATABASE_URL=postgresql://twisterlab@postgres:5432/twisterlab$1'
+        },
+        @{ 
+            # Replace YAML-style DATABASE_URL mapping that references POSTGRES_PASSWORD var
+            Pattern = 'DATABASE_URL:\s*postgresql:\/\/\$\{?POSTGRES_USER[^}]*\}:\$\{?POSTGRES_PASSWORD[^}]*\}@[\w\-.:]+:\d+\/${POSTGRES_DB:-twisterlab_prod}'
+            Replacement = 'DATABASE_URL: postgresql://${POSTGRES_USER:-twisterlab}@postgres:5432/${POSTGRES_DB:-twisterlab_prod}`nDATABASE_URL__FILE: /run/secrets/postgres_password'
+        },
         @{
-            Pattern = '--redis\.password=twisterlab_prod_redis_password_2024!'
+            # Generic Redis password argument replacement
+            Pattern = '--redis\.password=[^\s]+'
             Replacement = '--redis.password-file=/run/secrets/redis_password'
         }
     )
 
     $updated = $false
     foreach ($replacement in $replacements) {
-        if ($content -match [regex]::Escape($replacement.Pattern)) {
+        $pattern = $replacement.Pattern
+        if ($content -match $pattern) {
             if ($DryRun) {
                 Write-Log "[DRY RUN] Would replace: $($replacement.Pattern)"
             } else {
-                $content = $content -replace [regex]::Escape($replacement.Pattern), $replacement.Replacement
-                $updated = $true
-                Write-Log "Replaced: $($replacement.Pattern)"
+                try {
+                    $content = [regex]::Replace($content, $pattern, $replacement.Replacement)
+                    $updated = $true
+                    Write-Log "Replaced: $($replacement.Pattern)"
+                } catch {
+                    Write-Log "Failed regex replace for pattern $($replacement.Pattern): $($_.Exception.Message)" -Level "ERROR"
+                }
             }
         }
     }
@@ -232,6 +264,10 @@ secrets:
         @{
             Service = "redis_exporter"
             Secrets = @("redis_password")
+        }
+        ,@{
+            Service = "api"
+            Secrets = @("postgres_password")
         }
     )
 
@@ -372,10 +408,13 @@ function Invoke-AuditSecurity {
 
         # Check for common hardcoded password patterns
         $passwordPatterns = @(
+            'POSTGRES_PASSWORD=.*',
             'password.*=.*[a-zA-Z0-9]{8,}',
             'PASSWORD.*=.*[a-zA-Z0-9]{8,}',
             'admin.*=.*admin',
-            'GF_SECURITY_ADMIN_PASSWORD.*=.*admin'
+            'GF_SECURITY_ADMIN_PASSWORD.*=.*admin',
+            'GF_SECURITY_ADMIN_PASSWORD:\s*admin',
+            'DATABASE_URL=.*postgresql://twisterlab:[^@\s]+'
         )
 
         foreach ($pattern in $passwordPatterns) {

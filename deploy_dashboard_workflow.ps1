@@ -1,8 +1,8 @@
 # Deploy Grafana Dashboard - TwisterLab Workflow
 
-$GrafanaUrl = "http://192.168.0.30:3000"
-$GrafanaUser = "admin"
-$GrafanaPassword = "admin"  # Changer si mot de passe modifie
+$GrafanaUrl = $env:GRAFANA_URL
+$GrafanaUser = $env:GRAFANA_ADMIN_USER
+$GrafanaPassword = $env:GRAFANA_ADMIN_PASSWORD  # Must be set via environment variable or Docker secret
 
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host " DEPLOIEMENT DASHBOARD GRAFANA - WORKFLOW" -ForegroundColor Cyan
@@ -36,6 +36,15 @@ $payload = @{
 
 Write-Host "Deploiement vers Grafana: $GrafanaUrl" -ForegroundColor Yellow
 
+if ([string]::IsNullOrWhiteSpace($GrafanaUrl)) {
+    Write-Error "❌ Grafana URL not set. Please set GRAFANA_URL environment variable or pass the -GrafanaUrl parameter."
+    exit 1
+}
+if ([string]::IsNullOrWhiteSpace($GrafanaUser) -or [string]::IsNullOrWhiteSpace($GrafanaPassword)) {
+    Write-Error "❌ Grafana credentials not configured. Please set GRAFANA_ADMIN_USER and GRAFANA_ADMIN_PASSWORD environment variables or pass -GrafanaUser and -GrafanaPassword parameters."
+    exit 1
+}
+
 try {
     # Creer/Mettre a jour le dashboard
     $response = Invoke-RestMethod -Method POST `
@@ -68,7 +77,7 @@ try {
     Write-Host ""
     Write-Host "Verifications:" -ForegroundColor Yellow
     Write-Host "  1. Grafana est accessible: curl $GrafanaUrl" -ForegroundColor Gray
-    Write-Host "  2. Credentials corrects: admin/admin" -ForegroundColor Gray
+    Write-Host "  2. Credentials configured via environment variables or Docker secrets" -ForegroundColor Gray
     Write-Host "  3. API activee dans Grafana" -ForegroundColor Gray
 
     exit 1

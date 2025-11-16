@@ -100,7 +100,7 @@ Invoke-WebRequest -Uri "http://localhost:3001/api/health" -UseBasicParsing
 
 ### Accès aux Interfaces
 - **API TwisterLab**: http://localhost:8000/docs (documentation interactive)
-- **Grafana**: http://localhost:3001 (admin/admin par défaut)
+- **Grafana**: http://localhost:3001 (admin account configured via GRAFANA_ADMIN_USER/GRAFANA_ADMIN_PASSWORD or Docker secret)
 - **Prometheus**: http://localhost:9090
 - **Traefik Dashboard**: http://localhost:8084
 

@@ -205,7 +205,7 @@ class AutonomousAgentsMonitor:
                     )
                     if next_run_dt < now:
                         analysis["overdue_tasks"] += 1
-                except:
+                except Exception:
                     pass
 
         if analysis["overdue_tasks"] > 0:

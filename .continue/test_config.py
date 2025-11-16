@@ -104,6 +104,22 @@ def test_twisterlab_api():
         print(f"      Normal si edgeserver éteint")
         return False
 
+def test_api_metrics():
+    """Test Prometheus metrics endpoint on TwisterLab API"""
+    print("\n🔍 Test 6: Metrics endpoint on TwisterLab API...")
+    try:
+        import urllib.request
+        with urllib.request.urlopen('http://localhost:8000/metrics', timeout=5) as response:
+            if response.status == 200:
+                print(f"   ✅ /metrics accessible (HTTP 200)")
+                return True
+            else:
+                print(f"   ⚠️ /metrics returned HTTP {response.status}")
+                return False
+    except Exception as e:
+        print(f"   ⚠️ /metrics inaccessible: {e}")
+        return False
+
 def test_continue_files():
     """Test fichiers Continue présents"""
     print("\n🔍 Test 6: Fichiers Continue...")
@@ -135,6 +151,7 @@ def main():
     results.append(("API Ollama", test_ollama_api()))
     results.append(("Script MCP", test_mcp_script()))
     results.append(("API TwisterLab", test_twisterlab_api()))
+    results.append(("API Metrics", test_api_metrics()))
     results.append(("Fichiers Continue", test_continue_files()))
 
     print("\n╔════════════════════════════════════════════════════════════╗")

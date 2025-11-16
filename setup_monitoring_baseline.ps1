@@ -130,8 +130,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=twisterlab2025!
-      - GF_USERS_ALLOW_SIGN_UP=false
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: false
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -319,7 +319,7 @@ Write-Host "`nChecking service status..." -ForegroundColor Yellow
 docker-compose -f docker-compose.monitoring.yml ps
 
 Write-Host "`nMonitoring URLs:" -ForegroundColor Green
-Write-Host "Grafana: http://localhost:3000 (admin/twisterlab2025!)" -ForegroundColor White
+Write-Host "Grafana: http://localhost:3000 (admin/)" -ForegroundColor White
 Write-Host "Prometheus: http://localhost:9090" -ForegroundColor White
 Write-Host "Node Exporter: http://localhost:9100" -ForegroundColor White
 

@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-twisterlab}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_DB: ${POSTGRES_DB:-twisterlab}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
@@ -40,7 +40,7 @@ services:
     image: redis:7-alpine
     container_name: twisterlab-redis-prod
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 2gb --maxmemory-policy allkeys-lru
+  command: ["sh", "-c", "redis-server --requirepass $(cat /run/secrets/redis_password) --maxmemory 2gb --maxmemory-policy allkeys-lru"]
     ports:
       - "6379:6379"
     volumes:
@@ -48,7 +48,7 @@ services:
     networks:
       - twisterlab-prod-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$(cat /run/secrets/redis_password)\" ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -76,6 +76,8 @@ services:
     restart: unless-stopped
     environment:
       ENVIRONMENT: production
+      DATABASE_URL__FILE: /run/secrets/postgres_password
+      # Optional: keep DATABASE_URL for backwards compatibility if set
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
       OLLAMA_BASE_URL: http://ollama:11434

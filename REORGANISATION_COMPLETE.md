@@ -83,9 +83,9 @@ TwisterLab/
 **Variables** :
 ```bash
 ENVIRONMENT=production
-POSTGRES_PASSWORD=<strong_password>
-REDIS_PASSWORD=<strong_password>
-SECRET_KEY=<32_chars_min>
+POSTGRES_PASSWORD=(Docker Secret)
+REDIS_PASSWORD=(Docker Secret)
+SECRET_KEY=(Docker Secret)
 DATA_PATH=/twisterlab/ai-storage/data
 API_REPLICAS=2
 ...

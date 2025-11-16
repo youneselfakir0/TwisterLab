@@ -67,63 +67,64 @@ function Test-DockerSecrets {
         "redis_password",
         "grafana_admin_password",
         "jwt_secret_key",
-        "webui_secret_key"
+        "webui_secret_key",
+        "smtp_password"
     )
-    
+
     $existingSecrets = ssh "$REMOTE_USER@$REMOTE_HOST" "docker secret ls --format '{{.Name}}'"
     $missing = @()
-    
+
     foreach ($secret in $requiredSecrets) {
         if ($existingSecrets -notcontains $secret) {
             $missing += $secret
         }
     }
-    
+
     if ($missing.Count -gt 0) {
         Write-Log "Missing secrets: $($missing -join ', ')" "ERROR"
         return $false
     }
-    
+
     Write-Log "All required secrets exist"
     return $true
 }
 
 function Copy-FilesToRemote {
     Write-Log "Copying deployment files to remote server"
-    
+
     if ($DryRun) {
         Write-Log "DRY RUN: Would copy files to $REMOTE_USER@$REMOTE_HOST" "WARNING"
         return $true
     }
-    
+
     try {
         # Get absolute paths
         $composePath = Join-Path (Get-Location).Path "..\..\infrastructure\docker\$COMPOSE_FILE"
         $envPath = Join-Path (Get-Location).Path "..\..\infrastructure\configs\$ENV_FILE"
         $prometheusPath = Join-Path (Get-Location).Path "..\..\infrastructure\docker\monitoring\prometheus.yml"
         $postgresPath = Join-Path (Get-Location).Path "..\..\infrastructure\docker\postgresql.conf"
-        
+
         # Resolve to absolute paths
         $composePath = Resolve-Path $composePath -ErrorAction Stop
         $envPath = Resolve-Path $envPath -ErrorAction Stop
         $prometheusPath = Resolve-Path $prometheusPath -ErrorAction Stop
         $postgresPath = Resolve-Path $postgresPath -ErrorAction Stop
-        
+
         # Copy docker-compose file
         scp "$composePath" "$REMOTE_USER@$REMOTE_HOST`:~/docker-compose.unified.yml"
-        
+
         # Copy environment file
         scp "$envPath" "$REMOTE_USER@$REMOTE_HOST`:~/.env.production"
-        
+
         # Create monitoring directory
         ssh "$REMOTE_USER@$REMOTE_HOST" "mkdir -p ~/monitoring"
-        
+
         # Copy monitoring config
         scp "$prometheusPath" "$REMOTE_USER@$REMOTE_HOST`:~/monitoring/prometheus.yml"
-        
+
         # Copy PostgreSQL config
         scp "$postgresPath" "$REMOTE_USER@$REMOTE_HOST`:~/postgresql.conf"
-        
+
         Write-Log "Files copied successfully"
         return $true
     } catch {
@@ -134,18 +135,18 @@ function Copy-FilesToRemote {
 
 function Deploy-Stack {
     Write-Log "Deploying TwisterLab stack"
-    
+
     if ($DryRun) {
         Write-Log "DRY RUN: Would deploy stack '$STACK_NAME'" "WARNING"
         return $true
     }
-    
+
     try {
         $deployCmd = "cd ~ && docker stack deploy -c docker-compose.unified.yml --with-registry-auth $STACK_NAME"
-        
+
         Write-Log "Executing: $deployCmd"
         $result = ssh "$REMOTE_USER@$REMOTE_HOST" $deployCmd
-        
+
         Write-Log "Deployment initiated"
         Write-Host $result
         return $true
@@ -157,12 +158,12 @@ function Deploy-Stack {
 
 function Wait-ForServices {
     param([int]$TimeoutSeconds = 120)
-    
+
     Write-Log "Waiting for services to start (timeout: ${TimeoutSeconds}s)"
-    
+
     $elapsed = 0
     $interval = 10
-    
+
     while ($elapsed -lt $TimeoutSeconds) {
         $services = ssh "$REMOTE_USER@$REMOTE_HOST" "docker service ls --format '{{.Name}} {{.Replicas}}'" | ForEach-Object {
             $parts = $_ -split ' '
@@ -171,7 +172,7 @@ function Wait-ForServices {
                 Replicas = $parts[1]
             }
         }
-        
+
         $allReady = $true
         foreach ($service in $services) {
             $replicaParts = $service.Replicas -split '/'
@@ -180,16 +181,16 @@ function Wait-ForServices {
                 Write-Log "Service $($service.Name): $($service.Replicas)" "WARNING"
             }
         }
-        
+
         if ($allReady) {
             Write-Log "All services are ready!" "SUCCESS"
             return $true
         }
-        
+
         Start-Sleep -Seconds $interval
         $elapsed += $interval
     }
-    
+
     Write-Log "Timeout waiting for services to start" "ERROR"
     return $false
 }
@@ -201,7 +202,7 @@ function Show-ServiceStatus {
 
 function Test-Endpoints {
     Write-Log "Testing service endpoints"
-    
+
     $endpoints = @(
         @{Name="API Health"; URL="http://$REMOTE_HOST:8000/health"},
         @{Name="Traefik Dashboard"; URL="http://$REMOTE_HOST:8080"},
@@ -209,7 +210,7 @@ function Test-Endpoints {
         @{Name="Grafana"; URL="http://$REMOTE_HOST:3000/api/health"},
         @{Name="Open WebUI"; URL="http://$REMOTE_HOST:8083"}
     )
-    
+
     foreach ($endpoint in $endpoints) {
         try {
             $response = Invoke-WebRequest -Uri $endpoint.URL -TimeoutSec 5 -UseBasicParsing
@@ -267,10 +268,10 @@ Show-ServiceStatus
 
 if (Wait-ForServices -TimeoutSeconds 120) {
     Write-Log "=== Deployment Successful! ===" "SUCCESS"
-    
+
     Write-Log "Testing endpoints..."
     Test-Endpoints
-    
+
     Write-Log ""
     Write-Log "=== Access URLs ===" "SUCCESS"
     Write-Log "  API:        http://$REMOTE_HOST:8000"

@@ -1,12 +1,12 @@
 import asyncio
-import time
 import sys
-import os
+import time
 
 # Add project root to path
-sys.path.insert(0, '/home/twister')
+sys.path.insert(0, "/home/twister")
 
 from agents.base.llm_client import ollama_client
+
 
 async def test_ollama_primary():
     print("🧪 Testing PRIMARY Ollama (Corertx RTX 3060)...")
@@ -15,19 +15,22 @@ async def test_ollama_primary():
     try:
         result = await ollama_client.generate_with_fallback(
             prompt="Classify this IT ticket: 'Network is very slow, cannot connect to internet'. Respond with only one word: network, software, hardware, security, or other.",
-            agent_type="classifier"
+            agent_type="classifier",
         )
 
         duration = time.time() - start_time
-        response = result.get('response', 'error')
-        source = result.get('source', 'unknown')
+        response = result.get("response", "error")
+        source = result.get("source", "unknown")
 
-        print(f"✅ PRIMARY Result: response='{response}', source='{source}', duration={duration:.2f}s")
+        print(
+            f"✅ PRIMARY Result: response='{response}', source='{source}', duration={duration:.2f}s"
+        )
         return result
 
     except Exception as e:
         print(f"❌ PRIMARY Test failed: {e}")
         return None
+
 
 async def test_ollama_failover():
     print("\n🔄 Testing FAILOVER (PRIMARY down, should use BACKUP)...")
@@ -36,19 +39,22 @@ async def test_ollama_failover():
     try:
         result = await ollama_client.generate_with_fallback(
             prompt="Classify this IT ticket: 'Computer is frozen and unresponsive'. Respond with only one word: network, software, hardware, security, or other.",
-            agent_type="classifier"
+            agent_type="classifier",
         )
 
         duration = time.time() - start_time
-        response = result.get('response', 'error')
-        source = result.get('source', 'unknown')
+        response = result.get("response", "error")
+        source = result.get("source", "unknown")
 
-        print(f"✅ FAILOVER Result: response='{response}', source='{source}', duration={duration:.2f}s")
+        print(
+            f"✅ FAILOVER Result: response='{response}', source='{source}', duration={duration:.2f}s"
+        )
         return result
 
     except Exception as e:
         print(f"❌ FAILOVER Test failed: {e}")
         return None
+
 
 if __name__ == "__main__":
     print("🚀 Starting Ollama Failover Tests")

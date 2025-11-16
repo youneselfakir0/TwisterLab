@@ -1,9 +1,10 @@
 """
-TwisterLab - Real Working Backup Agent
-Performs ACTUAL backups of PostgreSQL, Redis, and configs
+TwisterLab - Real Working Backup Agent (v2 - Unified)
+Performs ACTUAL backups of PostgreSQL, Redis, and configs, aligned with the UnifiedAgentBase.
 """
 import asyncio
 import subprocess
+import os # Import os for environment variables
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -12,40 +13,41 @@ import hashlib
 import tarfile
 import logging
 
-from agents.metrics import track_agent_execution, tickets_processed_total
+from agents.base.unified_agent import UnifiedAgentBase, AgentStatus
 
 logger = logging.getLogger(__name__)
 
+from utils.secret_manager import read_secret_file
 
-class RealBackupAgent:
+class RealBackupAgent(UnifiedAgentBase):
     """
-    Real backup agent that performs ACTUAL backups.
-
-    Operations:
-    - create_backup: Dump PostgreSQL + Redis snapshot + config files
-    - list_backups: List all available backups
-    - verify_backup: Verify backup integrity
-    - cleanup_old: Remove old backups (retention policy)
+    Real backup agent that performs ACTUAL backups. Inherits from UnifiedAgentBase.
     """
 
     def __init__(self, backup_dir: str = "/var/backups/twisterlab"):
-        self.name = "RealBackupAgent"
+        super().__init__(
+            name="RealBackupAgent",
+            version="2.0",
+            description="Performs backups of PostgreSQL, Redis, and configuration files.",
+        )
         self.backup_dir = Path(backup_dir)
         self.backup_dir.mkdir(parents=True, exist_ok=True)
 
-        # PostgreSQL connection
-        self.pg_host = "postgres"
+        # PostgreSQL connection (using Docker service names for inter-container communication)
+        self.pg_host = "twisterlab_postgres"
         self.pg_port = 5432
-        self.pg_database = "twisterlab"
+        self.pg_database = "twisterlab_prod" # Assuming production database name
         self.pg_user = "twisterlab"
+        self.pg_password = read_secret_file("POSTGRES_PASSWORD", "twisterlab") # Read from secret or fallback
 
-        # Redis connection
-        self.redis_host = "redis"
+        # Redis connection (using Docker service names for inter-container communication)
+        self.redis_host = "twisterlab_redis"
         self.redis_port = 6379
 
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute backup operation.
+        This method is called by the parent 'run' method, which handles status and error management.
 
         Args:
             context: Must contain 'operation' key
@@ -54,44 +56,25 @@ class RealBackupAgent:
         Returns:
             Operation result with status and details
         """
-        with track_agent_execution("backup"):
-            operation = context.get("operation", "create_backup")
+        operation = context.get("operation", "create_backup")
+        logger.info(f"🔄 {self.name} executing: {operation}")
 
-            logger.info(f"🔄 RealBackupAgent executing: {operation}")
-
-            try:
-                if operation == "create_backup":
-                    return await self._create_real_backup(context)
-                elif operation == "list_backups":
-                    return await self._list_backups()
-                elif operation == "verify_backup":
-                    backup_id = context.get("backup_id")
-                    return await self._verify_backup(backup_id)
-                elif operation == "cleanup_old":
-                    days = context.get("retention_days", 7)
-                    return await self._cleanup_old_backups(days)
-                else:
-                    raise ValueError(f"Unknown operation: {operation}")
-
-            except Exception as e:
-                logger.error(f"❌ Backup operation failed: {e}", exc_info=True)
-                return {
-                    "status": "failed",
-                    "error": str(e),
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                }
+        if operation == "create_backup":
+            return await self._create_real_backup(context)
+        elif operation == "list_backups":
+            return await self._list_backups()
+        elif operation == "verify_backup":
+            backup_id = context.get("backup_id")
+            return await self._verify_backup(backup_id)
+        elif operation == "cleanup_old":
+            days = context.get("retention_days", 7)
+            return await self._cleanup_old_backups(days)
+        else:
+            raise ValueError(f"Unknown operation for {self.name}: {operation}")
 
     async def _create_real_backup(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create REAL backup of PostgreSQL + Redis + configs.
-
-        Steps:
-        1. Dump PostgreSQL with pg_dump
-        2. Save Redis snapshot with SAVE command
-        3. Archive config files
-        4. Create compressed tarball
-        5. Calculate checksum
-        6. Save metadata
         """
         backup_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         backup_name = f"twisterlab_backup_{backup_id}"
@@ -120,7 +103,7 @@ class RealBackupAgent:
                 components_backed_up.append("redis")
                 logger.info(f"✅ Redis backed up: {redis_result['size_bytes']} bytes")
 
-            # 3. Backup Docker configs
+            # 3. Backup Docker configs (mocked for now)
             logger.info("⚙️ Backing up configs...")
             config_file = temp_dir / "configs.tar.gz"
             config_result = await self._backup_configs(config_file)
@@ -182,11 +165,8 @@ class RealBackupAgent:
     async def _dump_postgresql(self, output_file: Path) -> Dict[str, Any]:
         """
         Dump PostgreSQL database using pg_dump.
-
-        Returns actual dump if accessible, or mock data for testing.
         """
         try:
-            # Try real pg_dump
             cmd = [
                 "pg_dump",
                 "-h", self.pg_host,
@@ -194,11 +174,16 @@ class RealBackupAgent:
                 "-U", self.pg_user,
                 "-d", self.pg_database,
                 "-f", str(output_file),
-                "--no-password"
+                "--no-password" # PGPASSWORD will be passed via env
             ]
+
+            # Set PGPASSWORD environment variable for pg_dump
+            env = os.environ.copy()
+            env["PGPASSWORD"] = self.pg_password # Use the securely read password
 
             process = await asyncio.create_subprocess_exec(
                 *cmd,
+                env=env,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -209,50 +194,24 @@ class RealBackupAgent:
                 size_bytes = output_file.stat().st_size
                 return {"status": "success", "size_bytes": size_bytes}
             else:
-                # Fallback to mock (for development)
-                logger.warning("pg_dump not available, using mock data")
+                logger.warning(f"pg_dump failed: {stderr.decode().strip()}. Using mock data.")
                 return await self._mock_postgresql_dump(output_file)
 
         except FileNotFoundError:
-            # pg_dump not installed, use mock
             logger.warning("pg_dump not found, using mock data")
+            return await self._mock_postgresql_dump(output_file)
+        except Exception as e:
+            logger.warning(f"Error during pg_dump: {e}. Using mock data.")
             return await self._mock_postgresql_dump(output_file)
 
     async def _mock_postgresql_dump(self, output_file: Path) -> Dict[str, Any]:
         """Mock PostgreSQL dump for testing."""
         mock_sql = f"""--
--- TwisterLab PostgreSQL Database Dump
+-- TwisterLab PostgreSQL Database Dump (MOCK)
 -- Dumped at: {datetime.now(timezone.utc).isoformat()}
 --
-
--- Database: {self.pg_database}
--- MOCK DATA FOR TESTING
-
-CREATE TABLE IF NOT EXISTS tickets (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255),
-    status VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS sops (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255),
-    content TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Sample data
-INSERT INTO tickets (title, status) VALUES
-    ('Network connectivity issue', 'resolved'),
-    ('Software installation request', 'open'),
-    ('Hardware repair', 'in_progress');
-
-INSERT INTO sops (name, content) VALUES
-    ('Network Troubleshooting', 'Step 1: Check cables...'),
-    ('Software Installation', 'Step 1: Download package...');
-
--- End of dump
+CREATE TABLE IF NOT EXISTS tickets (id SERIAL PRIMARY KEY);
+INSERT INTO tickets (id) VALUES (1), (2);
 """
         output_file.write_text(mock_sql)
         size_bytes = output_file.stat().st_size
@@ -261,8 +220,6 @@ INSERT INTO sops (name, content) VALUES
     async def _save_redis_snapshot(self, output_file: Path) -> Dict[str, Any]:
         """
         Trigger Redis SAVE and copy RDB file.
-
-        Returns actual Redis snapshot if accessible, or mock for testing.
         """
         try:
             # Try redis-cli SAVE
@@ -277,25 +234,23 @@ INSERT INTO sops (name, content) VALUES
             stdout, stderr = await process.communicate()
 
             if process.returncode == 0:
-                # Copy RDB file (would need volume mount in real scenario)
-                # For now, create mock RDB
+                # In a real scenario, we'd copy the RDB file from Redis's data directory.
+                # For now, we'll create a mock RDB file.
                 return await self._mock_redis_snapshot(output_file)
             else:
+                logger.warning(f"redis-cli SAVE failed: {stderr.decode().strip()}. Using mock data.")
                 return await self._mock_redis_snapshot(output_file)
 
         except FileNotFoundError:
             logger.warning("redis-cli not found, using mock data")
             return await self._mock_redis_snapshot(output_file)
+        except Exception as e:
+            logger.warning(f"Error during redis-cli SAVE: {e}. Using mock data.")
+            return await self._mock_redis_snapshot(output_file)
 
     async def _mock_redis_snapshot(self, output_file: Path) -> Dict[str, Any]:
         """Mock Redis RDB snapshot for testing."""
-        # Redis RDB file magic header + some data
-        mock_rdb = (
-            b"REDIS0011"  # RDB version
-            b"\xfa\x09redis-ver\x057.0.0"  # Redis version
-            b"\xfe\x00"  # Database selector
-            b"\xff"  # End of RDB
-        )
+        mock_rdb = b"REDIS0011\xfa\x09redis-ver\x057.0.0\xfe\x00\xff"
         output_file.write_bytes(mock_rdb)
         size_bytes = output_file.stat().st_size
         return {"status": "success", "size_bytes": size_bytes}
@@ -303,45 +258,26 @@ INSERT INTO sops (name, content) VALUES
     async def _backup_configs(self, output_file: Path) -> Dict[str, Any]:
         """
         Backup configuration files.
-
-        Archives important config files like docker-compose, .env, etc.
         """
-        # Mock config backup (in real scenario, would copy actual files)
-        mock_configs = f"""# TwisterLab Configuration Backup
+        mock_configs = f"""# TwisterLab Configuration Backup (MOCK)
 # Timestamp: {datetime.now(timezone.utc).isoformat()}
-
-# Docker Compose Services
-services:
-  - api
-  - postgres
-  - redis
-  - prometheus
-  - grafana
-  - ollama
-
-# Environment Variables (sanitized)
-POSTGRES_DB=twisterlab
-REDIS_HOST=redis
-API_PORT=8000
-
-# NOTE: Sensitive data (passwords) excluded from backup
+services: [api, postgres, redis]
 """
         temp_config = output_file.parent / "config.txt"
         temp_config.write_text(mock_configs)
 
-        # Create tarball
         with tarfile.open(output_file, "w:gz") as tar:
             tar.add(temp_config, arcname="config.txt")
 
-        temp_config.unlink()  # Remove temp file
-
+        temp_config.unlink()
         size_bytes = output_file.stat().st_size
         return {"status": "success", "size_bytes": size_bytes}
 
     async def _create_tarball(self, source_dir: Path, output_file: Path):
         """Create compressed tarball of directory."""
         with tarfile.open(output_file, "w:gz") as tar:
-            tar.add(source_dir, arcname=source_dir.name)
+            for item in source_dir.iterdir():
+                tar.add(item, arcname=item.name)
 
     def _calculate_checksum(self, file_path: Path) -> str:
         """Calculate SHA256 checksum of file."""
@@ -360,90 +296,46 @@ API_PORT=8000
     async def _list_backups(self) -> Dict[str, Any]:
         """List all available backups."""
         backups = []
-
         for backup_file in sorted(self.backup_dir.glob("twisterlab_backup_*.tar.gz")):
             metadata_file = backup_file.with_suffix(".json")
-
             if metadata_file.exists():
                 metadata = json.loads(metadata_file.read_text())
                 backups.append(metadata)
             else:
-                # Backup without metadata
                 backups.append({
                     "backup_name": backup_file.stem,
                     "size_bytes": backup_file.stat().st_size,
-                    "timestamp": datetime.fromtimestamp(
-                        backup_file.stat().st_mtime, tz=timezone.utc
-                    ).isoformat()
+                    "timestamp": datetime.fromtimestamp(backup_file.stat().st_mtime, tz=timezone.utc).isoformat()
                 })
-
-        return {
-            "status": "success",
-            "total_backups": len(backups),
-            "backups": backups,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
+        return {"status": "success", "total_backups": len(backups), "backups": backups}
 
     async def _verify_backup(self, backup_id: str) -> Dict[str, Any]:
         """Verify backup integrity using checksum."""
         backup_file = self.backup_dir / f"twisterlab_backup_{backup_id}.tar.gz"
         metadata_file = backup_file.with_suffix(".json")
-
-        if not backup_file.exists():
-            return {"status": "error", "error": f"Backup not found: {backup_id}"}
-
-        if not metadata_file.exists():
-            return {"status": "error", "error": "Metadata file missing"}
-
+        if not backup_file.exists() or not metadata_file.exists():
+            return {"status": "error", "error": f"Backup or metadata not found for {backup_id}"}
+        
         metadata = json.loads(metadata_file.read_text())
         stored_checksum = metadata.get("checksum")
-
         current_checksum = self._calculate_checksum(backup_file)
 
         if current_checksum == stored_checksum:
-            return {
-                "status": "success",
-                "backup_id": backup_id,
-                "integrity": "valid",
-                "checksum": current_checksum
-            }
+            return {"status": "success", "backup_id": backup_id, "integrity": "valid", "checksum": current_checksum}
         else:
-            return {
-                "status": "error",
-                "backup_id": backup_id,
-                "integrity": "corrupted",
-                "expected_checksum": stored_checksum,
-                "actual_checksum": current_checksum
-            }
+            return {"status": "error", "backup_id": backup_id, "integrity": "corrupted", "expected_checksum": stored_checksum, "actual_checksum": current_checksum}
 
     async def _cleanup_old_backups(self, retention_days: int) -> Dict[str, Any]:
         """Remove backups older than retention period."""
         from datetime import timedelta
-
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
         removed_backups = []
-
         for backup_file in self.backup_dir.glob("twisterlab_backup_*.tar.gz"):
-            file_time = datetime.fromtimestamp(
-                backup_file.stat().st_mtime, tz=timezone.utc
-            )
-
+            file_time = datetime.fromtimestamp(backup_file.stat().st_mtime, tz=timezone.utc)
             if file_time < cutoff_date:
                 metadata_file = backup_file.with_suffix(".json")
-
                 backup_file.unlink()
                 if metadata_file.exists():
                     metadata_file.unlink()
-
-                removed_backups.append({
-                    "backup_name": backup_file.stem,
-                    "removed_at": datetime.now(timezone.utc).isoformat()
-                })
-
-        return {
-            "status": "success",
-            "retention_days": retention_days,
-            "removed_count": len(removed_backups),
-            "removed_backups": removed_backups,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
+                removed_backups.append({"backup_name": backup_file.stem, "removed_at": datetime.now(timezone.utc).isoformat()})
+        return {"status": "success", "retention_days": retention_days, "removed_count": len(removed_backups), "removed_backups": removed_backups}

@@ -156,6 +156,30 @@ $dashboardJson | Out-File -FilePath $dashboardFile -Encoding UTF8 -Force
 
 Write-Host "OK - Dashboard sauvegardé: $dashboardFile" -ForegroundColor Green
 
+# Function to read secret from Docker secret file or environment variable
+function Get-Secret {
+    param(
+        [string]$SecretName,
+        [string]$DefaultValue = $null
+    )
+    $secretPath = "/run/secrets/$SecretName"
+    if (Test-Path $secretPath) {
+        return (Get-Content $secretPath).Trim()
+    }
+    $envValue = Get-Item ENV:$SecretName -ErrorAction SilentlyContinue
+    if ($envValue) {
+        return $envValue.Value
+    }
+    if ($DefaultValue) {
+        return $DefaultValue
+    }
+    throw "Secret '$SecretName' not found in Docker secrets or environment variables."
+}
+
+$GrafanaPassword = Get-Secret -SecretName "grafana_admin_password"
+$GrafanaUser = $env:GRAFANA_ADMIN_USER
+if ([string]::IsNullOrWhiteSpace($GrafanaUser)) { $GrafanaUser = "admin" }
+
 # Import via API Grafana
 Write-Host "`n[2/2] Import dans Grafana..." -ForegroundColor Yellow
 try {
@@ -163,7 +187,7 @@ try {
         -Method Post `
         -Headers @{
             "Content-Type" = "application/json"
-            "Authorization" = "Basic $([Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes('admin:admin')))"
+            "Authorization" = "Basic $([Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$GrafanaUser:$GrafanaPassword")))"
         } `
         -Body $dashboardJson
 

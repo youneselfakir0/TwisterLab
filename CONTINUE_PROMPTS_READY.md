@@ -1,7 +1,7 @@
 # ✅ Continue Prompts Système - Configuration Complète
 
-**Date** : 2025-11-12  
-**Commit** : d8a25a6  
+**Date** : 2025-11-12
+**Commit** : d8a25a6
 **Statut** : Opérationnel
 
 ---
@@ -139,7 +139,7 @@ TwisterLab PC (Windows Dev)
     ↓ VS Code + Continue
     ↓ MCP Client (stdio)
     ↓ 5 Prompts Système
-    
+
 CoreRTX (192.168.0.20)           edgeserver (192.168.0.30)
   ↓ Ollama :11434                  ↓ TwisterLab API :8000
   ↓ RTX 3060 GPU                   ↓ PostgreSQL :5432
@@ -304,7 +304,7 @@ Tu peux maintenant utiliser les prompts système pour :
 - 🧹 Optimisation : `@prompt optimize-pc`
 - 🎭 Simulation : `@prompt simulate-tickets-6h`
 
-**Version** : 1.0.0  
-**Date** : 2025-11-12  
-**Commit** : d8a25a6  
+**Version** : 1.0.0
+**Date** : 2025-11-12
+**Commit** : d8a25a6
 **Statut** : ✅ Production Ready

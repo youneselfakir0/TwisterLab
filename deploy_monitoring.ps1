@@ -74,7 +74,7 @@ try {
 Write-Host '
  Monitoring Services Access URLs:' -ForegroundColor Cyan
 Write-Host ' Prometheus:    http://localhost:9091' -ForegroundColor White
-Write-Host ' Grafana:       http://localhost:3000 (admin/admin)' -ForegroundColor White
+Write-Host ' Grafana:       http://localhost:3000 (admin account via GRAFANA_ADMIN_USER/GRAFANA_ADMIN_PASSWORD)' -ForegroundColor White
 Write-Host ' Jaeger:        http://localhost:16686' -ForegroundColor White
 Write-Host ' Alertmanager:  http://localhost:9093' -ForegroundColor White
 

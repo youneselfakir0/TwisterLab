@@ -1,0 +1,236 @@
+{
+  "dashboard": {
+    "title": "Ollama HA Monitoring",
+    "tags": [
+      "twisterlab",
+      "ollama",
+      "ha",
+      "monitoring"
+    ],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Active Ollama Source",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 8,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "ollama_source_active{source=\"primary\"}",
+            "legendFormat": "Primary Active"
+          },
+          {
+            "expr": "ollama_source_active{source=\"backup\"}",
+            "legendFormat": "Backup Active"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "INACTIVE",
+                    "color": "red"
+                  },
+                  "1": {
+                    "text": "ACTIVE",
+                    "color": "green"
+                  }
+                },
+                "type": "value"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Total Ollama Requests",
+        "gridPos": {
+          "x": 8,
+          "y": 0,
+          "w": 8,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(ollama_requests_total)",
+            "legendFormat": "Total Requests"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Failover Events",
+        "gridPos": {
+          "x": 16,
+          "y": 0,
+          "w": 8,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(ollama_failover_total)",
+            "legendFormat": "Failovers"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "orange",
+                  "value": 1
+                },
+                {
+                  "color": "red",
+                  "value": 5
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "graph",
+        "title": "Ollama Requests by Source",
+        "gridPos": {
+          "x": 0,
+          "y": 4,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(ollama_requests_total{source=\"primary\"}[5m])",
+            "legendFormat": "Primary Requests/sec"
+          },
+          {
+            "expr": "rate(ollama_requests_total{source=\"backup\"}[5m])",
+            "legendFormat": "Backup Requests/sec"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "type": "graph",
+        "title": "Ollama Response Time",
+        "gridPos": {
+          "x": 12,
+          "y": 4,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(ollama_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(ollama_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "Median"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Response Time"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "type": "graph",
+        "title": "Failover Events Over Time",
+        "gridPos": {
+          "x": 0,
+          "y": 12,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "increase(ollama_failover_total[5m])",
+            "legendFormat": "Failovers (5min)"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "type": "graph",
+        "title": "Tokens Generated",
+        "gridPos": {
+          "x": 12,
+          "y": 12,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(ollama_tokens_generated_total[5m])",
+            "legendFormat": "Tokens/sec"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "type": "table",
+        "title": "Error Breakdown",
+        "gridPos": {
+          "x": 0,
+          "y": 20,
+          "w": 24,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "sum(ollama_errors_total) by (error_type)",
+            "legendFormat": "{{error_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "color-text"
+            }
+          }
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "links": []
+  }
+}

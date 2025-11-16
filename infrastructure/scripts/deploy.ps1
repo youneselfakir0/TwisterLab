@@ -29,7 +29,13 @@ param(
     [switch]$SkipValidation,
 
     [Parameter(Mandatory=$false)]
-    [switch]$Force
+    [switch]$Force,
+
+    [Parameter(Mandatory=$false)]
+    [string]$JwtSecret,
+
+    [Parameter(Mandatory=$false)]
+    [string]$AdminPassword
 )
 
 # =============================================================================
@@ -152,11 +158,15 @@ function Deploy-Stack {
     # Déployer la stack
     Write-Status "Lancement du déploiement Docker Swarm..." "INFO"
 
-    $deployCmd = @"
-cd /home/twister && \
-export `$(cat .env | xargs) && \
-docker stack deploy -c docker-compose.yml --with-registry-auth $STACK_NAME
-"@
+    $deployCmd = "cd /home/twister && "
+    if (-not [string]::IsNullOrEmpty($JwtSecret)) {
+        $deployCmd += "export JWT_SECRET_KEY='$JwtSecret' && "
+    }
+    if (-not [string]::IsNullOrEmpty($AdminPassword)) {
+        $deployCmd += "export ADMIN_PASSWORD='$AdminPassword' && "
+    }
+    $deployCmd += "export $(cat .env | xargs) && "
+    $deployCmd += "docker stack deploy -c docker-compose.yml --with-registry-auth $STACK_NAME"
 
     ssh twister@edgeserver.twisterlab.local $deployCmd
 

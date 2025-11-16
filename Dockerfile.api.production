@@ -5,7 +5,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         gcc \
         curl \
-        libpq-dev && \
+        libpq-dev \
+        docker.io && \
     rm -rf /var/lib/apt/lists/*
 
 # Set working directory

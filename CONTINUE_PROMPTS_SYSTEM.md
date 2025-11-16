@@ -1,7 +1,7 @@
 # 🎯 TwisterLab Continue Integration - Système de Prompts Autonomes
 
-**Date de création** : 2025-11-12  
-**Version** : 1.0.0  
+**Date de création** : 2025-11-12
+**Version** : 1.0.0
 **Statut** : ✅ Opérationnel (5 prompts système + MCP 7 tools)
 
 ---
@@ -418,17 +418,17 @@ Tous les prompts peuvent utiliser ces tools via `@mcp <tool>` :
 
 ## 📞 Support
 
-**Problème MCP** → `@prompt debug-mcp`  
-**Problème Infrastructure** → `@prompt troubleshoot-system`  
-**Aide Rapide** → `@prompt quick-help`  
+**Problème MCP** → `@prompt debug-mcp`
+**Problème Infrastructure** → `@prompt troubleshoot-system`
+**Aide Rapide** → `@prompt quick-help`
 **Documentation** → `.continue/prompts/README.md`
 
-**GitHub Issues** : https://github.com/youneselfakir0/TwisterLab/issues  
+**GitHub Issues** : https://github.com/youneselfakir0/TwisterLab/issues
 **Email** : [votre-email]
 
 ---
 
-**Version** : 1.0.0  
-**Date** : 2025-11-12  
-**Auteur** : TwisterLab Team  
+**Version** : 1.0.0
+**Date** : 2025-11-12
+**Auteur** : TwisterLab Team
 **Licence** : MIT

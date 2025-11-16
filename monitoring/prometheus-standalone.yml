@@ -12,21 +12,21 @@ scrape_configs:
       - targets: ['localhost:9100']
         labels:
           instance: 'edgeserver'
-          
+
   # cAdvisor (métriques Docker)
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['192.168.0.30:8080']
         labels:
           instance: 'edgeserver'
-          
+
   # TwisterLab API
   - job_name: 'twisterlab-api'
     static_configs:
       - targets: ['192.168.0.30:8000']
         labels:
           service: 'api'
-          
+
   # PostgreSQL Exporter
   - job_name: 'postgresql'
     static_configs:
@@ -34,7 +34,7 @@ scrape_configs:
         labels:
           instance: 'edgeserver'
           service: 'postgresql'
-          
+
   # Redis Exporter
   - job_name: 'redis'
     static_configs:

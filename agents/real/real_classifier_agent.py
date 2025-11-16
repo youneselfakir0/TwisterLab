@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Import LLM client for intelligent classification
 try:
     from agents.base.llm_client import ollama_client
-    from agents.config import VALID_TICKET_CATEGORIES
+    from agents.config import VALID_TICKET_CATEGORIES, AGENT_ROUTING_MAP
     from agents.metrics import record_classifier_llm, record_classifier_fallback, classifier_llm_error
     LLM_AVAILABLE = True
 except ImportError:
@@ -56,15 +56,8 @@ class RealClassifierAgent:
             "low": ["question", "request", "suggestion", "enhancement"]
         }
 
-        # Routing map
-        self.routing_map = {
-            "network": "DesktopCommanderAgent",  # Network diagnostics
-            "software": "ResolverAgent",          # SOP execution
-            "hardware": "DesktopCommanderAgent",  # System checks
-            "security": "ResolverAgent",          # Security SOPs
-            "performance": "MonitoringAgent",     # Performance analysis
-            "database": "SyncAgent"               # Database sync/repair
-        }
+        # Routing map - USE CENTRAL CONFIG
+        self.routing_map = AGENT_ROUTING_MAP
 
         self.classification_count = 0
 
@@ -172,23 +165,19 @@ Category:"""
         start_time = datetime.now(timezone.utc)
 
         try:
-            # Call Ollama LLM with timeout to prevent hanging
-            try:
-                result = await asyncio.wait_for(
-                    ollama_client.generate(
-                        prompt=prompt,
-                        agent_type="classifier"
-                    ),
-                    timeout=15.0  # 15-second timeout
-                )
-            except asyncio.TimeoutError:
-                logger.error("❌ Ollama LLM timeout (15s) - service may be down or overloaded")
-                # Record timeout metric
-                if LLM_AVAILABLE:
-                    classifier_llm_error.labels(error_type="TimeoutError").inc()
-                # Fallback to keyword classification
-                logger.info("🔄 Falling back to keyword classification due to timeout")
-                return await self._classify_ticket_keywords(ticket)
+            # Call Ollama LLM with automatic PRIMARY/BACKUP failover
+            # Note: generate_with_fallback() has built-in timeout and retry logic
+            result = await ollama_client.generate_with_fallback(
+                prompt=prompt,
+                agent_type="classifier"
+            )
+
+            # Log which Ollama server was used (for monitoring)
+            ollama_source = result.get("source", "unknown")
+            if ollama_source == "primary":
+                logger.info(f"✅ Classification used PRIMARY Ollama (Corertx RTX 3060)")
+            elif ollama_source == "fallback":
+                logger.warning(f"⚠️ Classification used BACKUP Ollama (Edgeserver GTX 1050) - PRIMARY may be down")
 
             end_time = datetime.now(timezone.utc)
             processing_time_ms = int((end_time - start_time).total_seconds() * 1000)

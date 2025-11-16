@@ -39,6 +39,10 @@ jobs:
       
       - name: Run Ruff (fast linting)
         run: ruff check agents/ tests/ cli/ --exit-zero
+
+      - name: Secret scan (CI policy)
+        run: |
+          python scripts/ci_secret_scan.py
       
       - name: Run Black (code formatting)
         run: black --check --diff agents/ tests/ cli/

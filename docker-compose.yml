@@ -8,12 +8,13 @@ services:
     environment:
       POSTGRES_DB: twisterlab
       POSTGRES_USER: twisterlab
-      POSTGRES_PASSWORD: twisterlab2024!
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./deployment/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./secrets/postgres_password:/run/secrets/postgres_password:ro
     networks:
       - twisterlab
     restart: unless-stopped
@@ -69,28 +70,33 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://twisterlab:twisterlab2024!@postgres:5432/twisterlab
-      - REDIS_URL=redis://redis:6379/0
-      - OLLAMA_BASE_URL=http://ollama:11434
+      ENVIRONMENT: development
+      POSTGRES_USER: twisterlab
+      POSTGRES_DB: twisterlab
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: '5432'
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      DATABASE_URL: postgresql://twisterlab@postgres:5432/twisterlab
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_BASE_URL: http://ollama:11434
     volumes:
       - .:/app
       - /app/__pycache__
+      - ./secrets/postgres_password:/run/secrets/postgres_password:ro
     networks:
       - twisterlab
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
+      - postgres
+      - redis
+      - ollama
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    secrets:
+      - postgres_password
 
   # OpenWebUI Frontend
   openwebui:
@@ -100,7 +106,7 @@ services:
       - "3000:8080"
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
-      - WEBUI_SECRET_KEY=twisterlab-secret-key-2024
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
     volumes:
       - openwebui_data:/app/backend/data
     networks:
@@ -108,6 +114,8 @@ services:
     depends_on:
       - ollama
     restart: unless-stopped
+
+    # No Docker secrets required by the frontend
 
 volumes:
   postgres_data:
@@ -118,3 +126,7 @@ volumes:
 networks:
   twisterlab:
     driver: bridge
+
+secrets:
+  postgres_password:
+    external: true

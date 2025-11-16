@@ -16,48 +16,50 @@ Requirements:
 import argparse
 import json
 import os
-import shutil
+import secrets as _secrets
 import subprocess
 import sys
 import time
-from pathlib import Path
-from typing import Dict, List, Optional
 import urllib.request
-import zipfile
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 
 class TwisterLabDeployer:
     """Automated TwisterLab community deployment"""
 
-    def __init__(self, target_dir: str = ".", config_file: str = None):
+    def __init__(self, target_dir: str = ".", config_file: Optional[str] = None):
         self.target_dir = Path(target_dir).resolve()
         self.config_file = config_file or self.target_dir / "deploy_config.json"
         self.repo_url = "https://github.com/youneselfakir0/twisterlab.git"
         self.version = "v1.0.0"
 
         # Default configuration
-        self.config = {
+        self.config: Dict[str, Any] = {
             "deployment_type": "full",  # full, minimal, development
             "enable_monitoring": True,
             "enable_security": True,
             "azure_subscription": None,
-            "grafana_admin_password": "twisterlab",
-            "postgres_password": "twisterlab_secure_2025",
-            "redis_password": "",
+            # Prefer environment-provided secrets; otherwise generate strong random values for local community deployments
+            "grafana_admin_password": os.getenv("GRAFANA_ADMIN_PASSWORD")
+            or _secrets.token_hex(16),
+            "postgres_password": os.getenv("POSTGRES_PASSWORD")
+            or _secrets.token_hex(16),
+            "redis_password": os.getenv("REDIS_PASSWORD") or _secrets.token_hex(16),
             "domain": "localhost",
             "ports": {
                 "api": 8000,
                 "grafana": 3000,
                 "prometheus": 9090,
                 "postgres": 5432,
-                "redis": 6379
-            }
+                "redis": 6379,
+            },
         }
 
     def load_config(self) -> None:
         """Load deployment configuration"""
         if self.config_file.exists():
-            with open(self.config_file, 'r') as f:
+            with open(self.config_file, "r") as f:
                 loaded_config = json.load(f)
                 self.config.update(loaded_config)
             print(f"✅ Configuration loaded from {self.config_file}")
@@ -66,7 +68,7 @@ class TwisterLabDeployer:
 
     def save_config(self) -> None:
         """Save current configuration"""
-        with open(self.config_file, 'w') as f:
+        with open(self.config_file, "w") as f:
             json.dump(self.config, f, indent=2)
         print(f"💾 Configuration saved to {self.config_file}")
 
@@ -79,7 +81,7 @@ class TwisterLabDeployer:
             ("Docker", self._check_docker),
             ("Docker Compose", self._check_docker_compose),
             ("Git", self._check_git),
-            ("Internet connection", self._check_internet)
+            ("Internet connection", self._check_internet),
         ]
 
         all_passed = True
@@ -101,21 +103,27 @@ class TwisterLabDeployer:
 
     def _check_docker(self) -> bool:
         try:
-            result = subprocess.run(["docker", "--version"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["docker", "--version"], capture_output=True, text=True
+            )
             return result.returncode == 0
         except FileNotFoundError:
             return False
 
     def _check_docker_compose(self) -> bool:
         try:
-            result = subprocess.run(["docker-compose", "--version"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["docker-compose", "--version"], capture_output=True, text=True
+            )
             return result.returncode == 0
         except FileNotFoundError:
             return False
 
     def _check_git(self) -> bool:
         try:
-            result = subprocess.run(["git", "--version"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["git", "--version"], capture_output=True, text=True
+            )
             return result.returncode == 0
         except FileNotFoundError:
             return False
@@ -124,7 +132,7 @@ class TwisterLabDeployer:
         try:
             urllib.request.urlopen("https://github.com", timeout=5)
             return True
-        except:
+        except Exception:
             return False
 
     def download_release(self) -> bool:
@@ -138,7 +146,9 @@ class TwisterLabDeployer:
                 subprocess.run(["git", "pull"], cwd=self.target_dir, check=True)
             else:
                 print("  📁 Cloning repository...")
-                subprocess.run(["git", "clone", self.repo_url, str(self.target_dir)], check=True)
+                subprocess.run(
+                    ["git", "clone", self.repo_url, str(self.target_dir)], check=True
+                )
 
             print("  ✅ Download completed")
             return True
@@ -150,33 +160,56 @@ class TwisterLabDeployer:
         """Configure deployment based on type"""
         print("⚙️  Configuring deployment...")
 
+        # Ensure secrets directory exists and create secret files
+        secrets_dir = self.target_dir / "secrets"
+        secrets_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write secret files for file-backed secrets (local development)
+        postgres_pw = os.getenv(
+            "POSTGRES_PASSWORD",
+            self.config["postgres_password"],
+        )
+        with open(secrets_dir / "postgres_password", "w", encoding="utf-8") as f:
+            f.write(postgres_pw)
+
+        redis_pw = os.getenv("REDIS_PASSWORD", self.config["redis_password"])
+        with open(secrets_dir / "redis_password", "w", encoding="utf-8") as f:
+            f.write(redis_pw)
+
+        grafana_pw = os.getenv(
+            "GRAFANA_ADMIN_PASSWORD",
+            self.config["grafana_admin_password"],
+        )
+        with open(secrets_dir / "grafana_admin_password", "w", encoding="utf-8") as f:
+            f.write(grafana_pw)
+
         # Create .env file
         env_content = f"""# TwisterLab Environment Configuration
-# Generated by deploy_community.py on {time.strftime('%Y-%m-%d %H:%M:%S')}
+# Generated by deploy_community.py on {time.strftime("%Y-%m-%d %H:%M:%S")}
 
 # Database
-POSTGRES_PASSWORD={self.config['postgres_password']}
-REDIS_PASSWORD={self.config['redis_password']}
+POSTGRES_PASSWORD_FILE=./secrets/postgres_password
+REDIS_PASSWORD_FILE=./secrets/redis_password
 
 # Grafana
 GRAFANA_ADMIN_USER=admin
-GRAFANA_ADMIN_PASSWORD={self.config['grafana_admin_password']}
+GRAFANA_ADMIN_PASSWORD_FILE=./secrets/grafana_admin_password
 GRAFANA_SMTP_HOST=localhost:1025
 
 # Azure (optional)
-AZURE_SUBSCRIPTION_ID={self.config.get('azure_subscription', '')}
+AZURE_SUBSCRIPTION_ID={self.config.get("azure_subscription", "")}
 
 # Domain
-DOMAIN={self.config['domain']}
+DOMAIN={self.config["domain"]}
 
 # Deployment type
-DEPLOYMENT_TYPE={self.config['deployment_type']}
-ENABLE_MONITORING={str(self.config['enable_monitoring']).lower()}
-ENABLE_SECURITY={str(self.config['enable_security']).lower()}
+DEPLOYMENT_TYPE={self.config["deployment_type"]}
+ENABLE_MONITORING={str(self.config["enable_monitoring"]).lower()}
+ENABLE_SECURITY={str(self.config["enable_security"]).lower()}
 """
 
         env_file = self.target_dir / ".env"
-        with open(env_file, 'w') as f:
+        with open(env_file, "w") as f:
             f.write(env_content)
 
         print(f"  ✅ Environment file created: {env_file}")
@@ -206,14 +239,21 @@ ENABLE_SECURITY={str(self.config['enable_security']).lower()}
             subprocess.run(["docker-compose", "build"], cwd=self.target_dir, check=True)
 
             print("  🏃 Starting services...")
-            subprocess.run(["docker-compose", "up", "-d"], cwd=self.target_dir, check=True)
+            subprocess.run(
+                ["docker-compose", "up", "-d"], cwd=self.target_dir, check=True
+            )
 
             # Wait for services to be healthy
             print("  🏥 Waiting for services to be healthy...")
             time.sleep(30)
 
             # Check service health
-            result = subprocess.run(["docker-compose", "ps"], cwd=self.target_dir, capture_output=True, text=True)
+            result = subprocess.run(
+                ["docker-compose", "ps"],
+                cwd=self.target_dir,
+                capture_output=True,
+                text=True,
+            )
             if "healthy" in result.stdout.lower():
                 print("  ✅ Services deployed successfully")
                 return True
@@ -229,7 +269,7 @@ ENABLE_SECURITY={str(self.config['enable_security']).lower()}
 
     def setup_monitoring(self) -> bool:
         """Setup monitoring and dashboards"""
-        if not self.config['enable_monitoring']:
+        if not self.config["enable_monitoring"]:
             print("⏭️  Monitoring disabled, skipping...")
             return True
 
@@ -252,6 +292,7 @@ ENABLE_SECURITY={str(self.config['enable_security']).lower()}
         try:
             # Test API health
             import requests
+
             response = requests.get("http://localhost:8000/health", timeout=10)
             if response.status_code == 200:
                 print("  ✅ API health check passed")
@@ -273,7 +314,7 @@ ENABLE_SECURITY={str(self.config['enable_security']).lower()}
 
         script_content = f"""#!/bin/bash
 # TwisterLab Startup Script
-# Generated by deploy_community.py on {time.strftime('%Y-%m-%d %H:%M:%S')}
+# Generated by deploy_community.py on {time.strftime("%Y-%m-%d %H:%M:%S")}
 
 echo "🚀 Starting TwisterLab {self.version}..."
 
@@ -288,20 +329,20 @@ docker-compose up -d
 echo "✅ TwisterLab started!"
 echo ""
 echo "🌐 Access URLs:"
-echo "  API: http://localhost:{self.config['ports']['api']}"
-echo "  Grafana: http://localhost:{self.config['ports']['grafana']}"
-echo "  Prometheus: http://localhost:{self.config['ports']['prometheus']}"
+echo "  API: http://localhost:{self.config["ports"]["api"]}"
+echo "  Grafana: http://localhost:{self.config["ports"]["grafana"]}"
+echo "  Prometheus: http://localhost:{self.config["ports"]["prometheus"]}"
 echo ""
 echo "📚 Documentation: https://github.com/youneselfakir0/twisterlab"
 """
 
-        with open(startup_script, 'w') as f:
+        with open(startup_script, "w") as f:
             f.write(script_content)
 
         # Make executable on Unix systems
         try:
             os.chmod(startup_script, 0o755)
-        except:
+        except Exception:
             pass  # Windows doesn't support chmod
 
         print(f"  ✅ Startup script created: {startup_script}")
@@ -315,9 +356,9 @@ echo "📚 Documentation: https://github.com/youneselfakir0/twisterlab"
 TwisterLab has been successfully deployed to this system!
 
 ### Access URLs
-- **API**: http://localhost:{self.config['ports']['api']}
-- **Grafana**: http://localhost:{self.config['ports']['grafana']} (admin/{self.config['grafana_admin_password']})
-- **Prometheus**: http://localhost:{self.config['ports']['prometheus']}
+- **API**: http://localhost:{self.config["ports"]["api"]}
+- **Grafana**: http://localhost:{self.config["ports"]["grafana"]}
+- **Prometheus**: http://localhost:{self.config["ports"]["prometheus"]}
 
 ### Management Commands
 ```bash
@@ -350,10 +391,10 @@ Grafana dashboards are automatically configured with:
 Deployment configuration saved in: `deploy_config.json`
 
 ### Key Settings
-- **Deployment Type**: {self.config['deployment_type']}
-- **Monitoring**: {'Enabled' if self.config['enable_monitoring'] else 'Disabled'}
-- **Security**: {'Enabled' if self.config['enable_security'] else 'Disabled'}
-- **Domain**: {self.config['domain']}
+- **Deployment Type**: {self.config["deployment_type"]}
+- **Monitoring**: {"Enabled" if self.config["enable_monitoring"] else "Disabled"}
+- **Security**: {"Enabled" if self.config["enable_security"] else "Disabled"}
+- **Domain**: {self.config["domain"]}
 
 ## 🆘 Troubleshooting
 
@@ -397,12 +438,12 @@ docker-compose up -d postgres
 
 ---
 
-**Deployment completed on {time.strftime('%Y-%m-%d %H:%M:%S')}**
+**Deployment completed on {time.strftime("%Y-%m-%d %H:%M:%S")}**
 **TwisterLab v{self.version} - Ready for autonomous operations!** 🚀
 """
 
         readme_file = self.target_dir / "DEPLOYMENT_README.md"
-        with open(readme_file, 'w') as f:
+        with open(readme_file, "w") as f:
             f.write(readme_content)
 
         print(f"  ✅ Documentation generated: {readme_file}")
@@ -465,7 +506,7 @@ docker-compose up -d postgres
         print("\n🌐 Access your instance at:")
         print(f"   API: http://localhost:{self.config['ports']['api']}")
         print(f"   Grafana: http://localhost:{self.config['ports']['grafana']}")
-        print("\n📖 Check DEPLOYMENT_README.md for detailed instructions"
+        print("\n📖 Check DEPLOYMENT_README.md for detailed instructions")
         return True
 
 
@@ -473,9 +514,15 @@ def main():
     parser = argparse.ArgumentParser(description="TwisterLab Community Deployment")
     parser.add_argument("--target-dir", default=".", help="Target deployment directory")
     parser.add_argument("--config", help="Configuration file path")
-    parser.add_argument("--deployment-type", choices=["full", "minimal", "development"],
-                       default="full", help="Deployment type")
-    parser.add_argument("--no-monitoring", action="store_true", help="Disable monitoring")
+    parser.add_argument(
+        "--deployment-type",
+        choices=["full", "minimal", "development"],
+        default="full",
+        help="Deployment type",
+    )
+    parser.add_argument(
+        "--no-monitoring", action="store_true", help="Disable monitoring"
+    )
     parser.add_argument("--grafana-password", help="Grafana admin password")
 
     args = parser.parse_args()

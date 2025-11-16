@@ -90,7 +90,7 @@ async def test_mcp_isolation():
                     f"http://localhost:{port}", timeout=aiohttp.ClientTimeout(total=2)
                 ) as resp:
                     accessible_count += 1
-        except:
+        except Exception:
             pass  # Normal - MCPs doivent être isolés
 
     if accessible_count == 0:

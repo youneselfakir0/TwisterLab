@@ -14,15 +14,31 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Prometheus metrics
 try:
     from prometheus_client import (
+        CONTENT_TYPE_LATEST,
+        REGISTRY,
         Counter,
         Gauge,
         Histogram,
         generate_latest,
-        CONTENT_TYPE_LATEST,
-        REGISTRY,
     )
 
     PROMETHEUS_AVAILABLE = True
+
+    # Import Ollama metrics from agents.metrics to ensure they're registered
+    try:
+        from agents.metrics import (
+            ollama_errors_total,
+            ollama_failover_total,
+            ollama_request_duration_seconds,
+            ollama_requests_total,
+            ollama_source_active,
+            ollama_tokens_generated_total,
+        )
+
+        OLLAMA_METRICS_AVAILABLE = True
+    except ImportError:
+        OLLAMA_METRICS_AVAILABLE = False
+        print("Warning: Ollama metrics not available")
 
     # Define metrics
     http_requests_total = Counter(
@@ -76,12 +92,40 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# STARTUP DIAGNOSTICS - Test critical imports before creating FastAPI app
+logger.info("🔍 STARTUP DIAGNOSTICS: Testing critical imports...")
+
+try:
+    logger.info("✅ Orchestrator import successful")
+except Exception as e:
+    logger.error(f"❌ Orchestrator import failed: {e}")
+    raise
+
+try:
+    logger.info("✅ Agent imports successful")
+except Exception as e:
+    logger.error(f"❌ Agent imports failed: {e}")
+    raise
+
+logger.info("🎉 STARTUP DIAGNOSTICS: All critical imports successful!")
+
 # Create FastAPI app
 app = FastAPI(
     title="TwisterLab Autonomous Agents API",
     description="API for TwisterLab autonomous agent orchestration system",
     version="1.0.0",
 )
+
+# Include MCP routes for Continue IDE integration
+try:
+    from agents.api.routes_mcp_real import router as mcp_real_router
+
+    app.include_router(
+        mcp_real_router
+    )  # MCP tools router (already has /v1/mcp/tools prefix)
+    logger.info("✅ MCP routes included successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ MCP routes not available: {e}")
 
 # Mock data for agents list
 AGENTS = [
@@ -147,7 +191,11 @@ AGENTS = [
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "version": "1.0.0", "timestamp": datetime.now().isoformat()}
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 @app.get("/api/v1/autonomous/agents")
@@ -167,6 +215,7 @@ async def get_agent(agent_name: str):
 async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
     """Execute an agent operation using the real orchestrator."""
     import time
+
     start_time = time.time()
 
     agent = next((a for a in AGENTS if a["name"].lower() == agent_name.lower()), None)
@@ -197,7 +246,7 @@ async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
                 "agent": agent_name,
                 "status": "error",
                 "error": f"Unknown agent mapping: {agent_name}",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
         # Extract operation and context from payload
@@ -206,26 +255,23 @@ async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
 
         # Execute REAL agent operation via orchestrator
         result = await orchestrator.execute_agent_operation(
-            orchestrator_agent_name,
-            operation,
-            context
+            orchestrator_agent_name, operation, context
         )
 
         # Track metrics
         if PROMETHEUS_AVAILABLE:
             status = "success" if result.get("status") == "success" else "error"
-            agent_requests_total.labels(
-                agent_name=agent_name,
-                status=status
-            ).inc()
+            agent_requests_total.labels(agent_name=agent_name, status=status).inc()
 
             duration = time.time() - start_time
-            agent_execution_time_seconds.labels(
-                agent_name=agent_name
-            ).observe(duration)
+            agent_execution_time_seconds.labels(agent_name=agent_name).observe(duration)
 
             # Track tickets if this is a ticket-related operation
-            if operation in ["classify_ticket", "resolve_ticket", "execute_desktop_command"]:
+            if operation in [
+                "classify_ticket",
+                "resolve_ticket",
+                "execute_desktop_command",
+            ]:
                 if status == "success":
                     tickets_processed_total.labels(status="success").inc()
                 else:
@@ -236,20 +282,21 @@ async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
             "operation": operation,
             "status": "completed",
             "timestamp": datetime.now().isoformat(),
-            "result": result
+            "result": result,
         }
 
     except Exception as e:
         # Track error
         if PROMETHEUS_AVAILABLE:
-            agent_requests_total.labels(
-                agent_name=agent_name,
-                status="error"
-            ).inc()
+            agent_requests_total.labels(agent_name=agent_name, status="error").inc()
 
             # Track failed tickets
             operation = payload.get("operation", "unknown")
-            if operation in ["classify_ticket", "resolve_ticket", "execute_desktop_command"]:
+            if operation in [
+                "classify_ticket",
+                "resolve_ticket",
+                "execute_desktop_command",
+            ]:
                 tickets_failed_total.inc()
 
         logger.error(f"Error executing {agent_name}: {str(e)}")
@@ -257,7 +304,7 @@ async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
             "agent": agent_name,
             "status": "error",
             "error": str(e),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
 
@@ -305,6 +352,16 @@ async def metrics():
 if __name__ == "__main__":
     import uvicorn
 
-    logger.info("Starting TwisterLab API server...")
-    print("TwisterLab API server starting on port 8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    try:
+        logger.info("Starting TwisterLab API server...")
+        print("TwisterLab API server starting on port 8000")
+
+        logger.info("Starting uvicorn server...")
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    except Exception as e:
+        logger.error(f"❌ Failed to start API server: {e}")
+        import traceback
+
+        logger.error(traceback.format_exc())
+        raise

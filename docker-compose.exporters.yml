@@ -1,5 +1,11 @@
 version: '3.8'
 
+secrets:
+  redis_password:
+    external: true
+  postgres_password:
+    external: true
+
 networks:
   twisterlab_prod:
     external: true
@@ -9,7 +15,7 @@ services:
     image: oliver006/redis_exporter:latest
     command:
       - --redis.addr=192.168.0.30:6379
-      - --redis.password=twisterlab_prod_redis_password_2024!
+      - --redis.password-file=/run/secrets/redis_password
     networks:
       - twisterlab_prod
     ports:
@@ -20,11 +26,13 @@ services:
       placement:
         constraints:
           - node.role == manager
+    secrets:
+      - redis_password
 
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter:latest
     environment:
-      DATA_SOURCE_NAME: "postgresql://twisterlab:twisterlab123@twisterlab_postgres:5432/twisterlab?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://twisterlab:$(cat /run/secrets/postgres_password)@twisterlab_postgres:5432/twisterlab?sslmode=disable"
     networks:
       - twisterlab_prod
     ports:
@@ -35,3 +43,5 @@ services:
       placement:
         constraints:
           - node.role == manager
+    secrets:
+      - postgres_password

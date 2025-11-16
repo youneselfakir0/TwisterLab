@@ -8,7 +8,10 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-twisterlab_redis_password}
+    command:
+      - sh
+      - -c
+      - "redis-server --appendonly yes --requirepass $(cat /run/secrets/redis_password)"
     networks:
       - twisterlab_prod
     deploy:
@@ -20,6 +23,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    secrets:
+      - redis_password
 
 networks:
   twisterlab_prod:

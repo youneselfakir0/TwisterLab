@@ -4,8 +4,10 @@ version: '3.8'
 
 x-common-env: &common-env
   ENVIRONMENT: ${ENVIRONMENT:-production}
-  DATABASE_URL: postgresql://${POSTGRES_USER:-twisterlab}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-twisterlab_prod}
-  REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+  DATABASE_URL: postgresql://${POSTGRES_USER:-twisterlab}@postgres:5432/${POSTGRES_DB:-twisterlab_prod}
+  DATABASE_URL__FILE: /run/secrets/postgres_password
+  REDIS_URL: redis://:@redis:6379
+  REDIS_PASSWORD_FILE: /run/secrets/redis_password
   SECRET_KEY: ${SECRET_KEY}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
 
@@ -64,7 +66,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-twisterlab_prod}
       POSTGRES_USER: ${POSTGRES_USER:-twisterlab}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -83,16 +85,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    command:
-      - redis-server
-      - --appendonly
-      - "yes"
-      - --requirepass
-      - ${REDIS_PASSWORD}
-      - --maxmemory
-      - "512mb"
-      - --maxmemory-policy
-      - allkeys-lru
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "/run/secrets/redis_password", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
     volumes:
       - redis_data:/data
     networks:
@@ -110,10 +103,10 @@ services:
     logging: *default-logging
 
   redis-exporter:
-    image: oliver006/redis_exporter:latest
+    image: oliver006/redis_exporter:v1.54.0
     command:
       - --redis.addr=redis:6379
-      - --redis.password=${REDIS_PASSWORD}
+      - --redis.password-file=/run/secrets/redis_password
     ports:
       - "9121:9121"
     networks:
@@ -125,9 +118,10 @@ services:
     logging: *default-logging
 
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: prometheuscommunity/postgres-exporter:v0.15.0
     environment:
-      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      - DATA_SOURCE_NAME__FILE=/run/secrets/postgres_password
     ports:
       - "9187:9187"
     networks:
@@ -155,7 +149,7 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+  # Prefer file-backed secrets; do not override the REDIS_PASSWORD_FILE defined in x-common-env
     ports:
       - "8000:8000"
     networks:
@@ -221,3 +215,11 @@ volumes:
   postgres_data:
   redis_data:
   webui_data:
+
+secrets:
+  postgres_password:
+    external: true
+  redis_password:
+    external: true
+  jwt_secret:
+    external: true

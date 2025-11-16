@@ -38,11 +38,11 @@ $envContent = @"
 # Environment: $Environment
 # Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 
-JWT_SECRET_KEY=$jwtSecret
+# JWT_SECRET_KEY and ADMIN_PASSWORD are provided as environment variables when running docker-compose.
+# They are not directly written to this file to avoid duplication.
+
 JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
-
-ADMIN_PASSWORD=$adminPassword
 
 # Azure AD (empty = local mode)
 AZURE_TENANT_ID=
@@ -52,7 +52,7 @@ AZURE_CLIENT_SECRET=
 # Redis
 REDIS_HOST=redis
 REDIS_PORT=6379
-REDIS_PASSWORD=twisterlab-redis-prod
+REDIS_PASSWORD=${REDIS_PASSWORD}
 
 AUTH_MODE=local
 ENABLE_AUTH=true
@@ -110,7 +110,11 @@ if ($Environment -eq "staging") {
     Copy-Item $envPath "infrastructure\configs\.env.staging" -Force
 
     # Start services
-    docker-compose -f infrastructure\docker\docker-compose.unified.yml --env-file infrastructure\configs\.env.staging up -d
+    docker-compose -f infrastructure\docker\docker-compose.unified.yml `
+        --env-file infrastructure\configs\.env.staging `
+        -e "JWT_SECRET_KEY=$jwtSecret" `
+        -e "ADMIN_PASSWORD=$adminPassword" `
+        up -d
 
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] Docker deployment failed" -ForegroundColor Red

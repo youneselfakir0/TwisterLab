@@ -39,7 +39,7 @@ if ($allTestsPassed) {
     Write-Host "📋 URLs d'accès :" -ForegroundColor White
     Write-Host "  • Traefik Dashboard: http://$nodeIP`:8084" -ForegroundColor Cyan
     Write-Host "  • OpenWebUI: http://$nodeIP`:8083" -ForegroundColor Cyan
-    Write-Host "  • Grafana: http://$nodeIP`:3000 (admin/admin)" -ForegroundColor Cyan
+    Write-Host "  • Grafana: http://$nodeIP`:3000 (admin account via GRAFANA_ADMIN_USER/GRAFANA_ADMIN_PASSWORD)" -ForegroundColor Cyan
     Write-Host "  • Prometheus: http://$nodeIP`:9090" -ForegroundColor Cyan
 } else {
     Write-Host "❌ Certains dashboards nécessitent une attention" -ForegroundColor Red

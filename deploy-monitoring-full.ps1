@@ -1,9 +1,30 @@
 # Script pour déployer la stack de monitoring complète TwisterLab
 param(
     [string]$Server = "192.168.0.30",
-    [string]$Username = "twister",
-    [string]$RedisPassword = "twisterlab_redis_password"
+    [string]$Username = "twister"
 )
+
+# Function to read secret from Docker secret file or environment variable
+function Get-Secret {
+    param(
+        [string]$SecretName,
+        [string]$DefaultValue = $null
+    )
+    $secretPath = "/run/secrets/$SecretName"
+    if (Test-Path $secretPath) {
+        return (Get-Content $secretPath).Trim()
+    }
+    $envValue = Get-Item ENV:$SecretName -ErrorAction SilentlyContinue
+    if ($envValue) {
+        return $envValue.Value
+    }
+    if ($DefaultValue) {
+        return $DefaultValue
+    }
+    throw "Secret '$SecretName' not found in Docker secrets or environment variables."
+}
+
+$RedisPassword = Get-Secret -SecretName "redis_password"
 
 Write-Host ">>> Déploiement de la stack de monitoring complète TwisterLab" -ForegroundColor Cyan
 Write-Host "=" * 60 -ForegroundColor Cyan
@@ -87,7 +108,7 @@ Write-Host "`nSUCCESS Stack de monitoring déployée!" -ForegroundColor Green
 Write-Host "=" * 60 -ForegroundColor Green
 
 Write-Host "`nURLs d'accès:" -ForegroundColor Cyan
-Write-Host "• Grafana: http://$Server`:3000 (admin/admin)" -ForegroundColor White
+Write-Host "• Grafana: http://$Server`:3000 (admin via GRAFANA_ADMIN_USER/GRAFANA_ADMIN_PASSWORD or Docker secret)" -ForegroundColor White
 Write-Host "• Prometheus: http://$Server`:9090" -ForegroundColor White
 Write-Host "• Alertmanager: http://$Server`:9093" -ForegroundColor White
 

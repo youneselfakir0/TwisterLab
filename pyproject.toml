@@ -1,7 +1,9 @@
 [tool.ruff]
 # Ruff configuration: adjust rules and excluded paths
+
+[tool.ruff.lint]
 extend-ignore = [
-    "E203", "W503"
+    "E203"
 ]
 exclude = [
     " .venv",

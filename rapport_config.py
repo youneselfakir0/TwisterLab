@@ -9,7 +9,7 @@ def cmd(c):
         return subprocess.run(
             c, shell=True, capture_output=True, text=True, timeout=5
         ).stdout.strip()
-    except:
+    except Exception:
         return "N/A"
 
 

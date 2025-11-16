@@ -1,6 +1,6 @@
 # 🎯 TwisterLab MCP Tools - Quick Reference
 
-## 🔍 Distinction Important
+## 🔍 Distinction Importante
 
 ### 🛠️ Built-in Tools (17 tools Continue)
 - **Source**: Continue.dev natif
@@ -10,11 +10,32 @@
 
 ### 🤖 TwisterLab MCP Tools (7 agents)
 - **Source**: API TwisterLab (`http://192.168.0.30:8000`)
-- **Config**: `.continue/mcp-tools-config.json` (ce fichier)
+- **Config**: `.continue/mcpServers/twisterlab-mcp.json`
+- **Serveur**: `agents/mcp/mcp_server_continue_sync.py` (v2.1.0)
 - **Exemples**: monitor_system_health, classify_ticket, resolve_ticket
 - **Affichage**: Section "MCP Servers" → "TwisterLab MCP"
 
 ---
+
+## 🔧 Architecture Unifiée (v2.1.0)
+
+### Serveur MCP Actif
+- **Fichier**: `agents/mcp/mcp_server_continue_sync.py`
+- **Version**: 2.1.0 (Enhanced error handling & API health checks)
+- **Mode**: REAL (appels HTTP à l'API TwisterLab)
+- **Protocole**: MCP 2024-11-05
+- **Transport**: stdio (JSON-RPC 2.0)
+
+### Améliorations v2.1.0
+- ✅ **Vérification santé API** au démarrage
+- ✅ **Gestion d'erreur spécifique** (httpx.TimeoutException, HTTPStatusError, etc.)
+- ✅ **Fallback automatique** vers mode MOCK si API indisponible
+- ✅ **Logs détaillés** pour debugging
+- ✅ **Timeout configurable** (60s pour opérations LLM)
+
+---
+
+## 📋 Liste des 7 Outils TwisterLab
 
 ## 📋 Liste des 7 Outils TwisterLab
 
@@ -39,7 +60,7 @@ Ctrl+Shift+P → "Continue: Open Tools"
 
 ### 2️⃣ Sections Affichées
 - **Built-in Tools (17)**: Outils Continue natifs
-- **MCP Servers**: 
+- **MCP Servers**:
   - **TwisterLab MCP (7)**: Vos agents autonomes
 
 ### 3️⃣ Actions Possibles
@@ -185,7 +206,7 @@ Invoke-WebRequest -Uri "http://192.168.0.30:8000/v1/mcp/tools/monitor_system_hea
 
 ---
 
-**Status**: ✅ Operational  
-**API**: http://192.168.0.30:8000  
-**Agents**: 7/7 running  
+**Status**: ✅ Operational
+**API**: http://192.168.0.30:8000
+**Agents**: 7/7 running
 **Version**: 1.0.1

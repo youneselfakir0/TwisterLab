@@ -44,16 +44,28 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=twisterlab2025!
-      - GF_USERS_ALLOW_SIGN_UP=false
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SERVER_HTTP_ADDR: 0.0.0.0
+      GF_SERVER_HTTP_PORT: 3000
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    command: ["grafana-server", "--homepath=/usr/share/grafana", "--config=/etc/grafana/grafana.ini"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - monitoring
     depends_on:
       - prometheus
     restart: unless-stopped
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
 volumes:
   prometheus_data:
@@ -61,4 +73,5 @@ volumes:
 
 networks:
   monitoring:
-    driver: bridge
+    external: true
+    name: monitoring_monitoring

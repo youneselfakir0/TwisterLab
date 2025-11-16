@@ -270,7 +270,7 @@ try {
 
     Write-MonitorLog "=== Monitoring Configuration Completed ==="
     Write-Host "✅ TwisterLab monitoring and alerting configured successfully!" -ForegroundColor Green
-    Write-Host "📊 Grafana: http://localhost:3001 (admin/admin)" -ForegroundColor Cyan
+    Write-Host "📊 Grafana: http://localhost:3001 (admin account configured via GRAFANA_ADMIN_USER/GRAFANA_ADMIN_PASSWORD)" -ForegroundColor Cyan
     Write-Host "📈 Prometheus: http://localhost:9090" -ForegroundColor Cyan
     Write-Host "🚨 Alertmanager: http://localhost:9093" -ForegroundColor Cyan
     Write-Host "📧 Alerts will be sent to: $AlertEmail" -ForegroundColor Cyan

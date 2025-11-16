@@ -3,7 +3,7 @@ global:
   evaluation_interval: 15s
 
 rule_files:
-  - "rules/*.yml"
+  - "alert_rules.yml"
 
 alerting:
   alertmanagers:
@@ -12,50 +12,72 @@ alerting:
           - alertmanager:9093
 
 scrape_configs:
+  # Prometheus itself
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9090']  # FIXED: Port correct
+      - targets: ['localhost:9090']
 
+  # Node Exporter - System metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['192.168.0.30:9100']
+    scrape_interval: 5s
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['10.0.0.220:9187']
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['10.0.0.218:9121']
+
+  # cAdvisor - Docker containers metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 5s
+
+  # Blackbox Exporter - HTTP endpoints
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - http://192.168.0.30:8000/health
+        - http://192.168.0.30:8080/health
+        - http://192.168.0.30:11434/api/tags
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: twisterlab-api-exporter:9115
+
+  # TwisterLab API custom metrics
   - job_name: 'twisterlab-api'
     static_configs:
       - targets: ['192.168.0.30:8000']
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  - job_name: 'traefik'
+  # Ollama metrics (if available)
+  - job_name: 'ollama'
     static_configs:
-      - targets: ['192.168.0.30:8080']  # FIXED: IP au lieu de DNS
+      - targets: ['192.168.0.30:11434']
     metrics_path: '/metrics'
-    scrape_interval: 15s
+    scrape_interval: 30s
+    scrape_timeout: 10s
 
-  # System Monitoring via Traefik Metrics (zero conflicts, already active)
-  - job_name: 'traefik-metrics'
+  # Alertmanager
+  - job_name: 'alertmanager'
     static_configs:
-      - targets: ['192.168.0.30:8080']  # FIXED: IP au lieu de DNS
-    metrics_path: '/metrics'
-    scrape_interval: 15s
+      - targets: ['alertmanager:9093']
 
-  # Container Metrics (optional - requires deployment)
-  # - job_name: 'node-exporter'
-  #   static_configs:
-  #     - targets: ['node-exporter:9100']
-  #   scrape_interval: 15s
-
-  # - job_name: 'cadvisor'
-  #   static_configs:
-  #     - targets: ['cadvisor:8082']  # Port 8082 to avoid conflict with Traefik
-  #   scrape_interval: 15s
-  #   metrics_path: '/metrics'
-
-  - job_name: 'twisterlab-redis'
-
+  - job_name: 'node-exporter'
     static_configs:
-      - targets: ['192.168.0.30:9121']
-    metrics_path: '/metrics'
-    scrape_interval: 15s
-
-  - job_name: 'twisterlab-postgres'
-    static_configs:
-      - targets: ['192.168.0.30:9187']
-    metrics_path: '/metrics'
+      - targets: ['192.168.0.30:9100']
     scrape_interval: 15s

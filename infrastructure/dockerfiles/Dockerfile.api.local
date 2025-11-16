@@ -12,6 +12,9 @@ WORKDIR /app
 COPY api/ ./api/
 COPY agents/ ./agents/
 
+# Set Python path
+ENV PYTHONPATH=/app
+
 # S'assurer que les permissions sont correctes
 USER root
 RUN chown -R app:app /app

@@ -67,7 +67,7 @@ class TestBackupAgent:
     async def test_create_full_backup(self, backup_agent):
         """Test creating full backup"""
         result = await backup_agent.execute({
-            "operation": "create_backup", 
+            "operation": "create_backup",
             "backup_type": BackupType.FULL
         })
 

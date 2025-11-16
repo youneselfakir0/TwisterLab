@@ -150,7 +150,7 @@ async def get_auto_resolve_status() -> Dict[str, Any]:
         try:
             if hasattr(auto_resolver, "get_metrics"):
                 metrics = await auto_resolver.get_metrics()
-        except:
+        except Exception:
             metrics = {"error": "metrics_unavailable"}
 
         return {

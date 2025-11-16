@@ -104,6 +104,25 @@ except ImportError as e:
     Write-ServiceLog "Python environment ready"
 }
 
+function Get-Secret {
+    param(
+        [string]$SecretName,
+        [string]$DefaultValue = $null
+    )
+    $secretPath = "/run/secrets/$SecretName"
+    if (Test-Path $secretPath) {
+        return (Get-Content $secretPath).Trim()
+    }
+    $envValue = Get-Item ENV:$SecretName -ErrorAction SilentlyContinue
+    if ($envValue) {
+        return $envValue.Value
+    }
+    if ($DefaultValue) {
+        return $DefaultValue
+    }
+    throw "Secret '$SecretName' not found in Docker secrets or environment variables."
+}
+
 function Start-TwisterLabAPI {
     Write-ServiceLog "Starting TwisterLab API service..."
 
@@ -116,8 +135,10 @@ function Start-TwisterLabAPI {
 
         # Set environment variables
         $env:ENVIRONMENT = "production"
-        $env:DATABASE_URL = "postgresql://twisterlab:twisterlab_prod_db_password_2024!@localhost:5432/twisterlab_prod"
-        $env:REDIS_URL = "redis://localhost:6379"
+    $postgresPassword = Get-Secret -SecretName "postgres_password"
+    $redisPassword = Get-Secret -SecretName "redis_password"
+        $env:DATABASE_URL = "postgresql://twisterlab:$postgresPassword@localhost:5432/twisterlab_prod"
+        $env:REDIS_URL = "redis://:$redisPassword@localhost:6379"
 
         Write-ServiceLog "Starting API on port 8000..."
 

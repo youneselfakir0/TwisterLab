@@ -1,5 +1,11 @@
 version: '3.8'
 
+secrets:
+  grafana_admin_password:
+    external: true
+  smtp_password:
+    external: true
+
 services:
   # Prometheus - Metrics Collection
   prometheus:
@@ -43,7 +49,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_admin_password
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
     configs:
@@ -70,6 +76,8 @@ services:
         - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     depends_on:
       - prometheus
+    secrets:
+      - grafana_admin_password
 
   # Jaeger - Distributed Tracing
   jaeger:
@@ -99,9 +107,6 @@ services:
         target: /etc/alertmanager/alertmanager.yml
     volumes:
       - alertmanager_data:/alertmanager
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
     networks:
       - twisterlab_prod
     deploy:
@@ -110,6 +115,8 @@ services:
           - node.labels.os == linux
       labels:
         - "traefik.enable=false"
+    secrets:
+      - smtp_password
 
 volumes:
   prometheus_data:

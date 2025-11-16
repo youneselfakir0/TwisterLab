@@ -26,6 +26,30 @@ if (Test-Path "scripts\deploy_real_agents.ps1") {
 
 Write-Host ""
 
+# Function to read secret from Docker secret file or environment variable
+function Get-Secret {
+    param(
+        [string]$SecretName,
+        [string]$DefaultValue = $null
+    )
+    $secretPath = "/run/secrets/$SecretName"
+    if (Test-Path $secretPath) {
+        return (Get-Content $secretPath).Trim()
+    }
+    $envValue = Get-Item ENV:$SecretName -ErrorAction SilentlyContinue
+    if ($envValue) {
+        return $envValue.Value
+    }
+    if ($DefaultValue) {
+        return $DefaultValue
+    }
+    throw "Secret '$SecretName' not found in Docker secrets or environment variables."
+}
+
+$GrafanaPassword = Get-Secret -SecretName "grafana_admin_password"
+$GrafanaUser = $env:GRAFANA_ADMIN_USER
+if ([string]::IsNullOrWhiteSpace($GrafanaUser)) { $GrafanaUser = "admin" }
+
 # Step 2: Import Grafana dashboard
 Write-Host "STEP 2/5: Importing Grafana dashboard" -ForegroundColor Yellow
 Write-Host "─────────────────────────────────────────" -ForegroundColor Gray
@@ -36,7 +60,7 @@ if (Test-Path $dashboardPath) {
         $dashboard = Get-Content $dashboardPath | ConvertFrom-Json
 
         $grafanaUrl = "http://${edgeserver}:3000"
-        $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("admin:admin"))
+    $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$GrafanaUser:$GrafanaPassword"))
 
         $headers = @{
             "Authorization" = "Basic $auth"
@@ -133,7 +157,7 @@ Write-Host "    http://${edgeserver}:8000" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Grafana Dashboard:" -ForegroundColor White
 Write-Host "    http://${edgeserver}:3000/d/twisterlab-real-agents" -ForegroundColor Gray
-Write-Host "    Login: admin / admin" -ForegroundColor DarkGray
+Write-Host "    Login: admin / (see Docker secret)" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "  Health Check:" -ForegroundColor White
 Write-Host "    http://${edgeserver}:8000/health" -ForegroundColor Gray

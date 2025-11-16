@@ -1,16 +1,28 @@
 # Script de deploiement des exporters Redis et PostgreSQL
 # Deploie uniquement les nouveaux services sans perturber le stack existant
 
-$ErrorActionPreference = "Stop"
+# Function to read secret from Docker secret file or environment variable
+function Get-Secret {
+    param(
+        [string]$SecretName,
+        [string]$DefaultValue = $null
+    )
+    $secretPath = "/run/secrets/$SecretName"
+    if (Test-Path $secretPath) {
+        return (Get-Content $secretPath).Trim()
+    }
+    $envValue = Get-Item ENV:$SecretName -ErrorAction SilentlyContinue
+    if ($envValue) {
+        return $envValue.Value
+    }
+    if ($DefaultValue) {
+        return $DefaultValue
+    }
+    throw "Secret '$SecretName' not found in Docker secrets or environment variables."
+}
 
-Write-Host ""
-Write-Host "DEPLOIEMENT DES EXPORTERS PROMETHEUS" -ForegroundColor Cyan
-Write-Host "====================================" -ForegroundColor Cyan
-Write-Host ""
-
-$edgeserver = "192.168.0.30"
-$user = "twister"
-$composeFile = "infrastructure/docker/docker-compose.unified.yml"
+$RedisPassword = Get-Secret -SecretName "redis_password"
+$PostgresPassword = Get-Secret -SecretName "postgres_password"
 
 # 1. Copier le docker-compose sur edgeserver
 Write-Host "[1/4] Copie du docker-compose sur edgeserver..." -ForegroundColor Yellow
@@ -35,9 +47,10 @@ docker service create \
   --constraint 'node.role==manager' \
   --label prometheus.scrape=true \
   --label prometheus.port=9121 \
+  --secret redis_password \
   oliver006/redis_exporter:latest \
   --redis.addr=twisterlab_redis:6379 \
-  --redis.password=twisterlab_prod_redis_password_2024!
+  --redis.password-file=/run/secrets/redis_password
 "@
 
 Write-Host ""
@@ -49,9 +62,10 @@ docker service create \
   --network twisterlab_backend \
   --publish 9187:9187 \
   --constraint 'node.role==manager' \
-  --env DATA_SOURCE_NAME='postgresql://twisterlab:twisterlab_secure_db_password_2024!@twisterlab_postgres:5432/twisterlab_prod?sslmode=disable' \
+  --env DATA_SOURCE_NAME='postgresql://twisterlab:$(cat /run/secrets/postgres_password)@twisterlab_postgres:5432/twisterlab_prod?sslmode=disable' \
   --label prometheus.scrape=true \
   --label prometheus.port=9187 \
+  --secret postgres_password \
   prometheuscommunity/postgres-exporter:latest
 "@
 

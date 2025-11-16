@@ -82,9 +82,7 @@ def import_dashboard(dashboard_path: str) -> bool:
 
 
 if __name__ == "__main__":
-    dashboard_path = (
-        "monitoring/grafana/provisioning/dashboards/twisterlab-agents-realtime.json"
-    )
+    dashboard_path = "monitoring/grafana/provisioning/dashboards/twisterlab-agents-realtime.json"
 
     if not Path(dashboard_path).exists():
         print(f"❌ Dashboard file not found: {dashboard_path}")

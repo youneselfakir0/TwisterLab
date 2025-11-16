@@ -1,4 +1,3 @@
-
 @app.post("/api/v1/tickets/process")
 async def process_ticket_workflow(payload: Dict[str, Any]):
     """
@@ -15,6 +14,7 @@ async def process_ticket_workflow(payload: Dict[str, Any]):
     }
     """
     import time
+
     start_time = time.time()
 
     try:
@@ -36,12 +36,11 @@ async def process_ticket_workflow(payload: Dict[str, Any]):
             http_requests_total.labels(
                 method="POST",
                 endpoint="/api/v1/tickets/process",
-                status="success" if result.get("status") == "success" else "error"
+                status="success" if result.get("status") == "success" else "error",
             ).inc()
 
             http_request_duration_seconds.labels(
-                method="POST",
-                endpoint="/api/v1/tickets/process"
+                method="POST", endpoint="/api/v1/tickets/process"
             ).observe(duration)
 
         logger.info(f"✅ Workflow completed in {duration:.2f}s: {result.get('status')}")
@@ -51,7 +50,7 @@ async def process_ticket_workflow(payload: Dict[str, Any]):
             "ticket_id": result.get("ticket_id"),
             "workflow_results": result,
             "duration_seconds": round(duration, 2),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
     except Exception as e:
@@ -59,12 +58,7 @@ async def process_ticket_workflow(payload: Dict[str, Any]):
 
         if PROMETHEUS_AVAILABLE:
             http_requests_total.labels(
-                method="POST",
-                endpoint="/api/v1/tickets/process",
-                status="error"
+                method="POST", endpoint="/api/v1/tickets/process", status="error"
             ).inc()
 
-        raise HTTPException(
-            status_code=500,
-            detail=f"Workflow processing failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Workflow processing failed: {str(e)}")

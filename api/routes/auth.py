@@ -143,9 +143,7 @@ async def get_me(
 
 
 @router.get("/verify")
-async def verify_token(
-    authorization: str = Header(None), required_role: str | None = None
-):
+async def verify_token(authorization: str = Header(None), required_role: str | None = None):
     """
     Verify JWT token for Traefik ForwardAuth middleware
 
@@ -172,9 +170,7 @@ async def verify_token(
         }
 
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=401, detail="Missing or invalid authorization header"
-        )
+        raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
 
     token = authorization.replace("Bearer ", "")
     user_info = sso_manager.validate_token(token)
@@ -267,6 +263,4 @@ async def revoke_session(
     if sso_manager.logout(username):
         return {"message": f"Session revoked for {username}"}
     else:
-        raise HTTPException(
-            status_code=404, detail=f"No active session found for {username}"
-        )
+        raise HTTPException(status_code=404, detail=f"No active session found for {username}")

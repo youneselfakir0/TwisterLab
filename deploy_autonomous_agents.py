@@ -104,9 +104,7 @@ class AutonomousAgentsDeployer:
         async with aiohttp.ClientSession() as session:
             while time.time() - start_time < timeout:
                 try:
-                    async with session.get(
-                        self.health_check_url, timeout=10
-                    ) as response:
+                    async with session.get(self.health_check_url, timeout=10) as response:
                         if response.status == 200:
                             data = await response.json()
                             if data.get("status") == "healthy":
@@ -196,9 +194,7 @@ class AutonomousAgentsDeployer:
 
             async with aiohttp.ClientSession() as session:
                 try:
-                    async with session.get(
-                        self.health_check_url, timeout=10
-                    ) as response:
+                    async with session.get(self.health_check_url, timeout=10) as response:
                         if response.status == 200:
                             result["api_responsive"] = True
                             logger.info("API is responsive")
@@ -268,9 +264,7 @@ class AutonomousAgentsDeployer:
         success_count = sum(verification.values())
         total_checks = len(verification)
 
-        logger.info(
-            f"Deployment verification: {success_count}/{total_checks} checks passed"
-        )
+        logger.info(f"Deployment verification: {success_count}/{total_checks} checks passed")
 
         if success_count == total_checks:
             logger.info("Autonomous agents deployment completed successfully!")

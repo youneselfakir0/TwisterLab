@@ -79,9 +79,7 @@ class AutomatedBackup:
                 await self._send_backup_notification(result)
                 self._save_backup_metadata(result)
             else:
-                logger.error(
-                    f"{backup_type} backup failed: {result.get('error', 'Unknown error')}"
-                )
+                logger.error(f"{backup_type} backup failed: {result.get('error', 'Unknown error')}")
                 await self._send_backup_alert(result)
 
         except Exception as e:
@@ -132,9 +130,7 @@ class AutomatedBackup:
             "backup", {"operation": "backup", "context": {"backup_type": "full"}}
         )
 
-    async def _call_agent(
-        self, agent_name: str, payload: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _call_agent(self, agent_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Call an autonomous agent."""
         try:
             response = await self.client.post(
@@ -226,10 +222,9 @@ class AutomatedBackup:
             "total_backups": len(history),
             "successful_backups": len([h for h in history if h["status"] == "success"]),
             "failed_backups": len([h for h in history if h["status"] != "success"]),
-            "average_duration": sum(h.get("duration", 0) for h in history)
-            / len(history)
-            if history
-            else 0,
+            "average_duration": (
+                sum(h.get("duration", 0) for h in history) / len(history) if history else 0
+            ),
             "last_backup": history[-1] if history else None,
         }
 

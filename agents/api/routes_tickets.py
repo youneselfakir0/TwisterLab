@@ -3,11 +3,12 @@ TwisterLab API - Ticket Management Routes
 Handles ticket creation, retrieval, updates, and status management
 """
 
+import uuid
+from datetime import datetime, timezone
 from typing import List, Optional
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-from datetime import datetime, timezone
-import uuid
 
 # Create router
 router = APIRouter()
@@ -19,38 +20,33 @@ tickets_db: dict[str, dict] = {}
 # Pydantic models
 class TicketCreate(BaseModel):
     """Request model for creating a new ticket."""
-    subject: str = Field(
-        ..., min_length=1, max_length=200, description="Ticket subject"
-    )
-    description: str = Field(
-        ..., min_length=1, max_length=2000, description="Ticket description"
-    )
+
+    subject: str = Field(..., min_length=1, max_length=200, description="Ticket subject")
+    description: str = Field(..., min_length=1, max_length=2000, description="Ticket description")
     priority: str = Field(
-        "medium",
-        pattern="^(low|medium|high|urgent)$",
-        description="Ticket priority"
+        "medium", pattern="^(low|medium|high|urgent)$", description="Ticket priority"
     )
     category: str = Field("general", description="Ticket category")
     requestor_email: Optional[str] = Field(None, description="Requestor email address")
-    user_email: Optional[str] = Field(None, description="User email address (alias for requestor_email)")
+    user_email: Optional[str] = Field(
+        None, description="User email address (alias for requestor_email)"
+    )
     ticket_number: Optional[str] = Field(None, description="Custom ticket number")
 
 
 class TicketUpdate(BaseModel):
     """Request model for updating a ticket."""
+
     subject: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, min_length=1, max_length=2000)
-    priority: Optional[str] = Field(
-        None, pattern="^(low|medium|high|urgent)$"
-    )
+    priority: Optional[str] = Field(None, pattern="^(low|medium|high|urgent)$")
     category: Optional[str] = Field(None)
-    status: Optional[str] = Field(
-        None, pattern="^(new|classified|assigned|resolved|closed)$"
-    )
+    status: Optional[str] = Field(None, pattern="^(new|classified|assigned|resolved|closed)$")
 
 
 class TicketResponse(BaseModel):
     """Response model for ticket data."""
+
     id: str
     subject: str
     description: str
@@ -67,6 +63,8 @@ class TicketResponse(BaseModel):
 @router.get("/hello")
 def hello():
     return {"hello": "world"}
+
+
 @router.post("/", response_model=TicketResponse)
 async def create_ticket(ticket: TicketCreate) -> TicketResponse:
     """
@@ -82,7 +80,9 @@ async def create_ticket(ticket: TicketCreate) -> TicketResponse:
     # Use requestor_email or user_email (for compatibility with Night Shift)
     email = ticket.requestor_email or ticket.user_email
     if not email:
-        raise HTTPException(status_code=400, detail="Either requestor_email or user_email is required")
+        raise HTTPException(
+            status_code=400, detail="Either requestor_email or user_email is required"
+        )
 
     ticket_data = {
         "id": ticket_id,
@@ -95,7 +95,7 @@ async def create_ticket(ticket: TicketCreate) -> TicketResponse:
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
         "assigned_agent": None,
-        "resolution": None
+        "resolution": None,
     }
 
     tickets_db[ticket_id] = ticket_data
@@ -105,14 +105,10 @@ async def create_ticket(ticket: TicketCreate) -> TicketResponse:
 
 @router.get("/", response_model=List[TicketResponse])
 async def list_tickets(
-    status: Optional[str] = Query(
-        None, pattern="^(new|classified|assigned|resolved|closed)$"
-    ),
-    priority: Optional[str] = Query(
-        None, pattern="^(low|medium|high|urgent)$"
-    ),
+    status: Optional[str] = Query(None, pattern="^(new|classified|assigned|resolved|closed)$"),
+    priority: Optional[str] = Query(None, pattern="^(low|medium|high|urgent)$"),
     limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0)
+    offset: int = Query(0, ge=0),
 ) -> List[TicketResponse]:
     """
     List tickets with optional filtering.
@@ -129,7 +125,7 @@ async def list_tickets(
         tickets = [t for t in tickets if t["priority"] == priority]
 
     # Apply pagination
-    tickets = tickets[offset:offset + limit]
+    tickets = tickets[offset : offset + limit]
 
     return [TicketResponse.model_validate(ticket) for ticket in tickets]
 
@@ -158,9 +154,7 @@ async def get_ticket(ticket_id: str) -> TicketResponse:
 
 
 @router.put("/{ticket_id}", response_model=TicketResponse)
-async def update_ticket(
-    ticket_id: str, updates: TicketUpdate
-) -> TicketResponse:
+async def update_ticket(ticket_id: str, updates: TicketUpdate) -> TicketResponse:
     """
     Update a ticket.
 
@@ -197,8 +191,7 @@ async def delete_ticket(ticket_id: str) -> dict:
 
 @router.post("/{ticket_id}/resolve", response_model=TicketResponse)
 async def resolve_ticket(
-    ticket_id: str,
-    resolution: str = Query(..., min_length=1, max_length=1000)
+    ticket_id: str, resolution: str = Query(..., min_length=1, max_length=1000)
 ) -> TicketResponse:
     """
     Mark a ticket as resolved.
@@ -211,10 +204,7 @@ async def resolve_ticket(
     ticket = tickets_db[ticket_id].copy()
 
     if ticket["status"] not in ["assigned", "new"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Ticket must be assigned or new to be resolved"
-        )
+        raise HTTPException(status_code=400, detail="Ticket must be assigned or new to be resolved")
 
     ticket["status"] = "resolved"
     ticket["resolution"] = resolution
@@ -238,10 +228,7 @@ async def close_ticket(ticket_id: str) -> TicketResponse:
     ticket = tickets_db[ticket_id].copy()
 
     if ticket["status"] != "resolved":
-        raise HTTPException(
-            status_code=400,
-            detail="Only resolved tickets can be closed"
-        )
+        raise HTTPException(status_code=400, detail="Only resolved tickets can be closed")
 
     ticket["status"] = "closed"
     ticket["updated_at"] = datetime.now(timezone.utc)

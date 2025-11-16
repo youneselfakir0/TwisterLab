@@ -6,6 +6,7 @@ Tests HTTP/REST interface for universal interoperability.
 
 import pytest
 from fastapi.testclient import TestClient
+
 from api.main import app
 
 client = TestClient(app)
@@ -249,6 +250,7 @@ def test_mcp_message_invalid_method():
 
 
 # Integration test examples for different clients
+
 
 def test_curl_example():
     """

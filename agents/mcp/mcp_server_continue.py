@@ -8,12 +8,13 @@ Usage:
 Protocol: MCP 2024-11-05 (Model Context Protocol)
 Transport: stdio (JSON-RPC 2.0)
 """
+
 import json
 import logging
-import sys
 import os
-from typing import Any, Dict, List, Optional
+import sys
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -22,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 logging.basicConfig(
     level=logging.INFO,
     stream=sys.stderr,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -44,9 +45,11 @@ class MCPServerContinue:
         self.server_info = {
             "name": "twisterlab-mcp-continue",
             "version": "1.0.0",
-            "description": "TwisterLab MCP Server for Continue IDE"
+            "description": "TwisterLab MCP Server for Continue IDE",
         }
-        logger.info(f"Initialized MCP server: {self.server_info['name']} v{self.server_info['version']}")
+        logger.info(
+            f"Initialized MCP server: {self.server_info['name']} v{self.server_info['version']}"
+        )
 
     def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -117,11 +120,11 @@ class MCPServerContinue:
                     "properties": {
                         "ticket_text": {
                             "type": "string",
-                            "description": "Full text of the ticket to classify"
+                            "description": "Full text of the ticket to classify",
                         }
                     },
-                    "required": ["ticket_text"]
-                }
+                    "required": ["ticket_text"],
+                },
             },
             {
                 "name": "resolve_ticket",
@@ -129,22 +132,19 @@ class MCPServerContinue:
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "ticket_id": {
-                            "type": "string",
-                            "description": "Unique ticket ID"
-                        },
+                        "ticket_id": {"type": "string", "description": "Unique ticket ID"},
                         "category": {
                             "type": "string",
                             "enum": ["network", "hardware", "software", "account", "email"],
-                            "description": "Ticket category from classifier"
+                            "description": "Ticket category from classifier",
                         },
                         "description": {
                             "type": "string",
-                            "description": "Detailed ticket description"
-                        }
+                            "description": "Detailed ticket description",
+                        },
                     },
-                    "required": ["ticket_id", "category", "description"]
-                }
+                    "required": ["ticket_id", "category", "description"],
+                },
             },
             {
                 "name": "monitor_system_health",
@@ -154,10 +154,10 @@ class MCPServerContinue:
                     "properties": {
                         "detailed": {
                             "type": "boolean",
-                            "description": "Include detailed metrics (default: false)"
+                            "description": "Include detailed metrics (default: false)",
                         }
-                    }
-                }
+                    },
+                },
             },
             {
                 "name": "create_backup",
@@ -168,11 +168,11 @@ class MCPServerContinue:
                         "backup_type": {
                             "type": "string",
                             "enum": ["full", "incremental", "database_only", "config_only"],
-                            "description": "Type of backup to create"
+                            "description": "Type of backup to create",
                         }
                     },
-                    "required": ["backup_type"]
-                }
+                    "required": ["backup_type"],
+                },
             },
             {
                 "name": "sync_cache_db",
@@ -183,19 +183,15 @@ class MCPServerContinue:
                         "direction": {
                             "type": "string",
                             "enum": ["cache_to_db", "db_to_cache", "bidirectional"],
-                            "description": "Sync direction"
+                            "description": "Sync direction",
                         }
-                    }
-                }
+                    },
+                },
             },
         ]
 
         logger.info(f"Listing {len(tools)} tools")
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "result": {"tools": tools}
-        }
+        return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": tools}}
 
     async def _handle_tools_call(self, request_id: int, params: Dict) -> Dict:
         """Execute tool call via TwisterLab agents"""
@@ -207,31 +203,33 @@ class MCPServerContinue:
         try:
             # Route to appropriate agent
             if tool_name == "classify_ticket":
-                result = await self.agents["classifier"].execute({
-                    "ticket_text": arguments.get("ticket_text", "")
-                })
+                result = await self.agents["classifier"].execute(
+                    {"ticket_text": arguments.get("ticket_text", "")}
+                )
 
             elif tool_name == "resolve_ticket":
-                result = await self.agents["resolver"].execute({
-                    "ticket_id": arguments.get("ticket_id", ""),
-                    "category": arguments.get("category", ""),
-                    "description": arguments.get("description", "")
-                })
+                result = await self.agents["resolver"].execute(
+                    {
+                        "ticket_id": arguments.get("ticket_id", ""),
+                        "category": arguments.get("category", ""),
+                        "description": arguments.get("description", ""),
+                    }
+                )
 
             elif tool_name == "monitor_system_health":
-                result = await self.agents["monitoring"].execute({
-                    "detailed": arguments.get("detailed", False)
-                })
+                result = await self.agents["monitoring"].execute(
+                    {"detailed": arguments.get("detailed", False)}
+                )
 
             elif tool_name == "create_backup":
-                result = await self.agents["backup"].execute({
-                    "backup_type": arguments.get("backup_type", "full")
-                })
+                result = await self.agents["backup"].execute(
+                    {"backup_type": arguments.get("backup_type", "full")}
+                )
 
             elif tool_name == "sync_cache_db":
-                result = await self.agents["sync"].execute({
-                    "direction": arguments.get("direction", "bidirectional")
-                })
+                result = await self.agents["sync"].execute(
+                    {"direction": arguments.get("direction", "bidirectional")}
+                )
 
             else:
                 logger.warning(f"Unknown tool: {tool_name}")
@@ -245,14 +243,9 @@ class MCPServerContinue:
                 "jsonrpc": "2.0",
                 "id": request_id,
                 "result": {
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": result_text
-                        }
-                    ],
-                    "isError": result.get("status") == "error"
-                }
+                    "content": [{"type": "text", "text": result_text}],
+                    "isError": result.get("status") == "error",
+                },
             }
 
         except Exception as e:
@@ -266,28 +259,24 @@ class MCPServerContinue:
                 "uri": "twisterlab://system/health",
                 "name": "System Health",
                 "description": "Real-time TwisterLab system health metrics",
-                "mimeType": "application/json"
+                "mimeType": "application/json",
             },
             {
                 "uri": "twisterlab://agents/status",
                 "name": "Agent Status",
                 "description": "Status of all TwisterLab agents",
-                "mimeType": "application/json"
+                "mimeType": "application/json",
             },
             {
                 "uri": "twisterlab://config",
                 "name": "Configuration",
                 "description": "Current TwisterLab configuration",
-                "mimeType": "application/json"
-            }
+                "mimeType": "application/json",
+            },
         ]
 
         logger.info(f"Listing {len(resources)} resources")
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "result": {"resources": resources}
-        }
+        return {"jsonrpc": "2.0", "id": request_id, "result": {"resources": resources}}
 
     async def _handle_resources_read(self, request_id: int, params: Dict) -> Dict:
         """Read resource content"""
@@ -303,13 +292,10 @@ class MCPServerContinue:
                 status = {
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "agents": {
-                        name: {
-                            "name": agent.name,
-                            "status": "operational"
-                        }
+                        name: {"name": agent.name, "status": "operational"}
                         for name, agent in self.agents.items()
                     },
-                    "total_agents": len(self.agents)
+                    "total_agents": len(self.agents),
                 }
                 content = json.dumps(status, indent=2)
 
@@ -318,7 +304,7 @@ class MCPServerContinue:
                     "server": self.server_info,
                     "protocol": self.protocol_version,
                     "agents_loaded": list(self.agents.keys()),
-                    "capabilities": ["tools", "resources", "prompts"]
+                    "capabilities": ["tools", "resources", "prompts"],
                 }
                 content = json.dumps(config, indent=2)
 
@@ -330,14 +316,8 @@ class MCPServerContinue:
                 "jsonrpc": "2.0",
                 "id": request_id,
                 "result": {
-                    "contents": [
-                        {
-                            "uri": uri,
-                            "mimeType": "application/json",
-                            "text": content
-                        }
-                    ]
-                }
+                    "contents": [{"uri": uri, "mimeType": "application/json", "text": content}]
+                },
             }
 
         except Exception as e:
@@ -354,9 +334,9 @@ class MCPServerContinue:
                     {
                         "name": "ticket",
                         "description": "The ticket text to classify",
-                        "required": True
+                        "required": True,
                     }
-                ]
+                ],
             },
             {
                 "name": "resolve_network_issue",
@@ -365,18 +345,14 @@ class MCPServerContinue:
                     {
                         "name": "issue_description",
                         "description": "Description of the network issue",
-                        "required": True
+                        "required": True,
                     }
-                ]
-            }
+                ],
+            },
         ]
 
         logger.info(f"Listing {len(prompts)} prompts")
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "result": {"prompts": prompts}
-        }
+        return {"jsonrpc": "2.0", "id": request_id, "result": {"prompts": prompts}}
 
     async def _handle_prompts_get(self, request_id: int, params: Dict) -> Dict:
         """Get prompt content"""
@@ -418,28 +394,13 @@ Steps should be:
             "id": request_id,
             "result": {
                 "description": f"Prompt for {prompt_name}",
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": {
-                            "type": "text",
-                            "text": prompt_text
-                        }
-                    }
-                ]
-            }
+                "messages": [{"role": "user", "content": {"type": "text", "text": prompt_text}}],
+            },
         }
 
     def _error_response(self, request_id: int, code: int, message: str) -> Dict:
         """Create JSON-RPC error response"""
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "error": {
-                "code": code,
-                "message": message
-            }
-        }
+        return {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": message}}
 
     async def run(self):
         """Main event loop - read from stdin, write to stdout"""

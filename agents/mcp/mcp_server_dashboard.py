@@ -9,24 +9,24 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
-from mcp.server.models import InitializationOptions
+
 from mcp.server import NotificationOptions, Server
+from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import (
-    Resource,
-    Tool,
-    TextContent,
-    ImageContent,
     EmbeddedResource,
+    ImageContent,
+    Resource,
+    TextContent,
+    Tool,
 )
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -52,18 +52,10 @@ class TwisterLabDashboard:
             response = await self.client.get(f"{API_BASE_URL}/health")
             response.raise_for_status()
             data = response.json()
-            return {
-                "status": "healthy",
-                "api": data,
-                "endpoint": API_BASE_URL
-            }
+            return {"status": "healthy", "api": data, "endpoint": API_BASE_URL}
         except Exception as e:
             logger.error(f"API health check failed: {e}")
-            return {
-                "status": "unhealthy",
-                "error": str(e),
-                "endpoint": API_BASE_URL
-            }
+            return {"status": "unhealthy", "error": str(e), "endpoint": API_BASE_URL}
 
     async def get_agents_status(self) -> Dict[str, Any]:
         """Get status of all 7 Real agents"""
@@ -73,11 +65,7 @@ class TwisterLabDashboard:
             return response.json()
         except Exception as e:
             logger.error(f"Agents status failed: {e}")
-            return {
-                "status": "error",
-                "error": str(e),
-                "agents": []
-            }
+            return {"status": "error", "error": str(e), "agents": []}
 
     async def get_prometheus_targets(self) -> Dict[str, Any]:
         """Get Prometheus scrape targets status"""
@@ -96,23 +84,15 @@ class TwisterLabDashboard:
                         "job": t.get("labels", {}).get("job"),
                         "instance": t.get("labels", {}).get("instance"),
                         "health": t.get("health"),
-                        "lastScrape": t.get("lastScrape")
+                        "lastScrape": t.get("lastScrape"),
                     }
                     for t in active_targets
-                ]
+                ],
             }
-            return {
-                "status": "healthy",
-                "prometheus": summary,
-                "endpoint": PROMETHEUS_URL
-            }
+            return {"status": "healthy", "prometheus": summary, "endpoint": PROMETHEUS_URL}
         except Exception as e:
             logger.error(f"Prometheus check failed: {e}")
-            return {
-                "status": "unhealthy",
-                "error": str(e),
-                "endpoint": PROMETHEUS_URL
-            }
+            return {"status": "unhealthy", "error": str(e), "endpoint": PROMETHEUS_URL}
 
     async def get_traefik_services(self) -> Dict[str, Any]:
         """Get Traefik services and routes"""
@@ -127,60 +107,44 @@ class TwisterLabDashboard:
                     {
                         "name": name,
                         "status": svc.get("status", "unknown"),
-                        "serverStatus": svc.get("serverStatus", {})
+                        "serverStatus": svc.get("serverStatus", {}),
                     }
                     for name, svc in services.items()
-                ]
+                ],
             }
-            return {
-                "status": "healthy",
-                "traefik": summary,
-                "endpoint": TRAEFIK_URL
-            }
+            return {"status": "healthy", "traefik": summary, "endpoint": TRAEFIK_URL}
         except Exception as e:
             logger.error(f"Traefik check failed: {e}")
-            return {
-                "status": "unhealthy",
-                "error": str(e),
-                "endpoint": TRAEFIK_URL
-            }
+            return {"status": "unhealthy", "error": str(e), "endpoint": TRAEFIK_URL}
 
     async def get_docker_services(self) -> Dict[str, Any]:
         """Get Docker Swarm services status via API"""
         try:
             # Use edgeserver SSH to query Docker
             import subprocess
+
             result = subprocess.run(
                 ["ssh", "twister@192.168.0.30", "docker service ls --format '{{json .}}'"],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=10,
             )
 
             if result.returncode == 0:
                 services = []
-                for line in result.stdout.strip().split('\n'):
+                for line in result.stdout.strip().split("\n"):
                     if line:
                         services.append(json.loads(line))
 
                 return {
                     "status": "healthy",
-                    "docker": {
-                        "total": len(services),
-                        "services": services
-                    }
+                    "docker": {"total": len(services), "services": services},
                 }
             else:
-                return {
-                    "status": "error",
-                    "error": result.stderr
-                }
+                return {"status": "error", "error": result.stderr}
         except Exception as e:
             logger.error(f"Docker services check failed: {e}")
-            return {
-                "status": "unhealthy",
-                "error": str(e)
-            }
+            return {"status": "unhealthy", "error": str(e)}
 
     async def get_full_dashboard(self) -> Dict[str, Any]:
         """Get complete dashboard data"""
@@ -190,7 +154,7 @@ class TwisterLabDashboard:
             self.get_prometheus_targets(),
             self.get_traefik_services(),
             self.get_docker_services(),
-            return_exceptions=True
+            return_exceptions=True,
         )
 
         api_health, agents_status, prometheus, traefik, docker = results
@@ -200,9 +164,11 @@ class TwisterLabDashboard:
             api_health.get("status") == "healthy",
             prometheus.get("status") == "healthy",
             traefik.get("status") == "healthy",
-            docker.get("status") == "healthy"
+            docker.get("status") == "healthy",
         ]
-        overall_health = "healthy" if all(health_checks) else "degraded" if any(health_checks) else "critical"
+        overall_health = (
+            "healthy" if all(health_checks) else "degraded" if any(health_checks) else "critical"
+        )
 
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -212,13 +178,13 @@ class TwisterLabDashboard:
                 "agents": agents_status,
                 "prometheus": prometheus,
                 "traefik": traefik,
-                "docker": docker
+                "docker": docker,
             },
             "summary": {
                 "healthy": sum(health_checks),
                 "total": len(health_checks),
-                "uptime_percentage": (sum(health_checks) / len(health_checks)) * 100
-            }
+                "uptime_percentage": (sum(health_checks) / len(health_checks)) * 100,
+            },
         }
 
 
@@ -234,38 +200,38 @@ async def handle_list_resources() -> list[Resource]:
             uri="dashboard://status",
             name="TwisterLab Status",
             description="Current status of all TwisterLab components",
-            mimeType="application/json"
+            mimeType="application/json",
         ),
         Resource(
             uri="dashboard://api",
             name="API Health",
             description="TwisterLab API health and status",
-            mimeType="application/json"
+            mimeType="application/json",
         ),
         Resource(
             uri="dashboard://agents",
             name="Agents Status",
             description="Status of all 7 Real agents",
-            mimeType="application/json"
+            mimeType="application/json",
         ),
         Resource(
             uri="dashboard://prometheus",
             name="Prometheus Targets",
             description="Prometheus scrape targets and metrics",
-            mimeType="application/json"
+            mimeType="application/json",
         ),
         Resource(
             uri="dashboard://traefik",
             name="Traefik Services",
             description="Traefik routing and services",
-            mimeType="application/json"
+            mimeType="application/json",
         ),
         Resource(
             uri="dashboard://docker",
             name="Docker Services",
             description="Docker Swarm services status",
-            mimeType="application/json"
-        )
+            mimeType="application/json",
+        ),
     ]
 
 
@@ -299,47 +265,27 @@ async def handle_list_tools() -> list[Tool]:
         Tool(
             name="get_dashboard",
             description="Get complete TwisterLab infrastructure dashboard",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         Tool(
             name="check_api_health",
             description="Check TwisterLab API health status",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         Tool(
             name="get_agents_status",
             description="Get status of all 7 Real agents",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         Tool(
             name="get_prometheus_targets",
             description="Get Prometheus monitoring targets",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         Tool(
             name="get_traefik_services",
             description="Get Traefik API Gateway services",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
+            inputSchema={"type": "object", "properties": {}, "required": []},
         ),
         Tool(
             name="restart_service",
@@ -349,12 +295,12 @@ async def handle_list_tools() -> list[Tool]:
                 "properties": {
                     "service_name": {
                         "type": "string",
-                        "description": "Name of the service to restart (e.g., twisterlab_api)"
+                        "description": "Name of the service to restart (e.g., twisterlab_api)",
                     }
                 },
-                "required": ["service_name"]
-            }
-        )
+                "required": ["service_name"],
+            },
+        ),
     ]
 
 
@@ -377,33 +323,25 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent]:
         elif name == "restart_service":
             service_name = arguments.get("service_name")
             import subprocess
+
             cmd = f"docker service update --force {service_name}"
             result_proc = subprocess.run(
-                ["ssh", "twister@192.168.0.30", cmd],
-                capture_output=True,
-                text=True,
-                timeout=30
+                ["ssh", "twister@192.168.0.30", cmd], capture_output=True, text=True, timeout=30
             )
             result = {
                 "service": service_name,
                 "status": "restarted" if result_proc.returncode == 0 else "failed",
                 "output": result_proc.stdout,
-                "error": result_proc.stderr
+                "error": result_proc.stderr,
             }
         else:
             result = {"error": f"Unknown tool: {name}"}
 
-        return [TextContent(
-            type="text",
-            text=json.dumps(result, indent=2)
-        )]
+        return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
     except Exception as e:
         logger.error(f"Tool execution failed: {e}", exc_info=True)
-        return [TextContent(
-            type="text",
-            text=json.dumps({"error": str(e)}, indent=2)
-        )]
+        return [TextContent(type="text", text=json.dumps({"error": str(e)}, indent=2))]
 
 
 async def main():
@@ -415,16 +353,11 @@ async def main():
             server_name="twisterlab-dashboard",
             server_version="1.0.0",
             capabilities=server.get_capabilities(
-                notification_options=NotificationOptions(),
-                experimental_capabilities={}
-            )
+                notification_options=NotificationOptions(), experimental_capabilities={}
+            ),
         )
 
-        await server.run(
-            read_stream,
-            write_stream,
-            init_options
-        )
+        await server.run(read_stream, write_stream, init_options)
 
 
 if __name__ == "__main__":

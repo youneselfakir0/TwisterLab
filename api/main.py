@@ -1,13 +1,14 @@
 import logging
 import sys
 from pathlib import Path
+
 from fastapi import FastAPI
 
 # Add project root to Python path to allow importing agents package
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import routers from the new modular structure
-from api.routes import system, agents
+from api.routes import agents, system
 
 # Setup logging
 logging.basicConfig(
@@ -37,14 +38,15 @@ if __name__ == "__main__":
 
     try:
         logger.info("Starting TwisterLab API v2 server...")
-        
+
         # The agent registry is automatically initialized on first import,
         # which happens when the routers are imported.
-        
+
         uvicorn.run(app, host="0.0.0.0", port=8000)
 
     except Exception as e:
         logger.error(f"❌ Failed to start API server: {e}")
         import traceback
+
         logger.error(traceback.format_exc())
         raise

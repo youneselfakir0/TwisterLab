@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class AlertSeverity(str, Enum):
     """Alert severity levels"""
+
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -51,30 +52,26 @@ class MonitoringAgent(TwisterAgent):
         super().__init__(
             name="monitoring",
             display_name="Monitoring Agent",
-            description=(
-                "System and agent performance monitoring with alerting"
-            ),
+            description=("System and agent performance monitoring with alerting"),
             model="deepseek-r1",
-            temperature=0.0  # Deterministic for monitoring
+            temperature=0.0,  # Deterministic for monitoring
         )
 
         # Metrics storage: metric_name -> deque of data points
         # 24h @ 1min = 1440 samples
-        self.metrics: Dict[str, deque] = defaultdict(
-            lambda: deque(maxlen=1440)
-        )
-        
+        self.metrics: Dict[str, deque] = defaultdict(lambda: deque(maxlen=1440))
+
         # Alerts storage
         self.alerts: List[Dict[str, Any]] = []
 
         # Alert thresholds
         self.thresholds = {
-            "cpu_usage": 80.0,           # Percent
-            "memory_usage": 85.0,        # Percent
-            "disk_usage": 90.0,          # Percent
-            "api_response_time": 2.0,    # Seconds
-            "error_rate": 10.0,          # Percent
-            "agent_response_time": 5.0   # Seconds
+            "cpu_usage": 80.0,  # Percent
+            "memory_usage": 85.0,  # Percent
+            "disk_usage": 90.0,  # Percent
+            "api_response_time": 2.0,  # Seconds
+            "error_rate": 10.0,  # Percent
+            "agent_response_time": 5.0,  # Seconds
         }
 
         # Agent names to monitor
@@ -84,14 +81,10 @@ class MonitoringAgent(TwisterAgent):
             "desktop_commander",
             "maestro",
             "sync",
-            "backup"
+            "backup",
         ]
 
-    async def execute(
-        self,
-        task: str,
-        context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute monitoring operations.
 
@@ -125,17 +118,11 @@ class MonitoringAgent(TwisterAgent):
                 return await self._export_prometheus()
 
             else:
-                return {
-                    "status": "error",
-                    "error": f"Unknown operation: {operation}"
-                }
+                return {"status": "error", "error": f"Unknown operation: {operation}"}
 
         except Exception as e:
             logger.error(f"Error executing monitoring task: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def _collect_metrics(self) -> Dict[str, Any]:
         """Collect all metrics and check thresholds"""
@@ -146,37 +133,25 @@ class MonitoringAgent(TwisterAgent):
             # Collect system metrics
             system_metrics = await self._collect_system_metrics()
             for metric_name, value in system_metrics.items():
-                self.metrics[metric_name].append({
-                    "timestamp": timestamp,
-                    "value": value
-                })
+                self.metrics[metric_name].append({"timestamp": timestamp, "value": value})
                 metrics_collected += 1
 
             # Collect agent metrics
             agent_metrics = await self._collect_agent_metrics()
             for metric_name, value in agent_metrics.items():
-                self.metrics[metric_name].append({
-                    "timestamp": timestamp,
-                    "value": value
-                })
+                self.metrics[metric_name].append({"timestamp": timestamp, "value": value})
                 metrics_collected += 1
 
             # Collect database metrics
             db_metrics = await self._collect_database_metrics()
             for metric_name, value in db_metrics.items():
-                self.metrics[metric_name].append({
-                    "timestamp": timestamp,
-                    "value": value
-                })
+                self.metrics[metric_name].append({"timestamp": timestamp, "value": value})
                 metrics_collected += 1
 
             # Collect API metrics
             api_metrics = await self._collect_api_metrics()
             for metric_name, value in api_metrics.items():
-                self.metrics[metric_name].append({
-                    "timestamp": timestamp,
-                    "value": value
-                })
+                self.metrics[metric_name].append({"timestamp": timestamp, "value": value})
                 metrics_collected += 1
 
             # Check thresholds and create alerts
@@ -185,15 +160,12 @@ class MonitoringAgent(TwisterAgent):
             return {
                 "status": "success",
                 "metrics_collected": metrics_collected,
-                "timestamp": timestamp
+                "timestamp": timestamp,
             }
 
         except Exception as e:
             logger.error(f"Error collecting metrics: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def _collect_system_metrics(self) -> Dict[str, float]:
         """Collect system resource metrics using psutil"""
@@ -214,7 +186,7 @@ class MonitoringAgent(TwisterAgent):
             metrics["system_memory_total_mb"] = mem_total_mb
 
             # Disk metrics
-            disk = psutil.disk_usage('/')
+            disk = psutil.disk_usage("/")
             metrics["system_disk_usage_percent"] = disk.percent
             metrics["system_disk_free_gb"] = disk.free / (1024 * 1024 * 1024)
             metrics["system_disk_total_gb"] = disk.total / (1024 * 1024 * 1024)
@@ -299,59 +271,34 @@ class MonitoringAgent(TwisterAgent):
             # Check CPU
             cpu_usage = latest_metrics.get("system_cpu_usage_percent", 0)
             if cpu_usage > self.thresholds["cpu_usage"]:
-                cpu_threshold = self.thresholds['cpu_usage']
-                msg = (
-                    f"CPU usage is {cpu_usage:.1f}% "
-                    f"(threshold: {cpu_threshold}%)"
-                )
-                await self._create_alert(
-                    "High CPU Usage",
-                    msg,
-                    AlertSeverity.WARNING
-                )
+                cpu_threshold = self.thresholds["cpu_usage"]
+                msg = f"CPU usage is {cpu_usage:.1f}% " f"(threshold: {cpu_threshold}%)"
+                await self._create_alert("High CPU Usage", msg, AlertSeverity.WARNING)
 
             # Check Memory
             mem_usage = latest_metrics.get("system_memory_usage_percent", 0)
             if mem_usage > self.thresholds["memory_usage"]:
-                mem_threshold = self.thresholds['memory_usage']
-                msg = (
-                    f"Memory usage is {mem_usage:.1f}% "
-                    f"(threshold: {mem_threshold}%)"
-                )
-                await self._create_alert(
-                    "High Memory Usage",
-                    msg,
-                    AlertSeverity.WARNING
-                )
+                mem_threshold = self.thresholds["memory_usage"]
+                msg = f"Memory usage is {mem_usage:.1f}% " f"(threshold: {mem_threshold}%)"
+                await self._create_alert("High Memory Usage", msg, AlertSeverity.WARNING)
 
             # Check Disk
             disk_usage = latest_metrics.get("system_disk_usage_percent", 0)
             if disk_usage > self.thresholds["disk_usage"]:
-                disk_threshold = self.thresholds['disk_usage']
-                msg = (
-                    f"Disk usage is {disk_usage:.1f}% "
-                    f"(threshold: {disk_threshold}%)"
-                )
-                await self._create_alert(
-                    "High Disk Usage",
-                    msg,
-                    AlertSeverity.CRITICAL
-                )
+                disk_threshold = self.thresholds["disk_usage"]
+                msg = f"Disk usage is {disk_usage:.1f}% " f"(threshold: {disk_threshold}%)"
+                await self._create_alert("High Disk Usage", msg, AlertSeverity.CRITICAL)
 
             # Check API response time
             api_time_ms = latest_metrics.get("api_response_time_avg_ms", 0)
             api_response_time = api_time_ms / 1000.0
             if api_response_time > self.thresholds["api_response_time"]:
-                api_threshold = self.thresholds['api_response_time']
+                api_threshold = self.thresholds["api_response_time"]
                 msg = (
                     f"API response time is {api_response_time:.2f}s "
                     f"(threshold: {api_threshold}s)"
                 )
-                await self._create_alert(
-                    "Slow API Response",
-                    msg,
-                    AlertSeverity.WARNING
-                )
+                await self._create_alert("Slow API Response", msg, AlertSeverity.WARNING)
 
             # Check agent response times
             for agent_name in self.monitored_agents:
@@ -364,9 +311,7 @@ class MonitoringAgent(TwisterAgent):
                         f"{response_time:.2f}s (threshold: {agent_threshold}s)"
                     )
                     await self._create_alert(
-                        f"Slow Agent Response: {agent_name}",
-                        msg,
-                        AlertSeverity.WARNING
+                        f"Slow Agent Response: {agent_name}", msg, AlertSeverity.WARNING
                     )
 
             # Check error rates
@@ -380,20 +325,13 @@ class MonitoringAgent(TwisterAgent):
                         f"{error_rate:.1f}% (threshold: {error_threshold}%)"
                     )
                     await self._create_alert(
-                        f"High Error Rate: {agent_name}",
-                        msg,
-                        AlertSeverity.CRITICAL
+                        f"High Error Rate: {agent_name}", msg, AlertSeverity.CRITICAL
                     )
 
         except Exception as e:
             logger.error(f"Error checking thresholds: {e}")
 
-    async def _create_alert(
-        self,
-        title: str,
-        message: str,
-        severity: AlertSeverity
-    ):
+    async def _create_alert(self, title: str, message: str, severity: AlertSeverity):
         """Create and store an alert"""
         try:
             alert = {
@@ -402,7 +340,7 @@ class MonitoringAgent(TwisterAgent):
                 "message": message,
                 "severity": severity.value,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "acknowledged": False
+                "acknowledged": False,
             }
 
             self.alerts.append(alert)
@@ -415,10 +353,7 @@ class MonitoringAgent(TwisterAgent):
         except Exception as e:
             logger.error(f"Error creating alert: {e}")
 
-    async def _get_metrics(
-        self,
-        metric_name: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def _get_metrics(self, metric_name: Optional[str] = None) -> Dict[str, Any]:
         """Get collected metrics"""
         try:
             if metric_name:
@@ -428,35 +363,26 @@ class MonitoringAgent(TwisterAgent):
                         "status": "success",
                         "metric_name": metric_name,
                         "data_points": list(self.metrics[metric_name]),
-                        "count": len(self.metrics[metric_name])
+                        "count": len(self.metrics[metric_name]),
                     }
                 else:
-                    return {
-                        "status": "error",
-                        "error": f"Metric '{metric_name}' not found"
-                    }
+                    return {"status": "error", "error": f"Metric '{metric_name}' not found"}
             else:
                 # Get all metrics summary
                 return {
                     "status": "success",
                     "total_metrics": len(self.metrics),
-                    "metrics": list(self.metrics.keys())
+                    "metrics": list(self.metrics.keys()),
                 }
 
         except Exception as e:
             logger.error(f"Error getting metrics: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def _check_health(self) -> Dict[str, Any]:
         """Check health of all services"""
         try:
-            health_status = {
-                "overall": "healthy",
-                "services": {}
-            }
+            health_status = {"overall": "healthy", "services": {}}
 
             # Check PostgreSQL (simulated)
             health_status["services"]["postgresql"] = "healthy"
@@ -471,37 +397,28 @@ class MonitoringAgent(TwisterAgent):
             return {
                 "status": "success",
                 "health": health_status,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
             logger.error(f"Error checking health: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def _get_alerts(self) -> Dict[str, Any]:
         """Get active alerts"""
         try:
             # Filter unacknowledged alerts
-            active_alerts = [
-                alert for alert in self.alerts
-                if not alert.get("acknowledged", False)
-            ]
+            active_alerts = [alert for alert in self.alerts if not alert.get("acknowledged", False)]
 
             return {
                 "status": "success",
                 "total_alerts": len(active_alerts),
-                "alerts": active_alerts
+                "alerts": active_alerts,
             }
 
         except Exception as e:
             logger.error(f"Error getting alerts: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def _export_prometheus(self) -> Dict[str, Any]:
         """Export metrics in Prometheus format"""
@@ -514,22 +431,17 @@ class MonitoringAgent(TwisterAgent):
                     latest = data_points[-1]
                     # Convert to Prometheus naming convention
                     prom_name = metric_name.replace(".", "_")
-                    prometheus_lines.append(
-                        f"twisterlab_{prom_name} {latest['value']}"
-                    )
+                    prometheus_lines.append(f"twisterlab_{prom_name} {latest['value']}")
 
             return {
                 "status": "success",
                 "format": "prometheus",
-                "metrics": "\n".join(prometheus_lines)
+                "metrics": "\n".join(prometheus_lines),
             }
 
         except Exception as e:
             logger.error(f"Error exporting Prometheus metrics: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     def get_dashboard_data(self) -> Dict[str, Any]:
         """Get data for dashboard visualization"""
@@ -542,16 +454,13 @@ class MonitoringAgent(TwisterAgent):
                     latest_metrics[metric_name] = data_points[-1]["value"]
 
             # Get active alerts
-            active_alerts = [
-                alert for alert in self.alerts
-                if not alert.get("acknowledged", False)
-            ]
+            active_alerts = [alert for alert in self.alerts if not alert.get("acknowledged", False)]
 
             return {
                 "metrics": latest_metrics,
                 "alerts": active_alerts,
                 "health": "healthy" if len(active_alerts) == 0 else "degraded",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -564,5 +473,5 @@ class MonitoringAgent(TwisterAgent):
             "agent": self.name,
             "status": "healthy",
             "metrics_count": len(self.metrics),
-            "alerts_count": len(self.alerts)
+            "alerts_count": len(self.alerts),
         }

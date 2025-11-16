@@ -12,14 +12,11 @@ License: Apache 2.0
 import asyncio
 import json
 from datetime import datetime, timezone
+
 import pytest
 
 from agents.real.real_sync_agent import RealSyncAgent
-from agents.support.sync_agent import (
-    SyncStatus,
-    MockRedisClient
-)
-
+from agents.support.sync_agent import MockRedisClient, SyncStatus
 
 # ============================================================================
 # SYNC AGENT TESTS

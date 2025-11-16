@@ -12,18 +12,18 @@ License: Apache 2.0
 
 import asyncio
 from datetime import datetime, timezone
+
 import pytest
 
 from agents.orchestrator.maestro_agent import (
-    LoadBalancer,
-    LoadBalancingStrategy,
     HealthMonitor,
     HealthStatus,
-    TaskScheduler,
+    LoadBalancer,
+    LoadBalancingStrategy,
+    MaestroOrchestratorAgent,
     ScheduledTask,
-    MaestroOrchestratorAgent
+    TaskScheduler,
 )
-
 
 # ============================================================================
 # LOAD BALANCER TESTS
@@ -45,13 +45,7 @@ class TestLoadBalancer:
         """Test registering agent instances"""
         lb = LoadBalancer()
 
-        lb.register_instance(
-            "classifier",
-            "classifier-001",
-            max_load=10,
-            priority=1,
-            weight=1.0
-        )
+        lb.register_instance("classifier", "classifier-001", max_load=10, priority=1, weight=1.0)
 
         assert "classifier" in lb.agent_instances
         assert len(lb.agent_instances["classifier"]) == 1
@@ -81,24 +75,15 @@ class TestLoadBalancer:
         lb.register_instance("classifier", "c2", max_load=5)
 
         # First selection
-        instance1 = lb.select_instance(
-            "classifier",
-            LoadBalancingStrategy.ROUND_ROBIN
-        )
+        instance1 = lb.select_instance("classifier", LoadBalancingStrategy.ROUND_ROBIN)
 
         # Second selection should be different
-        instance2 = lb.select_instance(
-            "classifier",
-            LoadBalancingStrategy.ROUND_ROBIN
-        )
+        instance2 = lb.select_instance("classifier", LoadBalancingStrategy.ROUND_ROBIN)
 
         assert instance1 != instance2
 
         # Third selection should cycle back
-        instance3 = lb.select_instance(
-            "classifier",
-            LoadBalancingStrategy.ROUND_ROBIN
-        )
+        instance3 = lb.select_instance("classifier", LoadBalancingStrategy.ROUND_ROBIN)
 
         assert instance3 == instance1
 
@@ -113,10 +98,7 @@ class TestLoadBalancer:
         lb.agent_instances["resolver"][0]["current_load"] = 3
         lb.agent_instances["resolver"][1]["current_load"] = 1
 
-        instance = lb.select_instance(
-            "resolver",
-            LoadBalancingStrategy.LEAST_LOADED
-        )
+        instance = lb.select_instance("resolver", LoadBalancingStrategy.LEAST_LOADED)
 
         # Should select r2 (lower load)
         assert instance == "r2"
@@ -128,10 +110,7 @@ class TestLoadBalancer:
         lb.register_instance("resolver", "r1", max_load=5, priority=1)
         lb.register_instance("resolver", "r2", max_load=5, priority=3)
 
-        instance = lb.select_instance(
-            "resolver",
-            LoadBalancingStrategy.PRIORITY_BASED
-        )
+        instance = lb.select_instance("resolver", LoadBalancingStrategy.PRIORITY_BASED)
 
         # Should select r2 (higher priority)
         assert instance == "r2"
@@ -144,10 +123,7 @@ class TestLoadBalancer:
         lb.register_instance("resolver", "r2", max_load=5, weight=2.0)
 
         # r2 should be selected more often due to higher weight
-        instance = lb.select_instance(
-            "resolver",
-            LoadBalancingStrategy.WEIGHTED
-        )
+        instance = lb.select_instance("resolver", LoadBalancingStrategy.WEIGHTED)
 
         assert instance in ["r1", "r2"]
 
@@ -281,7 +257,7 @@ class TestHealthMonitor:
             "desktop_commander",
             "sync",
             "backup",
-            "monitoring"
+            "monitoring",
         ]
 
         for agent_type in expected_agents:
@@ -294,7 +270,7 @@ class TestHealthMonitor:
 
         monitor.agent_health["classifier"] = {
             "status": HealthStatus.HEALTHY.value,
-            "response_time": 0.1
+            "response_time": 0.1,
         }
 
         health = monitor.get_agent_health("classifier")
@@ -324,7 +300,7 @@ class TestHealthMonitor:
 
         monitor.agent_health = {
             "classifier": {"status": HealthStatus.HEALTHY.value},
-            "resolver": {"status": HealthStatus.HEALTHY.value}
+            "resolver": {"status": HealthStatus.HEALTHY.value},
         }
 
         health = monitor.get_system_health()
@@ -338,7 +314,7 @@ class TestHealthMonitor:
 
         monitor.agent_health = {
             "classifier": {"status": HealthStatus.HEALTHY.value},
-            "resolver": {"status": HealthStatus.DEGRADED.value}
+            "resolver": {"status": HealthStatus.DEGRADED.value},
         }
 
         health = monitor.get_system_health()
@@ -352,7 +328,7 @@ class TestHealthMonitor:
 
         monitor.agent_health = {
             "classifier": {"status": HealthStatus.HEALTHY.value},
-            "resolver": {"status": HealthStatus.UNHEALTHY.value}
+            "resolver": {"status": HealthStatus.UNHEALTHY.value},
         }
 
         health = monitor.get_system_health()
@@ -411,12 +387,7 @@ class TestTaskScheduler:
         async def test_callback():
             pass
 
-        scheduler.schedule_task(
-            "test_task",
-            "Test Task",
-            test_callback,
-            interval_seconds=60
-        )
+        scheduler.schedule_task("test_task", "Test Task", test_callback, interval_seconds=60)
 
         assert "test_task" in scheduler.tasks
         task = scheduler.tasks["test_task"]
@@ -434,12 +405,7 @@ class TestTaskScheduler:
         async def test_callback():
             executed.append(datetime.now(timezone.utc))
 
-        task = ScheduledTask(
-            "test_task",
-            "Test Task",
-            test_callback,
-            interval_seconds=1
-        )
+        task = ScheduledTask("test_task", "Test Task", test_callback, interval_seconds=1)
 
         await scheduler._execute_task(task)
 
@@ -457,18 +423,12 @@ class TestTaskScheduler:
             executed.append(datetime.now(timezone.utc))
 
         # Set next_run to immediate execution
-        scheduler.schedule_task(
-            "test_task",
-            "Test Task",
-            test_callback,
-            interval_seconds=1
-        )
+        scheduler.schedule_task("test_task", "Test Task", test_callback, interval_seconds=1)
 
         # Force immediate execution by setting next_run to past
         from datetime import timedelta
-        scheduler.tasks["test_task"].next_run = (
-            datetime.now(timezone.utc) - timedelta(seconds=1)
-        )
+
+        scheduler.tasks["test_task"].next_run = datetime.now(timezone.utc) - timedelta(seconds=1)
 
         # Start scheduler
         scheduler_task = asyncio.create_task(scheduler.start_scheduler())
@@ -496,19 +456,9 @@ class TestTaskScheduler:
         async def test_callback():
             pass
 
-        scheduler.schedule_task(
-            "task1",
-            "Task 1",
-            test_callback,
-            interval_seconds=60
-        )
+        scheduler.schedule_task("task1", "Task 1", test_callback, interval_seconds=60)
 
-        scheduler.schedule_task(
-            "task2",
-            "Task 2",
-            test_callback,
-            interval_seconds=120
-        )
+        scheduler.schedule_task("task2", "Task 2", test_callback, interval_seconds=120)
 
         tasks = scheduler.get_scheduled_tasks()
 
@@ -527,11 +477,7 @@ class TestTaskScheduler:
             executed.append(datetime.now(timezone.utc))
 
         scheduler.schedule_task(
-            "test_task",
-            "Test Task",
-            test_callback,
-            interval_seconds=1,
-            enabled=False
+            "test_task", "Test Task", test_callback, interval_seconds=1, enabled=False
         )
 
         # Start scheduler
@@ -616,11 +562,13 @@ class TestMaestroOrchestratorAgent:
         """Test ticket routing with load balancing"""
         maestro = MaestroOrchestratorAgent()
 
-        result = await maestro.route_ticket_with_load_balancing({
-            "ticket_id": "TEST-001",
-            "subject": "Password Reset",
-            "description": "User cannot log in"
-        })
+        result = await maestro.route_ticket_with_load_balancing(
+            {
+                "ticket_id": "TEST-001",
+                "subject": "Password Reset",
+                "description": "User cannot log in",
+            }
+        )
 
         assert result["status"] == "success"
         assert result["ticket_id"] == "TEST-001"
@@ -636,11 +584,9 @@ class TestMaestroOrchestratorAgent:
 
         initial_count = maestro.metrics["tickets_routed"]
 
-        await maestro.route_ticket_with_load_balancing({
-            "ticket_id": "TEST-001",
-            "subject": "Test",
-            "description": "Test ticket"
-        })
+        await maestro.route_ticket_with_load_balancing(
+            {"ticket_id": "TEST-001", "subject": "Test", "description": "Test ticket"}
+        )
 
         assert maestro.metrics["tickets_routed"] == initial_count + 1
 
@@ -673,11 +619,9 @@ class TestMaestroOrchestratorAgent:
         """Test execute method with route_ticket task"""
         maestro = MaestroOrchestratorAgent()
 
-        result = await maestro.execute("route_ticket", {
-            "ticket_id": "TEST-001",
-            "subject": "Test",
-            "description": "Test"
-        })
+        result = await maestro.execute(
+            "route_ticket", {"ticket_id": "TEST-001", "subject": "Test", "description": "Test"}
+        )
 
         assert result["status"] == "success"
 
@@ -729,11 +673,13 @@ class TestMaestroIntegration:
         # Route multiple tickets
         results = []
         for i in range(3):
-            result = await maestro.route_ticket_with_load_balancing({
-                "ticket_id": f"TEST-{i:03d}",
-                "subject": f"Test Ticket {i}",
-                "description": f"Test description {i}"
-            })
+            result = await maestro.route_ticket_with_load_balancing(
+                {
+                    "ticket_id": f"TEST-{i:03d}",
+                    "subject": f"Test Ticket {i}",
+                    "description": f"Test description {i}",
+                }
+            )
             results.append(result)
 
         # All should succeed
@@ -751,18 +697,14 @@ class TestMaestroIntegration:
         maestro = MaestroOrchestratorAgent()
 
         # Add multiple resolver instances with round-robin strategy
-        maestro.load_balancer.register_instance(
-            "resolver", "resolver-002", max_load=5
-        )
+        maestro.load_balancer.register_instance("resolver", "resolver-002", max_load=5)
 
         # Route multiple tickets
         instances_used = []
         for i in range(6):
-            result = await maestro.route_ticket_with_load_balancing({
-                "ticket_id": f"TEST-{i:03d}",
-                "subject": f"Test {i}",
-                "description": f"Test {i}"
-            })
+            result = await maestro.route_ticket_with_load_balancing(
+                {"ticket_id": f"TEST-{i:03d}", "subject": f"Test {i}", "description": f"Test {i}"}
+            )
             instances_used.append(result["resolver_instance"])
 
         # Should use both instances (least-loaded alternates)

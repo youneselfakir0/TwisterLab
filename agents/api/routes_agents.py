@@ -3,11 +3,12 @@ TwisterLab API - Agent Management Routes
 Handles agent registration, status monitoring, and orchestration
 """
 
+import uuid
+from datetime import datetime
 from typing import List, Optional
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-from datetime import datetime
-import uuid
 
 # Create router
 router = APIRouter()
@@ -19,15 +20,11 @@ agents_db: dict[str, dict] = {}
 # Pydantic models
 class AgentCreate(BaseModel):
     """Request model for creating a new agent."""
-    name: str = Field(
-        ..., min_length=1, max_length=100, description="Agent name"
-    )
-    display_name: str = Field(
-        ..., min_length=1, max_length=200, description="Display name"
-    )
+
+    name: str = Field(..., min_length=1, max_length=100, description="Agent name")
+    display_name: str = Field(..., min_length=1, max_length=200, description="Display name")
     role: str = Field(
-        ..., pattern="^(classifier|resolver|commander|orchestrator)$",
-        description="Agent role"
+        ..., pattern="^(classifier|resolver|commander|orchestrator)$", description="Agent role"
     )
     model: str = Field("llama-3.2", description="LLM model to use")
     description: Optional[str] = Field(None, description="Agent description")
@@ -35,16 +32,16 @@ class AgentCreate(BaseModel):
 
 class AgentUpdate(BaseModel):
     """Request model for updating an agent."""
+
     display_name: Optional[str] = Field(None, min_length=1, max_length=200)
     model: Optional[str] = Field(None)
     description: Optional[str] = Field(None)
-    status: Optional[str] = Field(
-        None, pattern="^(active|inactive|error)$"
-    )
+    status: Optional[str] = Field(None, pattern="^(active|inactive|error)$")
 
 
 class AgentResponse(BaseModel):
     """Response model for agent data."""
+
     id: str
     name: str
     display_name: str
@@ -83,7 +80,7 @@ async def create_agent(agent: AgentCreate) -> AgentResponse:
         "description": agent.description,
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
-        "last_active": now.isoformat()
+        "last_active": now.isoformat(),
     }
 
     agents_db[agent_id] = agent_data
@@ -93,14 +90,10 @@ async def create_agent(agent: AgentCreate) -> AgentResponse:
 
 @router.get("/", response_model=List[AgentResponse])
 async def list_agents(
-    role: Optional[str] = Query(
-        None, pattern="^(classifier|resolver|commander|orchestrator)$"
-    ),
-    status: Optional[str] = Query(
-        None, pattern="^(active|inactive|error)$"
-    ),
+    role: Optional[str] = Query(None, pattern="^(classifier|resolver|commander|orchestrator)$"),
+    status: Optional[str] = Query(None, pattern="^(active|inactive|error)$"),
     limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0)
+    offset: int = Query(0, ge=0),
 ) -> List[AgentResponse]:
     """
     List agents with optional filtering.
@@ -116,7 +109,7 @@ async def list_agents(
         agents = [a for a in agents if a["status"] == status]
 
     # Apply pagination
-    agents = agents[offset:offset + limit]
+    agents = agents[offset : offset + limit]
 
     return [AgentResponse.model_validate(agent) for agent in agents]
 
@@ -192,5 +185,5 @@ async def execute_agent_task(agent_id: str, task: dict):
         "agent_id": agent_id,
         "task": task,
         "status": "executed",
-        "result": "Task completed successfully"
+        "result": "Task completed successfully",
     }

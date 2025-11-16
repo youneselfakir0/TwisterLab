@@ -39,7 +39,7 @@ def demo():
 
     """Simple demo of TwisterLang communication"""
 
-from twisterlang_encoder import encodefrom twisterlang_encoder import encode
+from twisterlang_encoder import encode, encodefrom, import, twisterlang_encoder
 
     print("🔄 TwisterLang Multi-Agent Communication Demo")
 

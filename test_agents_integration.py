@@ -1,28 +1,30 @@
-
 import asyncio
 import logging
-from typing import Dict, Any
 from datetime import datetime
+from typing import Any, Dict
+
 import pytest
-from agents.orchestrator.maestro import MaestroOrchestratorAgent
-from agents.helpdesk.classifier import TicketClassifierAgent
+
 from agents.helpdesk.auto_resolver import HelpdeskResolverAgent
+from agents.helpdesk.classifier import TicketClassifierAgent
 from agents.helpdesk.desktop_commander import DesktopCommanderAgent
+from agents.orchestrator.maestro import MaestroOrchestratorAgent
+
 
 @pytest.fixture
 def agents():
     """Fixture qui instancie et retourne tous les agents nécessaires aux tests."""
     return {
-    "maestro": MaestroOrchestratorAgent(),
+        "maestro": MaestroOrchestratorAgent(),
         "classifier": TicketClassifierAgent(),
-    "resolver": HelpdeskResolverAgent(),
+        "resolver": HelpdeskResolverAgent(),
         "commander": DesktopCommanderAgent(),
     }
 
+
 # Configuration du logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -33,10 +35,10 @@ async def test_agent_creation():
 
     try:
         # Import des agents
-        from agents.orchestrator.maestro import MaestroOrchestratorAgent
-        from agents.helpdesk.classifier import TicketClassifierAgent
         from agents.helpdesk.auto_resolver import HelpdeskResolverAgent
+        from agents.helpdesk.classifier import TicketClassifierAgent
         from agents.helpdesk.desktop_commander import DesktopCommanderAgent
+        from agents.orchestrator.maestro import MaestroOrchestratorAgent
 
         # Création des instances
         maestro = MaestroOrchestratorAgent()
@@ -50,7 +52,7 @@ async def test_agent_creation():
             "maestro": maestro,
             "classifier": classifier,
             "resolver": resolver,
-            "commander": commander
+            "commander": commander,
         }
 
     except Exception as e:
@@ -69,7 +71,7 @@ async def test_ticket_workflow(agents: Dict[str, Any]):
         "ticket_id": "TICKET-001",
         "subject": "Password Reset Request",
         "description": "I forgot my password and need to reset it. Please help me access my account.",
-        "requestor": "john.doe@company.com"
+        "requestor": "john.doe@company.com",
     }
 
     # Test ticket complexe (devrait être escaladé)
@@ -77,7 +79,7 @@ async def test_ticket_workflow(agents: Dict[str, Any]):
         "ticket_id": "TICKET-002",
         "subject": "System Crash - Multiple Applications Failing",
         "description": "Multiple applications are crashing simultaneously. Started after Windows update. Need immediate assistance.",
-        "requestor": "jane.smith@company.com"
+        "requestor": "jane.smith@company.com",
     }
 
     # Test ticket urgent (devrait être escaladé immédiatement)
@@ -85,7 +87,7 @@ async def test_ticket_workflow(agents: Dict[str, Any]):
         "ticket_id": "TICKET-003",
         "subject": "URGENT: CEO Account Locked - Board Meeting in 30 Minutes",
         "description": "CEO's account is locked and he needs access immediately for an important board meeting.",
-        "requestor": "security@company.com"
+        "requestor": "security@company.com",
     }
 
     results = {}
@@ -93,7 +95,7 @@ async def test_ticket_workflow(agents: Dict[str, Any]):
     for ticket_name, ticket_data in [
         ("simple_password", simple_ticket),
         ("complex_crash", complex_ticket),
-        ("urgent_ceo", urgent_ticket)
+        ("urgent_ceo", urgent_ticket),
     ]:
         logger.info(f"Processing {ticket_name} ticket...")
 
@@ -123,7 +125,7 @@ async def test_individual_agents(agents: Dict[str, Any]):
         context = {
             "ticket_id": "TEST-001",
             "subject": "Software Installation",
-            "description": "Need to install Microsoft Office on my laptop"
+            "description": "Need to install Microsoft Office on my laptop",
         }
         result = await classifier.execute("Classify software installation ticket", context)
         results["classifier"] = result
@@ -139,7 +141,7 @@ async def test_individual_agents(agents: Dict[str, Any]):
             "ticket_id": "TEST-002",
             "category": "password",
             "priority": "high",
-            "complexity": "simple"
+            "complexity": "simple",
         }
         result = await resolver.execute("Resolve password reset ticket", context)
         results["resolver"] = result
@@ -154,7 +156,7 @@ async def test_individual_agents(agents: Dict[str, Any]):
         context = {
             "device_id": "LAPTOP-001",
             "command": "systeminfo",
-            "command_type": "execute_command"
+            "command_type": "execute_command",
         }
         result = await commander.execute("Execute system info command", context)
         results["commander"] = result
@@ -212,7 +214,7 @@ async def run_all_tests():
         "workflow": False,
         "status": False,
         "load_balancing": False,
-        "errors": []
+        "errors": [],
     }
 
     try:
@@ -222,11 +224,16 @@ async def run_all_tests():
 
         # Test 2: Tests individuels
         individual_results = await test_individual_agents(agents)
-        test_results["individual"] = all(r.get("status") == "success" for r in individual_results.values())
+        test_results["individual"] = all(
+            r.get("status") == "success" for r in individual_results.values()
+        )
 
         # Test 3: Workflow complet
         workflow_results = await test_ticket_workflow(agents)
-        test_results["workflow"] = all(r.get("status") in ["auto_resolved", "escalated_to_human"] for r in workflow_results.values())
+        test_results["workflow"] = all(
+            r.get("status") in ["auto_resolved", "escalated_to_human"]
+            for r in workflow_results.values()
+        )
 
         # Test 4: Statut des agents
         status_result = await test_agent_status(agents)

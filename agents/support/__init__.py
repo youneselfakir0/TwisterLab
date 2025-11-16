@@ -12,9 +12,9 @@ Version: 1.0.0-alpha.1
 License: Apache 2.0
 """
 
+from agents.support.backup_agent import BackupAgent, BackupStatus, BackupType
+from agents.support.monitoring_agent import AlertSeverity, MonitoringAgent
 from agents.support.sync_agent import SyncAgent, SyncStatus
-from agents.support.backup_agent import BackupAgent, BackupType, BackupStatus
-from agents.support.monitoring_agent import MonitoringAgent, AlertSeverity
 
 __all__ = [
     "SyncAgent",

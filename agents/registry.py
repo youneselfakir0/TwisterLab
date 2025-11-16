@@ -1,21 +1,24 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from agents.base.unified_agent import UnifiedAgentBase
+from agents.real.BrowserAgent import BrowserAgent  # Nouvelle importation
+from agents.real.real_backup_agent import RealBackupAgent
 
 # Importe les classes d'agents v2 que nous avons refactorisées
 from agents.real.real_classifier_agent import RealClassifierAgent
-from agents.real.real_resolver_agent import RealResolverAgent
-from agents.real.real_monitoring_agent import RealMonitoringAgent
-from agents.real.real_backup_agent import RealBackupAgent
-from agents.real.real_sync_agent import RealSyncAgent
 from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
 from agents.real.real_maestro_agent import RealMaestroAgent
-from agents.real.BrowserAgent import BrowserAgent # Nouvelle importation
+from agents.real.real_monitoring_agent import RealMonitoringAgent
+from agents.real.real_resolver_agent import RealResolverAgent
+from agents.real.real_sync_agent import RealSyncAgent
+
 
 class AgentRegistry:
     """
     Singleton qui instancie, détient et gère tous les agents actifs du système.
     C'est la source unique de vérité pour l'état des agents.
     """
+
     _instance = None
     _agents: Dict[str, UnifiedAgentBase] = {}
 
@@ -35,8 +38,8 @@ class AgentRegistry:
         sync = RealSyncAgent()
         desktop_commander = RealDesktopCommanderAgent()
         maestro = RealMaestroAgent()
-        browser = BrowserAgent() # Nouvelle instanciation
-        
+        browser = BrowserAgent()  # Nouvelle instanciation
+
         self._agents = {
             classifier.name.lower(): classifier,
             resolver.name.lower(): resolver,
@@ -65,6 +68,7 @@ class AgentRegistry:
             }
             for name, agent in self._agents.items()
         }
+
 
 # Instance unique du registre, prête à être importée
 agent_registry = AgentRegistry()

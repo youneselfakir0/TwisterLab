@@ -3,6 +3,7 @@ API TwisterLab simplifiée pour debug
 """
 
 import logging
+
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 
@@ -21,15 +22,13 @@ app = FastAPI(
 
 logger.info("✅ Application FastAPI créée")
 
+
 @app.get("/")
 async def root():
     """Endpoint racine."""
     logger.info("📍 Endpoint root appelé")
-    return {
-        "message": "TwisterLab API (Debug)",
-        "status": "running",
-        "version": "1.0.0-debug"
-    }
+    return {"message": "TwisterLab API (Debug)", "status": "running", "version": "1.0.0-debug"}
+
 
 @app.get("/health")
 async def health_check():
@@ -40,11 +39,13 @@ async def health_check():
         "version": "1.0.0-debug",
     }
 
+
 @app.get("/test-db")
 async def test_database():
     """Test de connexion à la base de données."""
     try:
         from sqlalchemy import text
+
         from agents.database.config import async_session
 
         async with async_session() as session:
@@ -54,5 +55,6 @@ async def test_database():
     except Exception as e:
         logger.error(f"Erreur DB: {e}")
         return {"db_status": "error", "error": str(e)}
+
 
 logger.info("✅ Routes enregistrées")

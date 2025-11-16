@@ -5,8 +5,10 @@ SQLAlchemy models for the application
 
 from datetime import datetime
 from typing import List
-from sqlalchemy import String, Integer, Boolean, DateTime, Text, ARRAY
+
+from sqlalchemy import ARRAY, Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
+
 from .config import Base
 
 
@@ -16,6 +18,7 @@ class SOP(Base):
 
     Represents a SOP for automated ticket resolution in the helpdesk system.
     """
+
     __tablename__ = "sops"
 
     # Primary key
@@ -36,8 +39,12 @@ class SOP(Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     # Audit fields
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
     created_by: Mapped[str] = mapped_column(String(100), nullable=False, default="system")
 
     def __repr__(self) -> str:

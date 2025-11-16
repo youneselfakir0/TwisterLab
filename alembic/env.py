@@ -43,9 +43,7 @@ def _read_env_file(varname: str) -> str | None:
 
 
 DATABASE_URL = _read_env_file("DATABASE_URL") or os.getenv("DATABASE_URL")
-POSTGRES_PASSWORD = _read_env_file("POSTGRES_PASSWORD") or os.getenv(
-    "POSTGRES_PASSWORD"
-)
+POSTGRES_PASSWORD = _read_env_file("POSTGRES_PASSWORD") or os.getenv("POSTGRES_PASSWORD")
 
 # If DATABASE_URL lacks an embedded password and POSTGRES_PASSWORD is provided,
 # inject the password into the URL so Alembic can use it to connect.

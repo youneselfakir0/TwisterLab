@@ -2,27 +2,30 @@
 Ollama LLM Client for TwisterLab Agents
 Provides async HTTP client for Ollama API with fallback mechanisms.
 """
-import httpx
+
 import logging
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
+import httpx
+
 from agents.config import (
-    OLLAMA_URL,
-    OLLAMA_FALLBACK,
-    OLLAMA_TIMEOUT,
-    OLLAMA_MODELS,
-    OLLAMA_OPTIONS,
-    LLM_TIMEOUTS,
     LLM_MAX_RETRIES,
     LLM_RETRY_DELAY,
-    LOG_LLM_METRICS
+    LLM_TIMEOUTS,
+    LOG_LLM_METRICS,
+    OLLAMA_FALLBACK,
+    OLLAMA_MODELS,
+    OLLAMA_OPTIONS,
+    OLLAMA_TIMEOUT,
+    OLLAMA_URL,
 )
 from agents.metrics import (
-    ollama_requests_total,
-    ollama_request_duration_seconds,
-    ollama_failover_total,
-    ollama_tokens_generated_total,
     ollama_errors_total,
-    ollama_source_active
+    ollama_failover_total,
+    ollama_request_duration_seconds,
+    ollama_requests_total,
+    ollama_source_active,
+    ollama_tokens_generated_total,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,9 +49,9 @@ class OllamaClient:
     """
 
     def __init__(self):
-        self.primary_url = OLLAMA_URL           # PRIMARY: Corertx RTX 3060 (performance)
-        self.fallback_url = OLLAMA_FALLBACK     # BACKUP: Edgeserver GTX 1050 (continuity)
-        self.base_url = self.primary_url        # Default to PRIMARY
+        self.primary_url = OLLAMA_URL  # PRIMARY: Corertx RTX 3060 (performance)
+        self.fallback_url = OLLAMA_FALLBACK  # BACKUP: Edgeserver GTX 1050 (continuity)
+        self.base_url = self.primary_url  # Default to PRIMARY
         self.timeout = OLLAMA_TIMEOUT
         self.models = OLLAMA_MODELS
         self.options = OLLAMA_OPTIONS
@@ -58,7 +61,7 @@ class OllamaClient:
         prompt: str,
         agent_type: str = "general",
         custom_options: Optional[Dict] = None,
-        custom_timeout: Optional[int] = None
+        custom_timeout: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Generate LLM response via Ollama API.
@@ -88,12 +91,7 @@ class OllamaClient:
         timeout = custom_timeout or LLM_TIMEOUTS.get(agent_type, self.timeout)
 
         # Build request payload
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "stream": False,
-            "options": options
-        }
+        payload = {"model": model, "prompt": prompt, "stream": False, "options": options}
 
         # Log request
         if LOG_LLM_METRICS:
@@ -103,15 +101,15 @@ class OllamaClient:
                     "agent_type": agent_type,
                     "model": model,
                     "prompt_length": len(prompt),
-                    "timeout": timeout
-                }
+                    "timeout": timeout,
+                },
             )
 
         # Record request metric
         ollama_requests_total.labels(
             source="primary" if self.base_url == self.primary_url else "fallback",
             agent_type=agent_type,
-            model=model
+            model=model,
         ).inc()
 
         # Retry loop
@@ -119,10 +117,7 @@ class OllamaClient:
         for attempt in range(1, LLM_MAX_RETRIES + 1):
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.post(
-                        f"{self.base_url}/api/generate",
-                        json=payload
-                    )
+                    response = await client.post(f"{self.base_url}/api/generate", json=payload)
                     response.raise_for_status()
 
                     result = response.json()
@@ -136,13 +131,13 @@ class OllamaClient:
                     ollama_request_duration_seconds.labels(
                         source="primary" if self.base_url == self.primary_url else "fallback",
                         agent_type=agent_type,
-                        model=model
+                        model=model,
                     ).observe(duration_s)
 
                     ollama_tokens_generated_total.labels(
                         source="primary" if self.base_url == self.primary_url else "fallback",
                         agent_type=agent_type,
-                        model=model
+                        model=model,
                     ).inc(tokens)
 
                     # Log success
@@ -154,8 +149,8 @@ class OllamaClient:
                                 "model": model,
                                 "duration_seconds": duration_s,
                                 "tokens": tokens,
-                                "attempt": attempt
-                            }
+                                "attempt": attempt,
+                            },
                         )
 
                     return {
@@ -163,18 +158,14 @@ class OllamaClient:
                         "model": model,
                         "duration_seconds": duration_s,
                         "tokens": tokens,
-                        "success": True
+                        "success": True,
                     }
 
             except httpx.TimeoutException as e:
                 last_error = e
                 logger.warning(
                     f"Ollama timeout (attempt {attempt}/{LLM_MAX_RETRIES})",
-                    extra={
-                        "agent_type": agent_type,
-                        "model": model,
-                        "timeout": timeout
-                    }
+                    extra={"agent_type": agent_type, "model": model, "timeout": timeout},
                 )
                 if attempt < LLM_MAX_RETRIES:
                     await self._sleep(LLM_RETRY_DELAY)
@@ -186,8 +177,8 @@ class OllamaClient:
                     extra={
                         "agent_type": agent_type,
                         "model": model,
-                        "status_code": e.response.status_code
-                    }
+                        "status_code": e.response.status_code,
+                    },
                 )
                 if attempt < LLM_MAX_RETRIES:
                     await self._sleep(LLM_RETRY_DELAY)
@@ -196,11 +187,7 @@ class OllamaClient:
                 last_error = e
                 logger.error(
                     f"Ollama connection error (attempt {attempt}/{LLM_MAX_RETRIES}): {e}",
-                    extra={
-                        "agent_type": agent_type,
-                        "model": model,
-                        "url": self.base_url
-                    }
+                    extra={"agent_type": agent_type, "model": model, "url": self.base_url},
                 )
                 if attempt < LLM_MAX_RETRIES:
                     await self._sleep(LLM_RETRY_DELAY)
@@ -209,17 +196,13 @@ class OllamaClient:
         ollama_errors_total.labels(
             source="primary" if self.base_url == self.primary_url else "fallback",
             agent_type=agent_type,
-            error_type=type(last_error).__name__ if last_error else "unknown"
+            error_type=type(last_error).__name__ if last_error else "unknown",
         ).inc()
 
         # All retries failed
         logger.error(
             f"Ollama request failed after {LLM_MAX_RETRIES} attempts",
-            extra={
-                "agent_type": agent_type,
-                "model": model,
-                "error": str(last_error)
-            }
+            extra={"agent_type": agent_type, "model": model, "error": str(last_error)},
         )
         raise last_error
 
@@ -228,7 +211,7 @@ class OllamaClient:
         prompt: str,
         agent_type: str = "general",
         custom_options: Optional[Dict] = None,
-        custom_timeout: Optional[int] = None
+        custom_timeout: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Generate LLM response with automatic failover to backup Ollama.
@@ -263,9 +246,7 @@ class OllamaClient:
         try:
             logger.info(f"Attempting PRIMARY Ollama at {self.primary_url}")
             self.base_url = self.primary_url
-            result = await self.generate(
-                prompt, agent_type, custom_options, custom_timeout
-            )
+            result = await self.generate(prompt, agent_type, custom_options, custom_timeout)
             result["source"] = "primary"
             ollama_source_active.labels(source="primary").set(1)
             ollama_source_active.labels(source="fallback").set(0)
@@ -278,8 +259,7 @@ class OllamaClient:
                 f"PRIMARY Ollama failed ({primary_error}), attempting FALLBACK to {self.fallback_url}"
             )
             ollama_failover_total.labels(
-                agent_type=agent_type,
-                reason=self._classify_error(primary_error)
+                agent_type=agent_type, reason=self._classify_error(primary_error)
             ).inc()
             ollama_source_active.labels(source="primary").set(0)
 
@@ -287,12 +267,12 @@ class OllamaClient:
         try:
             logger.info(f"Attempting FALLBACK Ollama at {self.fallback_url}")
             self.base_url = self.fallback_url
-            result = await self.generate(
-                prompt, agent_type, custom_options, custom_timeout
-            )
+            result = await self.generate(prompt, agent_type, custom_options, custom_timeout)
             result["source"] = "fallback"
             ollama_source_active.labels(source="fallback").set(1)
-            logger.warning(f"FALLBACK Ollama responded successfully from {self.fallback_url} (degraded performance)")
+            logger.warning(
+                f"FALLBACK Ollama responded successfully from {self.fallback_url} (degraded performance)"
+            )
             return result
 
         except Exception as e:
@@ -303,7 +283,7 @@ class OllamaClient:
             ollama_errors_total.labels(
                 source="fallback",
                 agent_type=agent_type,
-                error_type=self._classify_error(fallback_error)
+                error_type=self._classify_error(fallback_error),
             ).inc()
             ollama_source_active.labels(source="fallback").set(0)
             raise RuntimeError(
@@ -334,29 +314,14 @@ class OllamaClient:
 
                 logger.info(
                     f"Ollama health check passed",
-                    extra={
-                        "url": self.base_url,
-                        "models_count": len(available_models)
-                    }
+                    extra={"url": self.base_url, "models_count": len(available_models)},
                 )
 
-                return {
-                    "healthy": True,
-                    "models": available_models,
-                    "url": self.base_url
-                }
+                return {"healthy": True, "models": available_models, "url": self.base_url}
 
         except Exception as e:
-            logger.warning(
-                f"Ollama health check failed: {e}",
-                extra={"url": self.base_url}
-            )
-            return {
-                "healthy": False,
-                "models": [],
-                "url": self.base_url,
-                "error": str(e)
-            }
+            logger.warning(f"Ollama health check failed: {e}", extra={"url": self.base_url})
+            return {"healthy": False, "models": [], "url": self.base_url, "error": str(e)}
 
     def _classify_error(self, error: Exception) -> str:
         """
@@ -382,6 +347,7 @@ class OllamaClient:
     async def _sleep(self, seconds: int):
         """Sleep for retry delay (async)."""
         import asyncio
+
         await asyncio.sleep(seconds)
 
 

@@ -1,6 +1,7 @@
 """
 Test all 7 real TwisterLab agents
 """
+
 import asyncio
 import sys
 from pathlib import Path
@@ -8,12 +9,13 @@ from pathlib import Path
 # Add agents directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+
 async def test_all_agents():
     """Test all 7 real agents."""
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TESTING ALL 7 REAL TWISTERLAB AGENTS")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     results = []
 
@@ -21,15 +23,20 @@ async def test_all_agents():
     print("1. TESTING MonitoringAgent...")
     try:
         from agents.real.real_monitoring_agent import RealMonitoringAgent
+
         agent = RealMonitoringAgent()
         result = await agent.execute({"operation": "health_check"})
 
         if result["status"] == "success":
-            hc = result['health_check']
+            hc = result["health_check"]
             print(f"   [+] SUCCESS: {result['health_status']}")
             print(f"       CPU: {hc['cpu_percent']}%")
-            print(f"       Memory: {hc['memory_percent']}% ({hc['memory_used_gb']:.1f}GB / {hc['memory_total_gb']:.1f}GB)")
-            print(f"       Disk: {hc['disk_percent']}% ({hc['disk_used_gb']:.0f}GB / {hc['disk_total_gb']:.0f}GB)")
+            print(
+                f"       Memory: {hc['memory_percent']}% ({hc['memory_used_gb']:.1f}GB / {hc['memory_total_gb']:.1f}GB)"
+            )
+            print(
+                f"       Disk: {hc['disk_percent']}% ({hc['disk_used_gb']:.0f}GB / {hc['disk_total_gb']:.0f}GB)"
+            )
             results.append(("MonitoringAgent", "SUCCESS"))
         else:
             print(f"   [~] PARTIAL: {result.get('error')}")
@@ -42,11 +49,12 @@ async def test_all_agents():
     print("\n2. TESTING BackupAgent...")
     try:
         from agents.real.real_backup_agent import RealBackupAgent
+
         agent = RealBackupAgent()
         result = await agent.execute({"operation": "create_backup"})
 
         if result["status"] == "success":
-            bk = result['backup']
+            bk = result["backup"]
             print(f"   [+] SUCCESS: Backup created")
             print(f"       File: {bk['filename']}")
             print(f"       Components: {len(bk['components'])}")
@@ -63,11 +71,12 @@ async def test_all_agents():
     print("\n3. TESTING SyncAgent...")
     try:
         from agents.real.real_sync_agent import RealSyncAgent
+
         agent = RealSyncAgent()
         result = await agent.execute({"operation": "verify_consistency"})
 
         if result["status"] == "success":
-            cs = result['consistency']
+            cs = result["consistency"]
             print(f"   [+] SUCCESS: {cs['status']}")
             print(f"       Consistency: {cs['consistency_percentage']:.1f}%")
             print(f"       Items checked: {cs['items_checked']}")
@@ -83,21 +92,19 @@ async def test_all_agents():
     print("\n4. TESTING ClassifierAgent...")
     try:
         from agents.real.real_classifier_agent import RealClassifierAgent
+
         agent = RealClassifierAgent()
 
         test_ticket = {
             "ticket_id": "TEST-001",
             "title": "Network connection failed",
-            "description": "Cannot connect to WiFi, ping to gateway times out"
+            "description": "Cannot connect to WiFi, ping to gateway times out",
         }
 
-        result = await agent.execute({
-            "operation": "classify_ticket",
-            "ticket": test_ticket
-        })
+        result = await agent.execute({"operation": "classify_ticket", "ticket": test_ticket})
 
         if result["status"] == "success":
-            cl = result['classification']
+            cl = result["classification"]
             print(f"   [+] SUCCESS: Ticket classified")
             print(f"       Category: {cl['category']}")
             print(f"       Confidence: {cl['confidence']:.2f}")
@@ -115,16 +122,15 @@ async def test_all_agents():
     print("\n5. TESTING ResolverAgent...")
     try:
         from agents.real.real_resolver_agent import RealResolverAgent
+
         agent = RealResolverAgent()
 
-        result = await agent.execute({
-            "operation": "execute_sop",
-            "sop_id": "SOP-001",
-            "params": {"target": "192.168.0.1"}
-        })
+        result = await agent.execute(
+            {"operation": "execute_sop", "sop_id": "SOP-001", "params": {"target": "192.168.0.1"}}
+        )
 
         if result["status"] == "success":
-            ex = result['execution']
+            ex = result["execution"]
             print(f"   [+] SUCCESS: SOP executed")
             print(f"       SOP: {ex['sop_id']}")
             print(f"       Steps: {ex['steps_executed']}")
@@ -143,11 +149,12 @@ async def test_all_agents():
     print("\n6. TESTING DesktopCommanderAgent...")
     try:
         from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
+
         agent = RealDesktopCommanderAgent()
         result = await agent.execute({"operation": "get_system_info"})
 
         if result["status"] == "success":
-            si = result['system_info']
+            si = result["system_info"]
             print(f"   [+] SUCCESS: System info retrieved")
             print(f"       Hostname: {si['hostname']}")
             print(f"       Platform: {si['platform']}")
@@ -164,6 +171,7 @@ async def test_all_agents():
     print("\n7. TESTING MaestroAgent...")
     try:
         from agents.real.real_maestro_agent import RealMaestroAgent
+
         agent = RealMaestroAgent()
         result = await agent.execute({"operation": "health_check_all"})
 
@@ -181,9 +189,9 @@ async def test_all_agents():
         results.append(("MaestroAgent", "FAILED"))
 
     # SUMMARY
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST SUMMARY")
-    print("="*60)
+    print("=" * 60)
 
     for agent_name, status in results:
         symbol = "[+]" if status == "SUCCESS" else ("[~]" if status == "PARTIAL" else "[X]")
@@ -208,7 +216,8 @@ async def test_all_agents():
     else:
         print("\n   >>> AGENTS NEED FIXES <<<")
 
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
+
 
 if __name__ == "__main__":
     asyncio.run(test_all_agents())

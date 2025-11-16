@@ -5,9 +5,9 @@ with load balancing and failover
 """
 
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, Optional
 
 from agents.base import TwisterAgent
 
@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 class TicketPriority(Enum):
     """Priorités des tickets"""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -24,6 +25,7 @@ class TicketPriority(Enum):
 
 class TicketComplexity(Enum):
     """Complexité des tickets"""
+
     SIMPLE = "simple"
     MODERATE = "moderate"
     COMPLEX = "complex"
@@ -68,55 +70,43 @@ class MaestroOrchestratorAgent(TwisterAgent):
                     "type": "function",
                     "function": {
                         "name": "route_ticket",
-                        "description": (
-                            "Route a ticket through the automation "
-                            "workflow"
-                        ),
+                        "description": ("Route a ticket through the automation " "workflow"),
                         "parameters": {
                             "type": "object",
                             "properties": {
                                 "ticket_id": {
                                     "type": "string",
-                                    "description": "Unique ticket identifier"
+                                    "description": "Unique ticket identifier",
                                 },
-                                "subject": {
-                                    "type": "string",
-                                    "description": "Ticket subject line"
-                                },
+                                "subject": {"type": "string", "description": "Ticket subject line"},
                                 "description": {
                                     "type": "string",
-                                    "description": "Ticket description"
+                                    "description": "Ticket description",
                                 },
                                 "requestor": {
                                     "type": "string",
-                                    "description": (
-                                        "Person who submitted the ticket"
-                                    )
-                                }
+                                    "description": ("Person who submitted the ticket"),
+                                },
                             },
-                            "required": ["ticket_id", "subject", "description"]
-                        }
-                    }
+                            "required": ["ticket_id", "subject", "description"],
+                        },
+                    },
                 },
                 {
                     "type": "function",
                     "function": {
                         "name": "get_agent_status",
-                        "description": (
-                            "Check the status of all available agents"
-                        ),
+                        "description": ("Check the status of all available agents"),
                         "parameters": {
                             "type": "object",
                             "properties": {
                                 "include_health": {
                                     "type": "boolean",
-                                    "description": (
-                                        "Include detailed health metrics"
-                                    )
+                                    "description": ("Include detailed health metrics"),
                                 }
-                            }
-                        }
-                    }
+                            },
+                        },
+                    },
                 },
                 {
                     "type": "function",
@@ -128,18 +118,14 @@ class MaestroOrchestratorAgent(TwisterAgent):
                             "properties": {
                                 "strategy": {
                                     "type": "string",
-                                    "enum": [
-                                        "round_robin",
-                                        "least_loaded",
-                                        "priority_based"
-                                    ],
-                                    "description": "Load balancing strategy"
+                                    "enum": ["round_robin", "least_loaded", "priority_based"],
+                                    "description": "Load balancing strategy",
                                 }
-                            }
-                        }
-                    }
-                }
-            ]
+                            },
+                        },
+                    },
+                },
+            ],
         )
 
         # État des agents disponibles
@@ -149,22 +135,22 @@ class MaestroOrchestratorAgent(TwisterAgent):
                 "status": "available",
                 "load": 0,
                 "max_load": 10,
-                "last_health_check": datetime.now()
+                "last_health_check": datetime.now(),
             },
             "resolver": {
                 "name": "Helpdesk Resolver",
                 "status": "available",
                 "load": 0,
                 "max_load": 5,
-                "last_health_check": datetime.now()
+                "last_health_check": datetime.now(),
             },
             "desktop_commander": {
                 "name": "Desktop Commander",
                 "status": "available",
                 "load": 0,
                 "max_load": 3,
-                "last_health_check": datetime.now()
-            }
+                "last_health_check": datetime.now(),
+            },
         }
 
         # Métriques de performance
@@ -173,14 +159,10 @@ class MaestroOrchestratorAgent(TwisterAgent):
             "auto_resolved": 0,
             "escalated_to_human": 0,
             "average_resolution_time": 0,
-            "agent_failures": 0
+            "agent_failures": 0,
         }
 
-    async def execute(
-        self,
-        task: str,
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Exécute une tâche d'orchestration.
 
@@ -194,56 +176,34 @@ class MaestroOrchestratorAgent(TwisterAgent):
         try:
             logger.info("Maestro orchestrating task: %s", task)
             # Extraire les paramètres
-            operation = (
-                context.get("operation", "route_ticket")
-                if context else "route_ticket"
-            )
+            operation = context.get("operation", "route_ticket") if context else "route_ticket"
             if operation == "route_ticket":
                 result = await self.route_ticket(context)
             elif operation == "get_agent_status":
-                include_health = (
-                    context.get("include_health", False)
-                    if context else False
-                )
+                include_health = context.get("include_health", False) if context else False
                 result = await self.get_agent_status(include_health)
             elif operation == "rebalance_load":
-                strategy = (
-                    context.get("strategy", "round_robin")
-                    if context else "round_robin"
-                )
+                strategy = context.get("strategy", "round_robin") if context else "round_robin"
                 result = await self.rebalance_load(strategy)
             else:
-                result = {
-                    "status": "error",
-                    "error": f"Unknown operation: {operation}"
-                }
-            return {
-                "orchestrator": "maestro",
-                "timestamp": datetime.now().isoformat(),
-                **result
-            }
+                result = {"status": "error", "error": f"Unknown operation: {operation}"}
+            return {"orchestrator": "maestro", "timestamp": datetime.now().isoformat(), **result}
         except Exception as exc:
             logger.error("Error in maestro orchestration: %s", exc)
             return {
                 "status": "error",
                 "error": str(exc),
                 "orchestrator": "maestro",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
-    async def route_ticket(
-        self,
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def route_ticket(self, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Route un ticket à travers le workflow d'automatisation.
         """
         try:
             if not context:
-                return {
-                    "status": "error",
-                    "error": "Context required for ticket routing"
-                }
+                return {"status": "error", "error": "Context required for ticket routing"}
 
             ticket_id = context.get("ticket_id")
             subject = context.get("subject", "")
@@ -259,9 +219,7 @@ class MaestroOrchestratorAgent(TwisterAgent):
             logger.info("Routing ticket %s from %s: %s", ticket_id, requestor, subject)
 
             # Étape 1: Classification du ticket
-            classification_result = await self._classify_ticket(
-                ticket_id, subject, description
-            )
+            classification_result = await self._classify_ticket(ticket_id, subject, description)
 
             if classification_result["status"] != "success":
                 # Échec de classification → Escalade humaine
@@ -279,30 +237,22 @@ class MaestroOrchestratorAgent(TwisterAgent):
             # Règles de routage
             if priority == TicketPriority.URGENT:
                 # Urgent → Humain immédiatement
-                return await self._escalate_to_human(
-                    ticket_id, "urgent_priority", classification
-                )
+                return await self._escalate_to_human(ticket_id, "urgent_priority", classification)
 
             elif complexity == TicketComplexity.SIMPLE and confidence > 0.8:
                 # Simple + Haute confiance → Résolution automatique
-                return await self._route_to_auto_resolver(
-                    ticket_id, classification
-                )
+                return await self._route_to_auto_resolver(ticket_id, classification)
 
             elif complexity == TicketComplexity.COMPLEX or confidence < 0.6:
                 # Complexe ou faible confiance → Révision humaine
                 return await self._escalate_to_human(
-                    ticket_id,
-                    "complex_or_low_confidence",
-                    classification
+                    ticket_id, "complex_or_low_confidence", classification
                 )
 
             else:
                 # Modéré → Résolution automatique avec supervision
                 return await self._route_to_auto_resolver(
-                    ticket_id,
-                    classification,
-                    supervised=True
+                    ticket_id, classification, supervised=True
                 )
 
         except Exception as exc:
@@ -310,16 +260,11 @@ class MaestroOrchestratorAgent(TwisterAgent):
             return {
                 "status": "error",
                 "error": str(exc),
-                "ticket_id": (
-                    ticket_id if 'ticket_id' in locals() else "unknown"
-                )
+                "ticket_id": (ticket_id if "ticket_id" in locals() else "unknown"),
             }
 
     async def _classify_ticket(
-        self,
-        ticket_id: str,
-        subject: str,
-        description: str
+        self, ticket_id: str, subject: str, description: str
     ) -> Dict[str, Any]:
         """
         Classifie un ticket en utilisant l'agent classifier.
@@ -327,40 +272,27 @@ class MaestroOrchestratorAgent(TwisterAgent):
         try:
             # Import and use real classifier agent
             from agents.helpdesk.classifier import TicketClassifierAgent
-            
+
             classifier = TicketClassifierAgent()
-            ticket_data = {
-                "subject": subject,
-                "description": description
-            }
-            
+            ticket_data = {"subject": subject, "description": description}
+
             classification_result = await classifier.execute(
-                f"Classify ticket {ticket_id}",
-                {"ticket": ticket_data}
+                f"Classify ticket {ticket_id}", {"ticket": ticket_data}
             )
-            
+
             return {
                 "status": "success",
-                "classification": classification_result.get(
-                    "classification", {}
-                ),
-                "ticket_id": ticket_id
+                "classification": classification_result.get("classification", {}),
+                "ticket_id": ticket_id,
             }
-            
+
         except Exception as exc:
             logger.error("Error in ticket classification: %s", exc)
             # Fallback to simulation si échec
-            return await self._simulate_classification(
-                ticket_id,
-                subject,
-                description
-            )
+            return await self._simulate_classification(ticket_id, subject, description)
 
     async def _simulate_classification(
-        self,
-        ticket_id: str,
-        subject: str,
-        description: str
+        self, ticket_id: str, subject: str, description: str
     ) -> Dict[str, Any]:
         """
         Simulation de classification basée sur les mots-clés (fallback).
@@ -371,34 +303,33 @@ class MaestroOrchestratorAgent(TwisterAgent):
             text = f"{subject} {description}".lower()
 
             # Détection de catégorie
-            if any(
-                word in text
-                for word in ["password", "mot de passe", "login", "connexion"]
-            ):
+            if any(word in text for word in ["password", "mot de passe", "login", "connexion"]):
                 category = "password"
                 priority = "high"
                 complexity = "simple"
                 confidence = 0.9
             elif any(
                 word in text
-                for word in ["install", "installer", "software", "logiciel", "office", "application", "app"]
+                for word in [
+                    "install",
+                    "installer",
+                    "software",
+                    "logiciel",
+                    "office",
+                    "application",
+                    "app",
+                ]
             ):
                 category = "software"
                 priority = "medium"
                 complexity = "moderate"
                 confidence = 0.8
-            elif any(
-                word in text
-                for word in ["access", "accès", "permission", "autorisation"]
-            ):
+            elif any(word in text for word in ["access", "accès", "permission", "autorisation"]):
                 category = "access"
                 priority = "high"
                 complexity = "moderate"
                 confidence = 0.7
-            elif any(
-                word in text
-                for word in ["urgent", "urgence", "critical", "critique"]
-            ):
+            elif any(word in text for word in ["urgent", "urgence", "critical", "critique"]):
                 category = "urgent"
                 priority = "urgent"
                 complexity = "complex"
@@ -417,24 +348,16 @@ class MaestroOrchestratorAgent(TwisterAgent):
                     "complexity": complexity,
                     "confidence": confidence,
                     "keywords_matched": [],
-                    "suggested_agent": (
-                        "resolver" if complexity == "simple" else "human"
-                    )
-                }
+                    "suggested_agent": ("resolver" if complexity == "simple" else "human"),
+                },
             }
 
         except Exception as exc:
             logger.error("Error in classification simulation: %s", exc)
-            return {
-                "status": "error",
-                "error": str(exc)
-            }
+            return {"status": "error", "error": str(exc)}
 
     async def _route_to_auto_resolver(
-        self,
-        ticket_id: str,
-        classification: Dict[str, Any],
-        supervised: bool = False
+        self, ticket_id: str, classification: Dict[str, Any], supervised: bool = False
     ) -> Dict[str, Any]:
         """
         Route vers la résolution automatique.
@@ -443,14 +366,12 @@ class MaestroOrchestratorAgent(TwisterAgent):
             # Vérifier la disponibilité de l'agent resolver
             if not self._is_agent_available("resolver"):
                 return await self._escalate_to_human(
-                    ticket_id,
-                    "resolver_unavailable",
-                    classification
+                    ticket_id, "resolver_unavailable", classification
                 )
 
             # Use real resolver agent
             from agents.helpdesk.auto_resolver import HelpdeskResolverAgent
-            
+
             resolver = HelpdeskResolverAgent()
             ticket_data = {
                 "id": ticket_id,
@@ -460,18 +381,12 @@ class MaestroOrchestratorAgent(TwisterAgent):
                     f"{classification.get('category', 'unknown')}"
                 ),
                 "priority": classification.get("priority", "medium"),
-                "category": classification.get("category", "general")
+                "category": classification.get("category", "general"),
             }
-            
-            context = {
-                "ticket": ticket_data,
-                "classification": classification
-            }
-            
-            resolution_result = await resolver.execute(
-                f"Resolve ticket {ticket_id}",
-                context
-            )
+
+            context = {"ticket": ticket_data, "classification": classification}
+
+            resolution_result = await resolver.execute(f"Resolve ticket {ticket_id}", context)
 
             if resolution_result["status"] == "success":
                 self.metrics["auto_resolved"] += 1
@@ -480,29 +395,20 @@ class MaestroOrchestratorAgent(TwisterAgent):
                     "ticket_id": ticket_id,
                     "resolution": resolution_result,
                     "supervised": supervised,
-                    "classification": classification
+                    "classification": classification,
                 }
             else:
                 # Échec de résolution → Escalade
                 return await self._escalate_to_human(
-                    ticket_id,
-                    "auto_resolution_failed",
-                    classification
+                    ticket_id, "auto_resolution_failed", classification
                 )
 
         except Exception as exc:
             logger.error("Error routing to auto resolver: %s", exc)
-            return await self._escalate_to_human(
-                ticket_id,
-                "routing_error",
-                classification
-            )
+            return await self._escalate_to_human(ticket_id, "routing_error", classification)
 
     async def _escalate_to_human(
-        self,
-        ticket_id: str,
-        reason: str,
-        classification: Dict[str, Any]
+        self, ticket_id: str, reason: str, classification: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Escalade vers un agent humain.
@@ -519,21 +425,15 @@ class MaestroOrchestratorAgent(TwisterAgent):
                 "classification": classification,
                 "recommended_agent": "senior_helpdesk",
                 "estimated_response_time": "30 minutes",
-                "priority": classification.get("priority", "medium")
+                "priority": classification.get("priority", "medium"),
             }
 
         except Exception as exc:
             logger.error("Error escalating ticket %s: %s", ticket_id, exc)
-            return {
-                "status": "error",
-                "error": str(exc),
-                "ticket_id": ticket_id
-            }
+            return {"status": "error", "error": str(exc), "ticket_id": ticket_id}
 
     async def _simulate_auto_resolution(
-        self,
-        ticket_id: str,
-        classification: Dict[str, Any]
+        self, ticket_id: str, classification: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Simulation de résolution automatique.
@@ -547,38 +447,29 @@ class MaestroOrchestratorAgent(TwisterAgent):
                     "status": "success",
                     "action": "password_reset",
                     "details": "Password reset initiated for user",
-                    "execution_time": "2 minutes"
+                    "execution_time": "2 minutes",
                 }
             elif category == "software":
                 return {
                     "status": "success",
                     "action": "software_install",
                     "details": "Software installation initiated",
-                    "execution_time": "5 minutes"
+                    "execution_time": "5 minutes",
                 }
             elif category == "access":
                 return {
                     "status": "success",
                     "action": "access_grant",
                     "details": "Access permissions updated",
-                    "execution_time": "1 minute"
+                    "execution_time": "1 minute",
                 }
             else:
-                return {
-                    "status": "error",
-                    "error": "Unsupported category for auto-resolution"
-                }
+                return {"status": "error", "error": "Unsupported category for auto-resolution"}
 
         except Exception as exc:
-            return {
-                "status": "error",
-                "error": str(exc)
-            }
+            return {"status": "error", "error": str(exc)}
 
-    async def get_agent_status(
-        self,
-        include_health: bool = False
-    ) -> Dict[str, Any]:
+    async def get_agent_status(self, include_health: bool = False) -> Dict[str, Any]:
         """
         Retourne le statut de tous les agents.
         """
@@ -586,7 +477,7 @@ class MaestroOrchestratorAgent(TwisterAgent):
             status: Dict[str, Any] = {
                 "status": "success",
                 "agents": {},
-                "overall_health": "healthy"
+                "overall_health": "healthy",
             }
 
             unhealthy_count = 0
@@ -599,7 +490,7 @@ class MaestroOrchestratorAgent(TwisterAgent):
                     agent_status["health_metrics"] = {
                         "response_time": "150ms",
                         "error_rate": "0.1%",
-                        "uptime": "99.9%"
+                        "uptime": "99.9%",
                     }
 
                 status["agents"][agent_name] = agent_status
@@ -614,15 +505,9 @@ class MaestroOrchestratorAgent(TwisterAgent):
 
         except Exception as exc:
             logger.error("Error getting agent status: %s", exc)
-            return {
-                "status": "error",
-                "error": str(exc)
-            }
+            return {"status": "error", "error": str(exc)}
 
-    async def rebalance_load(
-        self,
-        strategy: str = "round_robin"
-    ) -> Dict[str, Any]:
+    async def rebalance_load(self, strategy: str = "round_robin") -> Dict[str, Any]:
         """
         Rééquilibre la charge entre les agents.
         """
@@ -634,15 +519,12 @@ class MaestroOrchestratorAgent(TwisterAgent):
                 "strategy": strategy,
                 "action": "load_balanced",
                 "agents_adjusted": len(self.available_agents),
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
         except Exception as exc:
             logger.error("Error rebalancing load: %s", exc)
-            return {
-                "status": "error",
-                "error": str(exc)
-            }
+            return {"status": "error", "error": str(exc)}
 
     def _is_agent_available(self, agent_name: str) -> bool:
         """
@@ -663,4 +545,3 @@ class MaestroOrchestratorAgent(TwisterAgent):
         Retourne les métriques de performance.
         """
         return dict(self.metrics)
-

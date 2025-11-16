@@ -15,9 +15,7 @@ async def test_api():
 
     # Start API in background thread
     def start_api():
-        uvicorn.run(
-            "agents.api.main:app", host="127.0.0.1", port=8001, log_level="error"
-        )
+        uvicorn.run("agents.api.main:app", host="127.0.0.1", port=8001, log_level="error")
 
     api_thread = threading.Thread(target=start_api, daemon=True)
     api_thread.start()
@@ -28,9 +26,7 @@ async def test_api():
     try:
         async with aiohttp.ClientSession() as session:
             # Test status endpoint
-            async with session.get(
-                "http://127.0.0.1:8001/api/v1/autonomous/status"
-            ) as response:
+            async with session.get("http://127.0.0.1:8001/api/v1/autonomous/status") as response:
                 if response.status == 200:
                     data = await response.json()
                     print("✅ Autonomous API is responding")
@@ -41,9 +37,7 @@ async def test_api():
                     print(f"❌ Status endpoint returned {response.status}")
 
             # Test agents endpoint
-            async with session.get(
-                "http://127.0.0.1:8001/api/v1/autonomous/agents"
-            ) as response:
+            async with session.get("http://127.0.0.1:8001/api/v1/autonomous/agents") as response:
                 if response.status == 200:
                     data = await response.json()
                     print("✅ Agents endpoint working")

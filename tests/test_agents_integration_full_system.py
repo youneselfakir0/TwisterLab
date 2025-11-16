@@ -64,9 +64,7 @@ class TestAgentIntegration:
             )
 
             # Execute monitoring cycle
-            monitoring_result = await agents["monitoring"].execute(
-                {"operation": "health_check"}
-            )
+            monitoring_result = await agents["monitoring"].execute({"operation": "health_check"})
 
             diagnostic_result = await agents["monitoring"].execute(
                 {"operation": "diagnostic", "check_type": "system"}
@@ -119,23 +117,17 @@ class TestAgentIntegration:
             )
 
             # 2. Backup agent performs integrity check and recovery
-            backup_integrity = await agents["backup"].execute(
-                {"operation": "integrity_check"}
-            )
+            backup_integrity = await agents["backup"].execute({"operation": "integrity_check"})
 
             backup_recovery = await agents["backup"].execute(
                 {"operation": "recovery", "recovery_type": "full"}
             )
 
             # 3. Sync agent reconciles inconsistencies
-            sync_reconciliation = await agents["sync"].execute(
-                {"operation": "reconciliation"}
-            )
+            sync_reconciliation = await agents["sync"].execute({"operation": "reconciliation"})
 
             # 4. Monitoring verifies recovery
-            final_health = await agents["monitoring"].execute(
-                {"operation": "health_check"}
-            )
+            final_health = await agents["monitoring"].execute({"operation": "health_check"})
 
             # Verify disaster recovery succeeded
             assert len(monitoring_result["diagnosis"]) > 0
@@ -176,15 +168,11 @@ class TestAgentIntegration:
             )
 
             # Execute performance optimization cycle
-            initial_perf = await agents["sync"].execute(
-                {"operation": "performance_check"}
-            )
+            initial_perf = await agents["sync"].execute({"operation": "performance_check"})
 
             # Simulate optimizations (would be triggered by Maestro)
             # Final verification
-            final_perf = await agents["sync"].execute(
-                {"operation": "performance_check"}
-            )
+            final_perf = await agents["sync"].execute({"operation": "performance_check"})
 
             # Verify optimization worked
             assert initial_perf["result"]["result"]["optimization_needed"] == True
@@ -226,9 +214,7 @@ class TestAgentIntegration:
             # based on monitoring alerts
 
             # Maestro assesses situation
-            maestro_assessment = await agents["maestro"].execute(
-                {"operation": "assess_situation"}
-            )
+            maestro_assessment = await agents["maestro"].execute({"operation": "assess_situation"})
 
             # Maestro coordinates diagnostic
             diagnostic_coordination = await agents["monitoring"].execute(
@@ -236,9 +222,7 @@ class TestAgentIntegration:
             )
 
             # Maestro coordinates recovery
-            recovery_coordination = await agents["backup"].execute(
-                {"operation": "recovery"}
-            )
+            recovery_coordination = await agents["backup"].execute({"operation": "recovery"})
 
             # Maestro coordinates optimization
             optimization_coordination = await agents["sync"].execute(
@@ -246,9 +230,7 @@ class TestAgentIntegration:
             )
 
             # Maestro verifies resolution
-            final_verification = await agents["maestro"].execute(
-                {"operation": "verify_resolution"}
-            )
+            final_verification = await agents["maestro"].execute({"operation": "verify_resolution"})
 
             # Verify orchestration succeeded
             assert maestro_assessment["status"] == "success"
@@ -279,12 +261,8 @@ class TestAgentIntegration:
             monitoring_calls = [
                 call for call in mcp_calls if call["agent_name"] == "MonitoringAgent"
             ]
-            backup_calls = [
-                call for call in mcp_calls if call["agent_name"] == "BackupAgent"
-            ]
-            sync_calls = [
-                call for call in mcp_calls if call["agent_name"] == "SyncAgent"
-            ]
+            backup_calls = [call for call in mcp_calls if call["agent_name"] == "BackupAgent"]
+            sync_calls = [call for call in mcp_calls if call["agent_name"] == "SyncAgent"]
 
             # Monitoring agent should only call monitoring-related MCPs
             for call in monitoring_calls:
@@ -292,10 +270,7 @@ class TestAgentIntegration:
 
             # Backup agent should only call backup/sync-related MCPs
             for call in backup_calls:
-                assert (
-                    "sync" in call["mcp_name"]
-                    or "desktop_commander" in call["mcp_name"]
-                )
+                assert "sync" in call["mcp_name"] or "desktop_commander" in call["mcp_name"]
 
             # Sync agent should only call sync-related MCPs
             for call in sync_calls:
@@ -352,9 +327,7 @@ class TestAgentIntegration:
 
             # Execute cascading failure response
             # 1. Initial detection
-            initial_detection = await agents["monitoring"].execute(
-                {"operation": "health_check"}
-            )
+            initial_detection = await agents["monitoring"].execute({"operation": "health_check"})
 
             # 2. Emergency backup
             emergency_backup = await agents["backup"].execute(
@@ -362,9 +335,7 @@ class TestAgentIntegration:
             )
 
             # 3. Component isolation
-            isolation = await agents["sync"].execute(
-                {"operation": "isolate_components"}
-            )
+            isolation = await agents["sync"].execute({"operation": "isolate_components"})
 
             # 4. Gradual recovery
             recovery = await agents["backup"].execute(
@@ -372,9 +343,7 @@ class TestAgentIntegration:
             )
 
             # 5. Final verification
-            final_check = await agents["monitoring"].execute(
-                {"operation": "health_check"}
-            )
+            final_check = await agents["monitoring"].execute({"operation": "health_check"})
 
             # Verify cascading failure was handled
             assert len(initial_detection["diagnosis"]) > 0
@@ -410,9 +379,7 @@ async def test_agent_audit_trail_integrity():
             assert "monitoring_complete" in operations_audited
 
             # Verify timestamps are present and sequential
-            timestamps = [
-                entry[1].get("timestamp") for entry in audit_entries if len(entry) > 1
-            ]
+            timestamps = [entry[1].get("timestamp") for entry in audit_entries if len(entry) > 1]
             assert all(ts for ts in timestamps)
             assert all(datetime.fromisoformat(ts) for ts in timestamps)
 

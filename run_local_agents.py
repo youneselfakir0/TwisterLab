@@ -6,15 +6,15 @@ Execute Real agents locally on CoreRTX without API dependency
 import asyncio
 import json
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Any, Dict
 
-from agents.real.real_monitoring_agent import RealMonitoringAgent
 from agents.real.real_backup_agent import RealBackupAgent
-from agents.real.real_sync_agent import RealSyncAgent
 from agents.real.real_classifier_agent import RealClassifierAgent
-from agents.real.real_resolver_agent import RealResolverAgent
 from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
 from agents.real.real_maestro_agent import RealMaestroAgent
+from agents.real.real_monitoring_agent import RealMonitoringAgent
+from agents.real.real_resolver_agent import RealResolverAgent
+from agents.real.real_sync_agent import RealSyncAgent
 
 
 class LocalAgentRunner:
@@ -28,7 +28,7 @@ class LocalAgentRunner:
             "classifier": RealClassifierAgent(),
             "resolver": RealResolverAgent(),
             "desktop_commander": RealDesktopCommanderAgent(),
-            "maestro": RealMaestroAgent()
+            "maestro": RealMaestroAgent(),
         }
 
     async def get_system_health(self) -> Dict[str, Any]:
@@ -39,10 +39,9 @@ class LocalAgentRunner:
     async def create_backup(self, backup_type: str = "full") -> Dict[str, Any]:
         """Create system backup"""
         agent = self.agents["backup"]
-        return await agent.execute({
-            "backup_type": backup_type,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        return await agent.execute(
+            {"backup_type": backup_type, "timestamp": datetime.now(timezone.utc).isoformat()}
+        )
 
     async def sync_cache_db(self) -> Dict[str, Any]:
         """Synchronize cache and database"""
@@ -52,36 +51,38 @@ class LocalAgentRunner:
     async def classify_ticket(self, description: str) -> Dict[str, Any]:
         """Classify a support ticket"""
         agent = self.agents["classifier"]
-        return await agent.execute({
-            "ticket_description": description,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        return await agent.execute(
+            {"ticket_description": description, "timestamp": datetime.now(timezone.utc).isoformat()}
+        )
 
     async def resolve_ticket(self, ticket_id: str, category: str) -> Dict[str, Any]:
         """Execute SOP to resolve ticket"""
         agent = self.agents["resolver"]
-        return await agent.execute({
-            "ticket_id": ticket_id,
-            "category": category,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        return await agent.execute(
+            {
+                "ticket_id": ticket_id,
+                "category": category,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
     async def execute_command(self, command: str, target: str = "localhost") -> Dict[str, Any]:
         """Execute remote desktop command"""
         agent = self.agents["desktop_commander"]
-        return await agent.execute({
-            "command": command,
-            "target": target,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        return await agent.execute(
+            {
+                "command": command,
+                "target": target,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
     async def orchestrate_workflow(self, workflow_type: str) -> Dict[str, Any]:
         """Orchestrate multi-agent workflow"""
         agent = self.agents["maestro"]
-        return await agent.execute({
-            "workflow_type": workflow_type,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        return await agent.execute(
+            {"workflow_type": workflow_type, "timestamp": datetime.now(timezone.utc).isoformat()}
+        )
 
     async def list_agents(self) -> Dict[str, Any]:
         """List all available agents"""
@@ -89,14 +90,10 @@ class LocalAgentRunner:
             "status": "success",
             "mode": "local",
             "agents": {
-                name: {
-                    "name": agent.name,
-                    "status": "operational",
-                    "type": type(agent).__name__
-                }
+                name: {"name": agent.name, "status": "operational", "type": type(agent).__name__}
                 for name, agent in self.agents.items()
             },
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
@@ -122,8 +119,12 @@ async def demo():
     if health["status"] == "success":
         hc = health["health_check"]
         print(f"  CPU: {hc['cpu_percent']}% ({hc['cpu_count']} cores)")
-        print(f"  Memory: {hc['memory_percent']}% ({hc['memory_used_gb']:.1f}/{hc['memory_total_gb']:.1f} GB)")
-        print(f"  Disk: {hc['disk_percent']}% ({hc['disk_used_gb']:.1f}/{hc['disk_total_gb']:.1f} GB)")
+        print(
+            f"  Memory: {hc['memory_percent']}% ({hc['memory_used_gb']:.1f}/{hc['memory_total_gb']:.1f} GB)"
+        )
+        print(
+            f"  Disk: {hc['disk_percent']}% ({hc['disk_used_gb']:.1f}/{hc['disk_total_gb']:.1f} GB)"
+        )
         print(f"  Network: ↓{hc['network_received_mb']:.1f} MB  ↑{hc['network_sent_mb']:.1f} MB")
         print(f"  Processes: {hc['processes']}")
     print()

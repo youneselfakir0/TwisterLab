@@ -3,25 +3,24 @@
 Script d'exécution automatique des tests de charge TwisterLab
 """
 
+import json
+import logging
+import os
 import subprocess
 import sys
 import time
-import json
-import os
 from pathlib import Path
+
 import requests
-import logging
 
 # Configuration du logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/load_test.log'),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("logs/load_test.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
+
 
 class LoadTester:
     """Classe pour exécuter et analyser les tests de charge"""
@@ -48,26 +47,34 @@ class LoadTester:
 
     def run_load_test(self, users=10, spawn_rate=2, duration="30s"):
         """Exécute un test de charge avec les paramètres spécifiés"""
-        logger.info(f"🚀 Démarrage du test de charge: {users} utilisateurs, {spawn_rate} spawn/s, durée {duration}")
+        logger.info(
+            f"🚀 Démarrage du test de charge: {users} utilisateurs, {spawn_rate} spawn/s, durée {duration}"
+        )
 
         cmd = [
-            sys.executable, "-m", "locust",
-            "--locustfile", self.locustfile,
-            "--host", self.api_url,
-            "--users", str(users),
-            "--spawn-rate", str(spawn_rate),
-            "--run-time", duration,
+            sys.executable,
+            "-m",
+            "locust",
+            "--locustfile",
+            self.locustfile,
+            "--host",
+            self.api_url,
+            "--users",
+            str(users),
+            "--spawn-rate",
+            str(spawn_rate),
+            "--run-time",
+            duration,
             "--headless",  # Mode sans interface graphique
-            "--csv", "logs/load_test_results",  # Sauvegarde des résultats
-            "--loglevel", "INFO"
+            "--csv",
+            "logs/load_test_results",  # Sauvegarde des résultats
+            "--loglevel",
+            "INFO",
         ]
 
         try:
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300  # Timeout de 5 minutes
+                cmd, capture_output=True, text=True, timeout=300  # Timeout de 5 minutes
             )
 
             logger.info("📊 Test de charge terminé")
@@ -125,7 +132,7 @@ class LoadTester:
             success = self.run_load_test(
                 users=scenario["users"],
                 spawn_rate=scenario["spawn_rate"],
-                duration=scenario["duration"]
+                duration=scenario["duration"],
             )
 
             if success:
@@ -147,6 +154,7 @@ class LoadTester:
             logger.error("❌ Certains tests de charge ont échoué")
             return False
 
+
 def main():
     """Fonction principale"""
     # Créer le dossier logs s'il n'existe pas
@@ -167,6 +175,7 @@ def main():
         print("\n❌ VALIDATION LOAD TESTING ÉCHOUÉE")
         print("⚠️ L'API nécessite des optimisations avant production")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

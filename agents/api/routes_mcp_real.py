@@ -87,9 +87,7 @@ class MCPResponse(BaseModel):
     status: str = Field(..., pattern="^(ok|error)$")
     data: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
-    timestamp: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 # ============================================================================
@@ -226,9 +224,7 @@ async def resolve_ticket(request: ResolveTicketRequest) -> MCPResponse:
     ```
     """
     try:
-        logger.info(
-            f"🔧 Resolving ticket (category: {request.category}, ID: {request.ticket_id})"
-        )
+        logger.info(f"🔧 Resolving ticket (category: {request.category}, ID: {request.ticket_id})")
 
         # Initialize agent
         agent = RealResolverAgent()

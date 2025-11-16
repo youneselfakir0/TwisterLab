@@ -8,8 +8,7 @@ Provides observability for Ollama multi-endpoint failover system:
 - Failover counters
 """
 
-from prometheus_client import Counter, Histogram, Gauge, Info
-
+from prometheus_client import Counter, Gauge, Histogram, Info
 
 # ============================================================================
 # Compteurs
@@ -18,12 +17,11 @@ from prometheus_client import Counter, Histogram, Gauge, Info
 ollama_requests_total = Counter(
     "ollama_requests_total",
     "Total number of requests sent to Ollama",
-    ["endpoint", "model", "status"]
+    ["endpoint", "model", "status"],
 )
 
 ollama_failovers_total = Counter(
-    "ollama_failovers_total",
-    "Total number of failovers between Ollama endpoints"
+    "ollama_failovers_total", "Total number of failovers between Ollama endpoints"
 )
 
 
@@ -35,14 +33,14 @@ ollama_request_duration_seconds = Histogram(
     "ollama_request_duration_seconds",
     "Duration of Ollama requests in seconds",
     ["endpoint", "model"],
-    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0]
+    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0],
 )
 
 ollama_tokens_generated = Histogram(
     "ollama_tokens_generated",
     "Number of tokens generated per request",
     ["endpoint", "model"],
-    buckets=[10, 50, 100, 200, 500, 1000, 2000]
+    buckets=[10, 50, 100, 200, 500, 1000, 2000],
 )
 
 
@@ -51,19 +49,13 @@ ollama_tokens_generated = Histogram(
 # ============================================================================
 
 ollama_endpoint_health = Gauge(
-    "ollama_endpoint_health",
-    "Health status of Ollama endpoint (1=healthy, 0=down)",
-    ["endpoint"]
+    "ollama_endpoint_health", "Health status of Ollama endpoint (1=healthy, 0=down)", ["endpoint"]
 )
 
-ollama_current_endpoint = Info(
-    "ollama_current_endpoint",
-    "Currently active Ollama endpoint"
-)
+ollama_current_endpoint = Info("ollama_current_endpoint", "Currently active Ollama endpoint")
 
 ollama_success_rate = Gauge(
-    "ollama_success_rate_percent",
-    "Success rate of Ollama requests in percent"
+    "ollama_success_rate_percent", "Success rate of Ollama requests in percent"
 )
 
 
@@ -71,13 +63,8 @@ ollama_success_rate = Gauge(
 # Helper Functions
 # ============================================================================
 
-def record_request(
-    endpoint: str,
-    model: str,
-    duration_seconds: float,
-    tokens: int,
-    status: str
-):
+
+def record_request(endpoint: str, model: str, duration_seconds: float, tokens: int, status: str):
     """
     Record métriques pour une requête Ollama.
 
@@ -89,24 +76,14 @@ def record_request(
         status: "success" ou "error"
     """
     # Compteur requêtes
-    ollama_requests_total.labels(
-        endpoint=endpoint,
-        model=model,
-        status=status
-    ).inc()
+    ollama_requests_total.labels(endpoint=endpoint, model=model, status=status).inc()
 
     # Histogramme latence
-    ollama_request_duration_seconds.labels(
-        endpoint=endpoint,
-        model=model
-    ).observe(duration_seconds)
+    ollama_request_duration_seconds.labels(endpoint=endpoint, model=model).observe(duration_seconds)
 
     # Histogramme tokens
     if tokens > 0:
-        ollama_tokens_generated.labels(
-            endpoint=endpoint,
-            model=model
-        ).observe(tokens)
+        ollama_tokens_generated.labels(endpoint=endpoint, model=model).observe(tokens)
 
 
 def record_failover():

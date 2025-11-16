@@ -330,9 +330,7 @@ class MaestroOrchestratorAgent(BaseAgent):
 
                 try:
                     # Load balance agent selection
-                    agent_name = await self._select_agent_for_step(
-                        step_config, workflow_context
-                    )
+                    agent_name = await self._select_agent_for_step(step_config, workflow_context)
 
                     # Execute step with timeout
                     timeout = step_config.get("timeout", 60)
@@ -528,12 +526,8 @@ class MaestroOrchestratorAgent(BaseAgent):
         active_workflows = len(
             [w for w in self.active_workflows.values() if w["status"] == "running"]
         )
-        completed_workflows = len(
-            [w for w in self.workflow_history if w["status"] == "completed"]
-        )
-        failed_workflows = len(
-            [w for w in self.workflow_history if w["status"] == "failed"]
-        )
+        completed_workflows = len([w for w in self.workflow_history if w["status"] == "completed"])
+        failed_workflows = len([w for w in self.workflow_history if w["status"] == "failed"])
 
         return {
             "status": "success",
@@ -589,7 +583,7 @@ class MaestroOrchestratorAgent(BaseAgent):
                 agent_name=self.name,
                 mcp_name="monitoring_mcp",
                 operation="health_check",
-                params={"check_type": "system"}
+                params={"check_type": "system"},
             )
 
             # Assess agent status
@@ -600,7 +594,7 @@ class MaestroOrchestratorAgent(BaseAgent):
                         agent_name=self.name,
                         mcp_name=f"{agent_name.lower()}_mcp",
                         operation="status",
-                        params={}
+                        params={},
                     )
                     agent_status[agent_name] = agent_result
                 except Exception as e:
@@ -614,8 +608,9 @@ class MaestroOrchestratorAgent(BaseAgent):
                 system_health = "degraded"
                 issues_found.append("system_health_issues")
 
-            unhealthy_agents = [name for name, status in agent_status.items()
-                              if status.get("status") != "healthy"]
+            unhealthy_agents = [
+                name for name, status in agent_status.items() if status.get("status") != "healthy"
+            ]
             if unhealthy_agents:
                 system_health = "critical" if system_health == "degraded" else "warning"
                 issues_found.append(f"unhealthy_agents: {unhealthy_agents}")
@@ -645,23 +640,29 @@ class MaestroOrchestratorAgent(BaseAgent):
         recommendations = []
 
         if system_health == "critical":
-            recommendations.extend([
-                "Immediate intervention required",
-                "Consider emergency backup procedures",
-                "Isolate failing components"
-            ])
+            recommendations.extend(
+                [
+                    "Immediate intervention required",
+                    "Consider emergency backup procedures",
+                    "Isolate failing components",
+                ]
+            )
         elif system_health == "degraded":
-            recommendations.extend([
-                "Monitor system closely",
-                "Schedule maintenance during next maintenance window",
-                "Review recent changes for potential issues"
-            ])
+            recommendations.extend(
+                [
+                    "Monitor system closely",
+                    "Schedule maintenance during next maintenance window",
+                    "Review recent changes for potential issues",
+                ]
+            )
         elif system_health == "warning":
-            recommendations.extend([
-                "Investigate agent health issues",
-                "Review system logs for anomalies",
-                "Consider performance optimization"
-            ])
+            recommendations.extend(
+                [
+                    "Investigate agent health issues",
+                    "Review system logs for anomalies",
+                    "Consider performance optimization",
+                ]
+            )
 
         for issue in issues_found:
             if "unhealthy_agents" in issue:
@@ -679,7 +680,7 @@ class MaestroOrchestratorAgent(BaseAgent):
                 agent_name=self.name,
                 mcp_name="monitoring_mcp",
                 operation="health_check",
-                params={"check_type": "system"}
+                params={"check_type": "system"},
             )
 
             # Check if issues are resolved
@@ -797,17 +798,13 @@ class MaestroOrchestratorAgent(BaseAgent):
         operation = context.get("operation")
         if operation == "execute_workflow":
             if "workflow_name" not in context:
-                raise ValueError(
-                    "workflow_name required for execute_workflow operation"
-                )
+                raise ValueError("workflow_name required for execute_workflow operation")
         elif operation == "load_balance":
             if "agent_type" not in context or "operation" not in context:
                 raise ValueError("agent_type and operation required for load_balance")
         elif operation == "get_workflow_status":
             if "workflow_id" not in context:
-                raise ValueError(
-                    "workflow_id required for get_workflow_status operation"
-                )
+                raise ValueError("workflow_id required for get_workflow_status operation")
         elif operation == "cancel_workflow":
             if "workflow_id" not in context:
                 raise ValueError("workflow_id required for cancel_workflow operation")

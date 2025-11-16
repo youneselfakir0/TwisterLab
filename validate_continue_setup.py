@@ -1,8 +1,10 @@
 ﻿import asyncio
-import aiohttp
-import yaml
 import json
 import sys
+
+import aiohttp
+import yaml
+
 
 async def validate_setup():
     results = {}

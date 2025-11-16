@@ -41,10 +41,8 @@ class TwisterLabDeployer:
             "enable_security": True,
             "azure_subscription": None,
             # Prefer environment-provided secrets; otherwise generate strong random values for local community deployments
-            "grafana_admin_password": os.getenv("GRAFANA_ADMIN_PASSWORD")
-            or _secrets.token_hex(16),
-            "postgres_password": os.getenv("POSTGRES_PASSWORD")
-            or _secrets.token_hex(16),
+            "grafana_admin_password": os.getenv("GRAFANA_ADMIN_PASSWORD") or _secrets.token_hex(16),
+            "postgres_password": os.getenv("POSTGRES_PASSWORD") or _secrets.token_hex(16),
             "redis_password": os.getenv("REDIS_PASSWORD") or _secrets.token_hex(16),
             "domain": "localhost",
             "ports": {
@@ -103,27 +101,21 @@ class TwisterLabDeployer:
 
     def _check_docker(self) -> bool:
         try:
-            result = subprocess.run(
-                ["docker", "--version"], capture_output=True, text=True
-            )
+            result = subprocess.run(["docker", "--version"], capture_output=True, text=True)
             return result.returncode == 0
         except FileNotFoundError:
             return False
 
     def _check_docker_compose(self) -> bool:
         try:
-            result = subprocess.run(
-                ["docker-compose", "--version"], capture_output=True, text=True
-            )
+            result = subprocess.run(["docker-compose", "--version"], capture_output=True, text=True)
             return result.returncode == 0
         except FileNotFoundError:
             return False
 
     def _check_git(self) -> bool:
         try:
-            result = subprocess.run(
-                ["git", "--version"], capture_output=True, text=True
-            )
+            result = subprocess.run(["git", "--version"], capture_output=True, text=True)
             return result.returncode == 0
         except FileNotFoundError:
             return False
@@ -146,9 +138,7 @@ class TwisterLabDeployer:
                 subprocess.run(["git", "pull"], cwd=self.target_dir, check=True)
             else:
                 print("  📁 Cloning repository...")
-                subprocess.run(
-                    ["git", "clone", self.repo_url, str(self.target_dir)], check=True
-                )
+                subprocess.run(["git", "clone", self.repo_url, str(self.target_dir)], check=True)
 
             print("  ✅ Download completed")
             return True
@@ -239,9 +229,7 @@ ENABLE_SECURITY={str(self.config["enable_security"]).lower()}
             subprocess.run(["docker-compose", "build"], cwd=self.target_dir, check=True)
 
             print("  🏃 Starting services...")
-            subprocess.run(
-                ["docker-compose", "up", "-d"], cwd=self.target_dir, check=True
-            )
+            subprocess.run(["docker-compose", "up", "-d"], cwd=self.target_dir, check=True)
 
             # Wait for services to be healthy
             print("  🏥 Waiting for services to be healthy...")
@@ -520,9 +508,7 @@ def main():
         default="full",
         help="Deployment type",
     )
-    parser.add_argument(
-        "--no-monitoring", action="store_true", help="Disable monitoring"
-    )
+    parser.add_argument("--no-monitoring", action="store_true", help="Disable monitoring")
     parser.add_argument("--grafana-password", help="Grafana admin password")
 
     args = parser.parse_args()

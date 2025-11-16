@@ -10,7 +10,7 @@ from typing import Any, Dict
 
 import psutil
 
-from agents.base.unified_agent import UnifiedAgentBase, AgentStatus
+from agents.base.unified_agent import AgentStatus, UnifiedAgentBase
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,13 @@ class RealMonitoringAgent(UnifiedAgentBase):
         # Thresholds for alerts
         self.thresholds = {"cpu_percent": 80, "memory_percent": 85, "disk_percent": 90}
         # Expected services - match Docker service names
-        self.expected_services = ["twisterlab_api", "twisterlab_postgres", "twisterlab_redis", "twisterlab_prometheus", "twisterlab_grafana"]
+        self.expected_services = [
+            "twisterlab_api",
+            "twisterlab_postgres",
+            "twisterlab_redis",
+            "twisterlab_prometheus",
+            "twisterlab_grafana",
+        ]
         # Expected ports
         self.expected_ports = {
             "8000": "API",
@@ -115,8 +121,13 @@ class RealMonitoringAgent(UnifiedAgentBase):
         logger.info("🐳 Checking Docker services...")
         try:
             process = await asyncio.create_subprocess_exec(
-                "docker", "service", "ls", "--format", "{{.Name}}:{{.Replicas}}",
-                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                "docker",
+                "service",
+                "ls",
+                "--format",
+                "{{.Name}}:{{.Replicas}}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await process.communicate()
             if process.returncode != 0:
@@ -127,17 +138,22 @@ class RealMonitoringAgent(UnifiedAgentBase):
                 if ":" in line:
                     name, replicas = line.split(":", 1)
                     current, desired = map(int, replicas.split("/"))
-                    services[name] = {"status": "running" if current == desired and current > 0 else "degraded"}
-            
+                    services[name] = {
+                        "status": "running" if current == desired and current > 0 else "degraded"
+                    }
+
             return {"status": "success", "services": services}
         except (FileNotFoundError, Exception) as e:
-            logger.warning(f"Docker service check failed: {e}. This may be expected if not running in a Swarm manager.")
+            logger.warning(
+                f"Docker service check failed: {e}. This may be expected if not running in a Swarm manager."
+            )
             return {"status": "error", "message": str(e)}
 
     async def _check_ports(self) -> Dict[str, Any]:
         """Checks if expected ports are listening."""
         logger.info("🔌 Checking ports...")
         import socket
+
         ports_status = {}
         for port, service_name in self.expected_ports.items():
             host = self.service_hosts.get(port, "127.0.0.1")
@@ -145,10 +161,19 @@ class RealMonitoringAgent(UnifiedAgentBase):
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.settimeout(1)
                     is_open = s.connect_ex((host, int(port))) == 0
-                ports_status[port] = {"service": service_name, "host": host, "status": "open" if is_open else "closed"}
+                ports_status[port] = {
+                    "service": service_name,
+                    "host": host,
+                    "status": "open" if is_open else "closed",
+                }
             except Exception as e:
-                ports_status[port] = {"service": service_name, "host": host, "status": "error", "error": str(e)}
-        
+                ports_status[port] = {
+                    "service": service_name,
+                    "host": host,
+                    "status": "error",
+                    "error": str(e),
+                }
+
         return {"status": "success", "ports": ports_status}
 
     async def _check_nvidia_gpu(self) -> Dict[str, Any]:
@@ -156,14 +181,16 @@ class RealMonitoringAgent(UnifiedAgentBase):
         logger.info("🎮 Checking NVIDIA GPU...")
         try:
             process = await asyncio.create_subprocess_exec(
-                "nvidia-smi", "--query-gpu=name,memory.total,memory.used,utilization.gpu,temperature.gpu",
+                "nvidia-smi",
+                "--query-gpu=name,memory.total,memory.used,utilization.gpu,temperature.gpu",
                 "--format=csv,noheader,nounits",
-                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await process.communicate()
             if process.returncode != 0:
                 return {"status": "not_available", "error": stderr.decode().strip()}
-            
+
             gpu_data = stdout.decode().strip().split(", ")
             return {
                 "status": "available",

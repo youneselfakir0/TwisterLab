@@ -2,18 +2,20 @@
 TwisterLab - Real Working Desktop Commander Agent (v2 - Unified)
 Executes system commands securely on Windows/Linux, aligned with the UnifiedAgentBase.
 """
-import asyncio
-import subprocess
-import platform
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
-import logging
 
-from agents.base.unified_agent import UnifiedAgentBase, AgentStatus
+import asyncio
+import logging
+import platform
+import subprocess
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from agents.base.unified_agent import AgentStatus, UnifiedAgentBase
 
 # Import LLM client for intelligent command validation
 try:
     from agents.base.llm_client import ollama_client
+
     LLM_AVAILABLE = True
 except ImportError:
     LLM_AVAILABLE = False
@@ -45,7 +47,7 @@ class RealDesktopCommanderAgent(UnifiedAgentBase):
             "whoami": {"windows": "whoami", "linux": "whoami"},
             "hostname": {"windows": "hostname", "linux": "hostname"},
             "route": {"windows": "route", "linux": "route", "args": ["print"]},
-            "nslookup": {"windows": "nslookup", "linux": "nslookup"}
+            "nslookup": {"windows": "nslookup", "linux": "nslookup"},
         }
 
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -90,7 +92,9 @@ class RealDesktopCommanderAgent(UnifiedAgentBase):
             try:
                 is_safe_llm = await self._validate_command_llm(command, args)
                 if not is_safe_llm:
-                    logger.warning(f"⚠️ LLM flagged whitelisted command as potentially unsafe: {command}")
+                    logger.warning(
+                        f"⚠️ LLM flagged whitelisted command as potentially unsafe: {command}"
+                    )
             except Exception as llm_error:
                 logger.warning(f"⚠️ LLM validation failed (ignored, whitelist passed): {llm_error}")
 
@@ -105,9 +109,7 @@ class RealDesktopCommanderAgent(UnifiedAgentBase):
 
         try:
             process = await asyncio.create_subprocess_exec(
-                *full_command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+                *full_command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30.0)
             execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
@@ -115,10 +117,10 @@ class RealDesktopCommanderAgent(UnifiedAgentBase):
             return {
                 "status": "success" if process.returncode == 0 else "failed",
                 "command": command,
-                "full_command": ' '.join(full_command),
+                "full_command": " ".join(full_command),
                 "return_code": process.returncode,
-                "output": stdout.decode('utf-8', errors='ignore')[:5000],
-                "error": stderr.decode('utf-8', errors='ignore')[:1000] if stderr else None,
+                "output": stdout.decode("utf-8", errors="ignore")[:5000],
+                "error": stderr.decode("utf-8", errors="ignore")[:1000] if stderr else None,
                 "execution_time_seconds": round(execution_time, 2),
             }
         except asyncio.TimeoutError:
@@ -129,13 +131,28 @@ class RealDesktopCommanderAgent(UnifiedAgentBase):
     async def _check_service(self, service_name: str) -> Dict[str, Any]:
         """Checks Windows/Linux service status."""
         logger.info(f"🔍 Checking service: {service_name}")
-        command = ["sc", "query", service_name] if self.os_type == "Windows" else ["systemctl", "status", service_name]
+        command = (
+            ["sc", "query", service_name]
+            if self.os_type == "Windows"
+            else ["systemctl", "status", service_name]
+        )
         try:
-            process = await asyncio.create_subprocess_exec(*command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            process = await asyncio.create_subprocess_exec(
+                *command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
             stdout, _ = await process.communicate()
-            output = stdout.decode('utf-8', errors='ignore')
-            is_running = ("RUNNING" in output) if self.os_type == "Windows" else ("active (running)" in output)
-            return {"status": "success", "service_name": service_name, "is_running": is_running, "output": output[:1000]}
+            output = stdout.decode("utf-8", errors="ignore")
+            is_running = (
+                ("RUNNING" in output)
+                if self.os_type == "Windows"
+                else ("active (running)" in output)
+            )
+            return {
+                "status": "success",
+                "service_name": service_name,
+                "is_running": is_running,
+                "output": output[:1000],
+            }
         except Exception as e:
             raise RuntimeError(f"Service check failed for {service_name}: {e}")
 
@@ -143,16 +160,23 @@ class RealDesktopCommanderAgent(UnifiedAgentBase):
         """Gathers comprehensive system information."""
         logger.info("📊 Gathering system information...")
         import psutil
+
         return {
             "status": "success",
             "system_info": {
                 "hostname": platform.node(),
                 "os": {"system": platform.system(), "release": platform.release()},
                 "cpu": {"count": psutil.cpu_count(), "percent": psutil.cpu_percent(interval=1)},
-                "memory": {"total_gb": round(psutil.virtual_memory().total / (1024**3), 2), "percent": psutil.virtual_memory().percent},
-                "disk": {"total_gb": round(psutil.disk_usage('/').total / (1024**3), 2), "percent": psutil.disk_usage('/').percent},
-                "available_commands": list(self.safe_commands.keys())
-            }
+                "memory": {
+                    "total_gb": round(psutil.virtual_memory().total / (1024**3), 2),
+                    "percent": psutil.virtual_memory().percent,
+                },
+                "disk": {
+                    "total_gb": round(psutil.disk_usage("/").total / (1024**3), 2),
+                    "percent": psutil.disk_usage("/").percent,
+                },
+                "available_commands": list(self.safe_commands.keys()),
+            },
         }
 
     async def _network_diagnostic(self, target: str) -> Dict[str, Any]:
@@ -160,28 +184,47 @@ class RealDesktopCommanderAgent(UnifiedAgentBase):
         logger.info(f"🌐 Running network diagnostics for {target}...")
         diagnostics = {}
         ping_result = await self._execute_command("ping", [target])
-        diagnostics["ping"] = {"success": ping_result["status"] == "success", "output": ping_result.get("output", "")[:500]}
+        diagnostics["ping"] = {
+            "success": ping_result["status"] == "success",
+            "output": ping_result.get("output", "")[:500],
+        }
         nslookup_result = await self._execute_command("nslookup", [target])
-        diagnostics["dns_resolution"] = {"success": nslookup_result["status"] == "success", "output": nslookup_result.get("output", "")[:500]}
-        
-        overall_health = "healthy" if all(d.get("success", False) for d in diagnostics.values()) else "degraded"
-        return {"status": "success", "target": target, "diagnostics": diagnostics, "overall_health": overall_health}
+        diagnostics["dns_resolution"] = {
+            "success": nslookup_result["status"] == "success",
+            "output": nslookup_result.get("output", "")[:500],
+        }
+
+        overall_health = (
+            "healthy" if all(d.get("success", False) for d in diagnostics.values()) else "degraded"
+        )
+        return {
+            "status": "success",
+            "target": target,
+            "diagnostics": diagnostics,
+            "overall_health": overall_health,
+        }
 
     async def _validate_command_llm(self, command: str, args: List[str] = None) -> bool:
         """Uses LLM to validate command safety."""
         full_cmd = f"{command} {' '.join(args or [])}"
         prompt = f"""Is this command safe for IT diagnostics? Command: {full_cmd}. Safe commands are READ-ONLY. Unsafe commands MODIFY system. Answer YES or NO."""
         try:
-            result = await ollama_client.generate_with_fallback(prompt=prompt, agent_type="commander")
+            result = await ollama_client.generate_with_fallback(
+                prompt=prompt, agent_type="commander"
+            )
             is_safe = result["response"].strip().upper().startswith("YES")
             logger.info(f"🤖 LLM validation for '{full_cmd}': {'SAFE' if is_safe else 'UNSAFE'}")
             return is_safe
         except Exception as e:
             logger.error(f"❌ LLM validation error: {e}")
-            return False # Default to unsafe if LLM validation fails
+            return False  # Default to unsafe if LLM validation fails
 
     async def _validate_command_whitelist(self, command: str) -> bool:
         """Validates command against static whitelist."""
         is_whitelisted = command in self.safe_commands
-        logger.info(f"✅ Whitelist validated: {command}" if is_whitelisted else f"❌ Command not whitelisted: {command}")
+        logger.info(
+            f"✅ Whitelist validated: {command}"
+            if is_whitelisted
+            else f"❌ Command not whitelisted: {command}"
+        )
         return is_whitelisted

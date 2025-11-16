@@ -1,8 +1,11 @@
 """
 Tests for RealClassifierAgent with LLM integration
 """
-import pytest
+
 import asyncio
+
+import pytest
+
 from agents.real.real_classifier_agent import RealClassifierAgent
 
 
@@ -19,13 +22,10 @@ async def test_classifier_llm_network_ticket(classifier):
         "id": "TEST-001",
         "title": "Cannot connect to WiFi",
         "description": "My laptop won't join the office network. Getting error 'Limited connectivity'",
-        "user": "john.doe@company.com"
+        "user": "john.doe@company.com",
     }
 
-    result = await classifier.execute({
-        "operation": "classify_ticket",
-        "ticket": ticket
-    })
+    result = await classifier.execute({"operation": "classify_ticket", "ticket": ticket})
 
     assert result["status"] == "success"
     assert result["ticket_id"] == "TEST-001"
@@ -34,7 +34,12 @@ async def test_classifier_llm_network_ticket(classifier):
     assert classification["category"] == "network"
     assert classification["confidence"] >= 0.5
     assert classification["priority"] in ["critical", "high", "medium", "low"]
-    assert classification["routed_to_agent"] in ["DesktopCommanderAgent", "ResolverAgent", "MonitoringAgent", "SyncAgent"]
+    assert classification["routed_to_agent"] in [
+        "DesktopCommanderAgent",
+        "ResolverAgent",
+        "MonitoringAgent",
+        "SyncAgent",
+    ]
 
     # Check if LLM was used
     method = classification.get("method", "keywords")
@@ -57,13 +62,10 @@ async def test_classifier_llm_software_ticket(classifier):
         "id": "TEST-002",
         "title": "Excel keeps crashing",
         "description": "When I open large files, Microsoft Excel freezes and crashes. Happens every time.",
-        "user": "jane.smith@company.com"
+        "user": "jane.smith@company.com",
     }
 
-    result = await classifier.execute({
-        "operation": "classify_ticket",
-        "ticket": ticket
-    })
+    result = await classifier.execute({"operation": "classify_ticket", "ticket": ticket})
 
     assert result["status"] == "success"
     classification = result["classification"]
@@ -82,13 +84,10 @@ async def test_classifier_llm_hardware_ticket(classifier):
         "id": "TEST-003",
         "title": "Screen flickering",
         "description": "My monitor has black lines and keeps flickering. Hard to read.",
-        "user": "bob.johnson@company.com"
+        "user": "bob.johnson@company.com",
     }
 
-    result = await classifier.execute({
-        "operation": "classify_ticket",
-        "ticket": ticket
-    })
+    result = await classifier.execute({"operation": "classify_ticket", "ticket": ticket})
 
     assert result["status"] == "success"
     classification = result["classification"]
@@ -106,13 +105,10 @@ async def test_classifier_llm_security_ticket(classifier):
         "id": "TEST-004",
         "title": "Forgot my password",
         "description": "I cannot remember my domain password and need to reset it urgently.",
-        "user": "alice.williams@company.com"
+        "user": "alice.williams@company.com",
     }
 
-    result = await classifier.execute({
-        "operation": "classify_ticket",
-        "ticket": ticket
-    })
+    result = await classifier.execute({"operation": "classify_ticket", "ticket": ticket})
 
     assert result["status"] == "success"
     classification = result["classification"]
@@ -133,13 +129,10 @@ async def test_classifier_fallback_on_llm_failure(classifier):
         "id": "TEST-005",
         "title": "Network printer not working",
         "description": "Cannot print to the office printer",
-        "user": "test@company.com"
+        "user": "test@company.com",
     }
 
-    result = await classifier.execute({
-        "operation": "classify_ticket",
-        "ticket": ticket
-    })
+    result = await classifier.execute({"operation": "classify_ticket", "ticket": ticket})
 
     assert result["status"] == "success"
     classification = result["classification"]
@@ -160,8 +153,18 @@ async def test_classifier_performance_comparison():
 
     test_tickets = [
         {"id": "PERF-1", "title": "WiFi down", "description": "Cannot connect", "user": "user1"},
-        {"id": "PERF-2", "title": "Outlook crash", "description": "Email app freezing", "user": "user2"},
-        {"id": "PERF-3", "title": "Keyboard broken", "description": "Keys not working", "user": "user3"},
+        {
+            "id": "PERF-2",
+            "title": "Outlook crash",
+            "description": "Email app freezing",
+            "user": "user2",
+        },
+        {
+            "id": "PERF-3",
+            "title": "Keyboard broken",
+            "description": "Keys not working",
+            "user": "user3",
+        },
     ]
 
     # Test with LLM

@@ -175,9 +175,7 @@ class ProductionAPITester:
     async def test_emergency_response(self) -> Dict[str, Any]:
         """Test emergency response endpoints."""
         # Test emergency status (not actual emergency)
-        response = await self.client.get(
-            f"{self.base_url}/api/v1/autonomous/emergency/status"
-        )
+        response = await self.client.get(f"{self.base_url}/api/v1/autonomous/emergency/status")
 
         return {
             "test_name": "emergency_response",
@@ -189,9 +187,7 @@ class ProductionAPITester:
 
     async def test_scheduled_tasks(self) -> Dict[str, Any]:
         """Test scheduled tasks endpoint."""
-        response = await self.client.get(
-            f"{self.base_url}/api/v1/autonomous/schedule/tasks"
-        )
+        response = await self.client.get(f"{self.base_url}/api/v1/autonomous/schedule/tasks")
 
         if response.status_code == 200:
             data = response.json()
@@ -224,9 +220,9 @@ class ProductionAPITester:
                 "total_tests": total_tests,
                 "passed": passed_tests,
                 "failed": failed_tests,
-                "success_rate": f"{(passed_tests / total_tests) * 100:.1f}%"
-                if total_tests > 0
-                else "0%",
+                "success_rate": (
+                    f"{(passed_tests / total_tests) * 100:.1f}%" if total_tests > 0 else "0%"
+                ),
             },
             "results": self.results,
             "timestamp": datetime.now().isoformat(),
@@ -245,25 +241,15 @@ class ProductionAPITester:
 
         # Check for specific issues
         for result in self.results:
-            if (
-                result["test_name"] == "autonomous_status"
-                and result["status"] == "success"
-            ):
+            if result["test_name"] == "autonomous_status" and result["status"] == "success":
                 agents_count = result.get("agents_count", 0)
                 if agents_count < 3:
-                    recommendations.append(
-                        f"Only {agents_count} agents registered, expected 7"
-                    )
+                    recommendations.append(f"Only {agents_count} agents registered, expected 7")
 
-            if (
-                result["test_name"] == "scheduled_tasks"
-                and result["status"] == "success"
-            ):
+            if result["test_name"] == "scheduled_tasks" and result["status"] == "success":
                 tasks_count = result.get("tasks_count", 0)
                 if tasks_count < 6:
-                    recommendations.append(
-                        f"Only {tasks_count} scheduled tasks, expected 6"
-                    )
+                    recommendations.append(f"Only {tasks_count} scheduled tasks, expected 6")
 
         if not recommendations:
             recommendations.append("All systems operational - proceed with confidence")

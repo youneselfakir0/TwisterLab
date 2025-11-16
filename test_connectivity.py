@@ -4,6 +4,7 @@
 import socket
 import sys
 
+
 def test_connection(host: str, port: int, service_name: str) -> bool:
     """Test TCP connection to a service."""
     try:
@@ -16,6 +17,7 @@ def test_connection(host: str, port: int, service_name: str) -> bool:
     except Exception as e:
         print(f"❌ {service_name}: Connection failed to {host}:{port} - {e}")
         return False
+
 
 if __name__ == "__main__":
     results = []

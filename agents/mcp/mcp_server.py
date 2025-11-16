@@ -257,11 +257,14 @@ class MCPServer:
                     "content": [
                         {
                             "type": "text",
-                            "text": json.dumps({
-                                "category": "network",
-                                "confidence": 0.95,
-                                "ticket": arguments.get("ticket_text"),
-                            }, indent=2),
+                            "text": json.dumps(
+                                {
+                                    "category": "network",
+                                    "confidence": 0.95,
+                                    "ticket": arguments.get("ticket_text"),
+                                },
+                                indent=2,
+                            ),
                         }
                     ],
                 }
@@ -272,11 +275,14 @@ class MCPServer:
                     "content": [
                         {
                             "type": "text",
-                            "text": json.dumps({
-                                "status": "resolved",
-                                "ticket_id": arguments.get("ticket_id"),
-                                "sop_executed": "network_diagnostic_v1",
-                            }, indent=2),
+                            "text": json.dumps(
+                                {
+                                    "status": "resolved",
+                                    "ticket_id": arguments.get("ticket_id"),
+                                    "sop_executed": "network_diagnostic_v1",
+                                },
+                                indent=2,
+                            ),
                         }
                     ],
                 }
@@ -538,9 +544,7 @@ Document findings and recommend solution.
             while True:
                 try:
                     # Read line from stdin
-                    line = await asyncio.get_event_loop().run_in_executor(
-                        None, sys.stdin.readline
-                    )
+                    line = await asyncio.get_event_loop().run_in_executor(None, sys.stdin.readline)
 
                     if not line:
                         # EOF reached

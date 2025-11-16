@@ -141,9 +141,7 @@ class LoadBalancer:
         else:
             return self._select_least_loaded(available)
 
-    def _select_round_robin(
-        self, agent_type: str, available: List[Dict[str, Any]]
-    ) -> str:
+    def _select_round_robin(self, agent_type: str, available: List[Dict[str, Any]]) -> str:
         """Round-robin selection"""
         counter = self.rr_counters[agent_type]
         instance = available[counter % len(available)]
@@ -173,9 +171,7 @@ class LoadBalancer:
             if inst["instance_id"] == instance_id:
                 inst["current_load"] += 1
                 self.agent_loads[instance_id] = inst["current_load"]
-                logger.debug(
-                    f"Incremented load for {instance_id}: {inst['current_load']}"
-                )
+                logger.debug(f"Incremented load for {instance_id}: {inst['current_load']}")
                 break
 
     def decrement_load(self, agent_type: str, instance_id: str):
@@ -185,9 +181,7 @@ class LoadBalancer:
             if inst["instance_id"] == instance_id:
                 inst["current_load"] = max(0, inst["current_load"] - 1)
                 self.agent_loads[instance_id] = inst["current_load"]
-                logger.debug(
-                    f"Decremented load for {instance_id}: {inst['current_load']}"
-                )
+                logger.debug(f"Decremented load for {instance_id}: {inst['current_load']}")
                 break
 
     def mark_unhealthy(self, agent_type: str, instance_id: str):
@@ -362,8 +356,7 @@ class HealthMonitor:
         unhealthy_count = sum(
             1
             for health in self.agent_health.values()
-            if health["status"]
-            in [HealthStatus.UNHEALTHY.value, HealthStatus.OFFLINE.value]
+            if health["status"] in [HealthStatus.UNHEALTHY.value, HealthStatus.OFFLINE.value]
         )
 
         degraded_count = sum(
@@ -508,9 +501,7 @@ class TaskScheduler:
             # Update task
             task.last_run = start_time
             task.execution_count += 1
-            task.next_run = datetime.now(timezone.utc) + timedelta(
-                seconds=task.interval_seconds
-            )
+            task.next_run = datetime.now(timezone.utc) + timedelta(seconds=task.interval_seconds)
 
             logger.info(
                 f"Task {task.name} completed in {execution_time:.2f}s. "
@@ -594,14 +585,10 @@ class MaestroOrchestratorAgent(BaseAgent):
         )
 
         # Register resolver instances
-        self.load_balancer.register_instance(
-            "resolver", "resolver-001", max_load=5, priority=1
-        )
+        self.load_balancer.register_instance("resolver", "resolver-001", max_load=5, priority=1)
 
         # Register desktop commander instances
-        self.load_balancer.register_instance(
-            "desktop_commander", "dc-001", max_load=3, priority=1
-        )
+        self.load_balancer.register_instance("desktop_commander", "dc-001", max_load=3, priority=1)
 
         logger.info("Load balancer initialized with agent instances")
 
@@ -684,9 +671,7 @@ class MaestroOrchestratorAgent(BaseAgent):
             self.metrics["errors"] += 1
             return {"status": "error", "error": str(e)}
 
-    async def route_ticket_with_load_balancing(
-        self, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def route_ticket_with_load_balancing(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Enhanced ticket routing with load balancing.
 
@@ -725,9 +710,7 @@ class MaestroOrchestratorAgent(BaseAgent):
 
             try:
                 # Step 2: Classify ticket
-                classification_result = await self._classify_ticket(
-                    ticket_id, subject, description
-                )
+                classification_result = await self._classify_ticket(ticket_id, subject, description)
 
                 self.metrics["classification_requests"] += 1
 
@@ -748,9 +731,7 @@ class MaestroOrchestratorAgent(BaseAgent):
 
             try:
                 # Step 4: Resolve ticket
-                resolution_result = await self._resolve_ticket(
-                    ticket_id, classification_result
-                )
+                resolution_result = await self._resolve_ticket(ticket_id, classification_result)
 
                 self.metrics["resolution_requests"] += 1
 
@@ -842,12 +823,8 @@ class MaestroOrchestratorAgent(BaseAgent):
             "agent": self.name,
             "components": {
                 "load_balancer": "operational",
-                "health_monitor": "running"
-                if self.health_monitor.running
-                else "stopped",
-                "task_scheduler": "running"
-                if self.task_scheduler.running
-                else "stopped",
+                "health_monitor": "running" if self.health_monitor.running else "stopped",
+                "task_scheduler": "running" if self.task_scheduler.running else "stopped",
             },
             "metrics": self.metrics,
             "timestamp": datetime.now(timezone.utc).isoformat(),

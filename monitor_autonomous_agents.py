@@ -126,15 +126,11 @@ class AutonomousAgentsMonitor:
 
         # Check for expected agents
         expected_agents = ["MonitoringAgent", "BackupAgent", "SyncAgent"]
-        active_agent_names = [
-            a.get("name") for a in agents if a.get("status") == "active"
-        ]
+        active_agent_names = [a.get("name") for a in agents if a.get("status") == "active"]
 
         for expected in expected_agents:
             if expected not in active_agent_names:
-                analysis["issues"].append(
-                    f"Expected agent {expected} not found or inactive"
-                )
+                analysis["issues"].append(f"Expected agent {expected} not found or inactive")
                 analysis["recommendations"].append(
                     f"Verify {expected} deployment and configuration"
                 )
@@ -200,21 +196,15 @@ class AutonomousAgentsMonitor:
             next_run = task.get("next_run")
             if next_run:
                 try:
-                    next_run_dt = datetime.fromisoformat(
-                        next_run.replace("Z", "+00:00")
-                    )
+                    next_run_dt = datetime.fromisoformat(next_run.replace("Z", "+00:00"))
                     if next_run_dt < now:
                         analysis["overdue_tasks"] += 1
                 except Exception:
                     pass
 
         if analysis["overdue_tasks"] > 0:
-            analysis["issues"].append(
-                f"{analysis['overdue_tasks']} scheduled tasks are overdue"
-            )
-            analysis["recommendations"].append(
-                "Review task scheduling and agent performance"
-            )
+            analysis["issues"].append(f"{analysis['overdue_tasks']} scheduled tasks are overdue")
+            analysis["recommendations"].append("Review task scheduling and agent performance")
 
         return analysis
 
@@ -292,9 +282,7 @@ class AutonomousAgentsMonitor:
         else:
             return "healthy"
 
-    async def save_report(
-        self, report: Dict[str, Any], filename: Optional[str] = None
-    ) -> str:
+    async def save_report(self, report: Dict[str, Any], filename: Optional[str] = None) -> str:
         """Save report to file."""
         if not filename:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -379,12 +367,8 @@ async def main():
         default="http://localhost:8001",
         help="Base URL for autonomous agents API",
     )
-    parser.add_argument(
-        "--continuous", action="store_true", help="Run continuous monitoring"
-    )
-    parser.add_argument(
-        "--interval", type=int, default=300, help="Monitoring interval in seconds"
-    )
+    parser.add_argument("--continuous", action="store_true", help="Run continuous monitoring")
+    parser.add_argument("--interval", type=int, default=300, help="Monitoring interval in seconds")
     parser.add_argument("--save", action="store_true", help="Save report to file")
     parser.add_argument("--quiet", action="store_true", help="Suppress console output")
 

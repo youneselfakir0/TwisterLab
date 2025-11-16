@@ -34,9 +34,18 @@ def find_files(root: Path, patterns: Iterable[str]) -> List[Path]:
 SENSITIVE_PATTERNS: List[Tuple[Pattern, str]] = [
     (re.compile(r"POSTGRES_PASSWORD=[^\s\n\r]+", re.IGNORECASE), "POSTGRES_PASSWORD=<REDACTED>"),
     (re.compile(r"REDIS_PASSWORD=[^\s\n\r]+", re.IGNORECASE), "REDIS_PASSWORD=<REDACTED>"),
-    (re.compile(r"GF_SECURITY_ADMIN_PASSWORD[^=]*=[^\s\n\r]+", re.IGNORECASE), "GF_SECURITY_ADMIN_PASSWORD=<REDACTED>"),
-    (re.compile(r"DATABASE_URL=postgresql://[^:]+:[^@]+@", re.IGNORECASE), "DATABASE_URL=postgresql://<REDACTED>:@"),
-    (re.compile(r"(password\s*[:=]\s*['\"]?)[^'\"\n\r]{6,}(['\"]?)", re.IGNORECASE), "\1<REDACTED>\2"),
+    (
+        re.compile(r"GF_SECURITY_ADMIN_PASSWORD[^=]*=[^\s\n\r]+", re.IGNORECASE),
+        "GF_SECURITY_ADMIN_PASSWORD=<REDACTED>",
+    ),
+    (
+        re.compile(r"DATABASE_URL=postgresql://[^:]+:[^@]+@", re.IGNORECASE),
+        "DATABASE_URL=postgresql://<REDACTED>:@",
+    ),
+    (
+        re.compile(r"(password\s*[:=]\s*['\"]?)[^'\"\n\r]{6,}(['\"]?)", re.IGNORECASE),
+        "\1<REDACTED>\2",
+    ),
 ]
 
 
@@ -77,11 +86,24 @@ def redact_file(path: Path, backup_dir: Path) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Scan and optionally sanitize archives for hardcoded secrets")
+    ap = argparse.ArgumentParser(
+        description="Scan and optionally sanitize archives for hardcoded secrets"
+    )
     ap.add_argument("--root", default=".", help="Root path to scan (default: project root)")
-    ap.add_argument("--patterns", nargs="*", default=["archive/**", "debug_*", "**/*.log", "**/*.txt"], help="Glob patterns to search for files")
-    ap.add_argument("--apply", action="store_true", help="Write sanitized copies to the backup directory")
-    ap.add_argument("--backup-dir", default="sanitized_archives", help="Directory to write sanitized copies into when --apply is set")
+    ap.add_argument(
+        "--patterns",
+        nargs="*",
+        default=["archive/**", "debug_*", "**/*.log", "**/*.txt"],
+        help="Glob patterns to search for files",
+    )
+    ap.add_argument(
+        "--apply", action="store_true", help="Write sanitized copies to the backup directory"
+    )
+    ap.add_argument(
+        "--backup-dir",
+        default="sanitized_archives",
+        help="Directory to write sanitized copies into when --apply is set",
+    )
     ap.add_argument("--quiet", action="store_true", help="Suppress summary output")
 
     args = ap.parse_args()
@@ -111,7 +133,9 @@ def main() -> int:
             print(f"Sanitized {counters} files, results in {backup_dir}")
 
     if not args.quiet:
-        print(f"Scanned {len(files)} files, found {total_matches} sensitive occurrences in {len(files_with_matches)} files")
+        print(
+            f"Scanned {len(files)} files, found {total_matches} sensitive occurrences in {len(files_with_matches)} files"
+        )
     return 0 if total_matches == 0 else 2
 
 

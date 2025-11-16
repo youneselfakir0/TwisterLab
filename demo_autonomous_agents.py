@@ -130,9 +130,7 @@ class AutonomousAgentsDemo:
             },
         }
 
-        logger.warning(
-            f"⚠️  System health: {health_result_degraded['result']['overall_health']}"
-        )
+        logger.warning(f"⚠️  System health: {health_result_degraded['result']['overall_health']}")
         logger.warning(f"📋 Active issues: {len(self.active_issues)}")
 
     async def demonstrate_autonomous_diagnosis(self):
@@ -196,9 +194,7 @@ class AutonomousAgentsDemo:
             },
         }
 
-        logger.info(
-            f"🔧 Repairs attempted: {repair_result['result']['repairs_attempted']}"
-        )
+        logger.info(f"🔧 Repairs attempted: {repair_result['result']['repairs_attempted']}")
 
         for repair in repair_result["result"]["repairs"]:
             logger.info(f"  ✅ {repair['repair_action']}: {repair['result']}")
@@ -213,9 +209,7 @@ class AutonomousAgentsDemo:
             self.resolved_issues.append(resolved_issue)
 
         self.system_health = "healthy"
-        logger.info(
-            f"🎉 System stability: {repair_result['result']['system_stability']}"
-        )
+        logger.info(f"🎉 System stability: {repair_result['result']['system_stability']}")
 
     async def demonstrate_backup_and_recovery(self):
         """Demonstrate backup and recovery capabilities."""
@@ -261,9 +255,7 @@ class AutonomousAgentsDemo:
             },
         }
 
-        logger.info(
-            f"🔍 Integrity status: {integrity_result['result']['integrity_status']}"
-        )
+        logger.info(f"🔍 Integrity status: {integrity_result['result']['integrity_status']}")
         logger.info(f"📋 Issues found: {integrity_result['result']['issues_found']}")
 
     async def demonstrate_sync_and_consistency(self):
@@ -314,9 +306,7 @@ class AutonomousAgentsDemo:
             },
         }
 
-        logger.info(
-            f"⚖️  Consistency status: {consistency_result['result']['consistency_status']}"
-        )
+        logger.info(f"⚖️  Consistency status: {consistency_result['result']['consistency_status']}")
         logger.info(
             f"📋 Inconsistencies found: {consistency_result['result']['inconsistencies_found']}"
         )
@@ -346,16 +336,12 @@ class AutonomousAgentsDemo:
         }
 
         logger.info("⚡ Performance analysis completed:")
-        for component, metrics in performance_result["result"][
-            "performance_metrics"
-        ].items():
+        for component, metrics in performance_result["result"]["performance_metrics"].items():
             logger.info(f"  📊 {component}:")
             for metric, value in metrics.items():
                 logger.info(f"    • {metric}: {value}")
 
-        logger.info(
-            f"🔧 Bottlenecks found: {len(performance_result['result']['bottlenecks'])}"
-        )
+        logger.info(f"🔧 Bottlenecks found: {len(performance_result['result']['bottlenecks'])}")
         logger.info(
             f"✅ Optimization needed: {performance_result['result']['optimization_needed']}"
         )
@@ -402,9 +388,7 @@ class AutonomousAgentsDemo:
         # Simulate continuous monitoring cycle
         cycle_results = []
         for cycle in range(1, 4):
-            logger.info(
-                f"🔄 Cycle {cycle}/3: Monitoring → Diagnose → Repair → Optimize"
-            )
+            logger.info(f"🔄 Cycle {cycle}/3: Monitoring → Diagnose → Repair → Optimize")
 
             # Health check
             health_status = "healthy" if cycle > 1 else "degraded"
@@ -429,12 +413,8 @@ class AutonomousAgentsDemo:
 
         logger.info("🤖 Autonomous cycle completed successfully!")
         logger.info(f"📊 Total cycles: {len(cycle_results)}")
-        logger.info(
-            f"🔧 Total repairs: {sum(r['repairs_performed'] for r in cycle_results)}"
-        )
-        logger.info(
-            f"⚡ Total optimizations: {sum(r['optimizations'] for r in cycle_results)}"
-        )
+        logger.info(f"🔧 Total repairs: {sum(r['repairs_performed'] for r in cycle_results)}")
+        logger.info(f"⚡ Total optimizations: {sum(r['optimizations'] for r in cycle_results)}")
 
     async def run_full_demonstration(self):
         """Run the complete autonomous agents demonstration."""

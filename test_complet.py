@@ -29,9 +29,7 @@ async def test_endpoint(name, url, path="/", expected_status=200):
                     print(f"✅ {name}: OK (status {resp.status})")
                     return True
                 else:
-                    print(
-                        f"⚠️  {name}: Status {resp.status} (attendu {expected_status})"
-                    )
+                    print(f"⚠️  {name}: Status {resp.status} (attendu {expected_status})")
                     return False
     except asyncio.TimeoutError:
         print(f"❌ {name}: TIMEOUT (>10s)")
@@ -57,9 +55,7 @@ async def test_ollama_models():
                     models = data.get("models", [])
                     if models:
                         model_names = [m.get("name", "?") for m in models]
-                        print(
-                            f"✅ Ollama: {len(models)} modèle(s) - {', '.join(model_names[:3])}"
-                        )
+                        print(f"✅ Ollama: {len(models)} modèle(s) - {', '.join(model_names[:3])}")
                         return True
                     else:
                         print("⚠️  Ollama: Aucun modèle installé")
@@ -97,9 +93,7 @@ async def test_mcp_isolation():
         print(f"✅ MCPs: Isolation OK (0/{len(mcp_ports)} accessibles publiquement)")
         return True
     else:
-        print(
-            f"⚠️  MCPs: {accessible_count}/{len(mcp_ports)} accessibles (risque sécurité)"
-        )
+        print(f"⚠️  MCPs: {accessible_count}/{len(mcp_ports)} accessibles (risque sécurité)")
         return False
 
 
@@ -139,9 +133,7 @@ async def main():
     # Section 2: Monitoring & Dashboards
     print("📊 MONITORING & DASHBOARDS")
     print("-" * 60)
-    results["grafana"] = await test_endpoint(
-        "Grafana", ENDPOINTS["grafana"], "/api/health", 200
-    )
+    results["grafana"] = await test_endpoint("Grafana", ENDPOINTS["grafana"], "/api/health", 200)
     results["prometheus"] = await test_endpoint(
         "Prometheus", ENDPOINTS["prometheus"], "/-/healthy", 200
     )
@@ -150,9 +142,7 @@ async def main():
     # Section 3: IA & Modèles
     print("🤖 INTELLIGENCE ARTIFICIELLE")
     print("-" * 60)
-    results["openwebui"] = await test_endpoint(
-        "OpenWebUI", ENDPOINTS["openwebui"], "/", 200
-    )
+    results["openwebui"] = await test_endpoint("OpenWebUI", ENDPOINTS["openwebui"], "/", 200)
     results["ollama"] = await test_endpoint("Ollama API", ENDPOINTS["ollama"], "/", 200)
     results["ollama_models"] = await test_ollama_models()
     print()

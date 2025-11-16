@@ -61,11 +61,13 @@ class HybridAuth:
         self.local_auth: Optional[LocalAuth] = None
 
         # Check if Azure AD credentials are present
-        azure_credentials_present = all([
-            os.getenv("AZURE_TENANT_ID"),
-            os.getenv("AZURE_CLIENT_ID"),
-            os.getenv("AZURE_CLIENT_SECRET"),
-        ])
+        azure_credentials_present = all(
+            [
+                os.getenv("AZURE_TENANT_ID"),
+                os.getenv("AZURE_CLIENT_ID"),
+                os.getenv("AZURE_CLIENT_SECRET"),
+            ]
+        )
 
         if azure_credentials_present:
             try:
@@ -153,8 +155,7 @@ class HybridAuth:
         """
         if self.mode != "azure" or not self.azure_auth:
             raise RuntimeError(
-                "get_app_token() only available in Azure mode. "
-                f"Current mode: {self.mode}"
+                "get_app_token() only available in Azure mode. " f"Current mode: {self.mode}"
             )
 
         return await self.azure_auth.get_app_token()
@@ -163,11 +164,7 @@ class HybridAuth:
     # Local Auth Methods (only available in "local" mode)
     # =========================================================================
 
-    async def authenticate_user(
-        self,
-        username: str,
-        password: str
-    ) -> Optional[Dict[str, Any]]:
+    async def authenticate_user(self, username: str, password: str) -> Optional[Dict[str, Any]]:
         """
         Authenticate with username/password (Local mode only).
 
@@ -183,8 +180,7 @@ class HybridAuth:
         """
         if self.mode != "local" or not self.local_auth:
             raise RuntimeError(
-                "authenticate_user() only available in Local mode. "
-                f"Current mode: {self.mode}"
+                "authenticate_user() only available in Local mode. " f"Current mode: {self.mode}"
             )
 
         return await self.local_auth.authenticate_user(username, password)
@@ -204,8 +200,7 @@ class HybridAuth:
         """
         if self.mode != "local" or not self.local_auth:
             raise RuntimeError(
-                "create_access_token() only available in Local mode. "
-                f"Current mode: {self.mode}"
+                "create_access_token() only available in Local mode. " f"Current mode: {self.mode}"
             )
 
         return self.local_auth.create_access_token(data)
@@ -262,11 +257,13 @@ class HybridAuth:
             "provider": "AzureADAuth" if self.mode == "azure" else "LocalAuth",
             "azure_available": self.azure_auth is not None,
             "local_available": self.local_auth is not None,
-            "azure_configured": all([
-                os.getenv("AZURE_TENANT_ID"),
-                os.getenv("AZURE_CLIENT_ID"),
-                os.getenv("AZURE_CLIENT_SECRET")
-            ])
+            "azure_configured": all(
+                [
+                    os.getenv("AZURE_TENANT_ID"),
+                    os.getenv("AZURE_CLIENT_ID"),
+                    os.getenv("AZURE_CLIENT_SECRET"),
+                ]
+            ),
         }
 
         if self.mode == "azure":

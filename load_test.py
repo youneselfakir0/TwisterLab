@@ -4,9 +4,11 @@ Script de test de charge pour TwisterLab API
 Utilise Locust pour simuler des utilisateurs et mesurer les performances
 """
 
-from locust import HttpUser, task, between
 import json
 import random
+
+from locust import HttpUser, between, task
+
 
 class TwisterLabUser(HttpUser):
     """Utilisateur simulé pour les tests de charge"""
@@ -81,6 +83,7 @@ class TwisterLabUser(HttpUser):
             else:
                 response.failure(f"Orchestrator status failed: {response.status_code}")
 
+
 class TwisterLabWriteUser(HttpUser):
     """Utilisateur simulé pour les tests d'écriture (moins fréquent)"""
 
@@ -93,13 +96,11 @@ class TwisterLabWriteUser(HttpUser):
             "title": f"Test Ticket {random.randint(1, 1000)}",
             "description": "Ticket créé automatiquement pour test de charge",
             "priority": random.choice(["low", "medium", "high"]),
-            "category": "test"
+            "category": "test",
         }
 
         with self.client.post(
-            "/api/v1/tickets/",
-            json=ticket_data,
-            catch_response=True
+            "/api/v1/tickets/", json=ticket_data, catch_response=True
         ) as response:
             if response.status_code in [201, 401, 403]:  # 401/403 si auth requise
                 response.success()

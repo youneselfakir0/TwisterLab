@@ -2,25 +2,26 @@
 Script de déploiement final TwisterLab v1.0.2 avec failover HA
 Déploie le code migré avec generate_with_fallback() en production
 """
+
 import asyncio
-import sys
 import os
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from agents.real.real_classifier_agent import RealClassifierAgent
 from agents.base.llm_client import ollama_client
+from agents.real.real_classifier_agent import RealClassifierAgent
 
 
 async def test_agents_production():
     """Test que les agents utilisent bien generate_with_fallback() en production"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST PRODUCTION: Agents avec failover HA")
-    print("="*80)
+    print("=" * 80)
 
     # Test 1: ClassifierAgent
     print("\n🔍 Test 1: RealClassifierAgent")
@@ -30,7 +31,7 @@ async def test_agents_production():
         "id": "PROD-TEST-001",
         "title": "WiFi connection lost",
         "description": "Cannot connect to corporate WiFi network",
-        "user": "test@twisterlab.local"
+        "user": "test@twisterlab.local",
     }
 
     context = {"operation": "classify_ticket", "ticket": ticket}
@@ -63,14 +64,15 @@ async def test_agents_production():
 
 async def validate_production_deployment():
     """Validation complète du déploiement production"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("VALIDATION DÉPLOIEMENT PRODUCTION")
-    print("="*80)
+    print("=" * 80)
 
     # Test 1: API endpoints
     print("\n🔍 Test 1: Endpoints API")
     try:
         import httpx
+
         async with httpx.AsyncClient(timeout=10.0) as client:
             # Test /health
             response = await client.get("http://192.168.0.30:8000/health")
@@ -102,6 +104,7 @@ async def validate_production_deployment():
     print("\n🔍 Test 3: Endpoints Ollama")
     try:
         import httpx
+
         async with httpx.AsyncClient(timeout=5.0) as client:
             # PRIMARY
             try:
@@ -190,9 +193,9 @@ async def main():
         return 1
 
     # Résumé final
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("🎉 DÉPLOIEMENT RÉUSSI - TwisterLab v1.0.2 EN PRODUCTION")
-    print("="*80)
+    print("=" * 80)
 
     print("\n✅ COMPOSANTS OPÉRATIONNELS:")
     print("   • API FastAPI: http://192.168.0.30:8000")

@@ -32,47 +32,58 @@ AGENT_OPERATIONS = {
         {"operation": "health_check", "weight": 2, "context": {"check_type": "system"}},
     ],
     "classifieragent": [
-        {"operation": "classify", "weight": 5, "data": {
-            "ticket_id": lambda: f"T-{random.randint(1000, 9999)}",
-            "title": lambda: random.choice([
-                "Printer not working",
-                "Cannot connect to WiFi",
-                "Slow computer performance",
-                "Password reset needed",
-                "Software installation request"
-            ]),
-            "priority": lambda: random.choice(["low", "medium", "high", "critical"])
-        }},
+        {
+            "operation": "classify",
+            "weight": 5,
+            "data": {
+                "ticket_id": lambda: f"T-{random.randint(1000, 9999)}",
+                "title": lambda: random.choice(
+                    [
+                        "Printer not working",
+                        "Cannot connect to WiFi",
+                        "Slow computer performance",
+                        "Password reset needed",
+                        "Software installation request",
+                    ]
+                ),
+                "priority": lambda: random.choice(["low", "medium", "high", "critical"]),
+            },
+        },
     ],
     "resolveragent": [
-        {"operation": "resolve", "weight": 3, "data": {
-            "ticket_id": lambda: f"T-{random.randint(1000, 9999)}",
-            "issue_type": lambda: random.choice(["printer", "network", "software", "hardware"])
-        }},
+        {
+            "operation": "resolve",
+            "weight": 3,
+            "data": {
+                "ticket_id": lambda: f"T-{random.randint(1000, 9999)}",
+                "issue_type": lambda: random.choice(["printer", "network", "software", "hardware"]),
+            },
+        },
     ],
     "desktopcommanderagent": [
-        {"operation": "execute_command", "weight": 2, "data": {
-            "command": lambda: random.choice([
-                "ipconfig /renew",
-                "systeminfo",
-                "tasklist",
-                "netstat -an"
-            ])
-        }},
+        {
+            "operation": "execute_command",
+            "weight": 2,
+            "data": {
+                "command": lambda: random.choice(
+                    ["ipconfig /renew", "systeminfo", "tasklist", "netstat -an"]
+                )
+            },
+        },
     ],
     "maestroorchestratoragent": [
-        {"operation": "orchestrate", "weight": 1, "data": {
-            "workflow": lambda: random.choice([
-                "ticket_resolution",
-                "system_maintenance",
-                "backup_and_sync"
-            ]),
-            "agents": lambda: random.choice([
-                ["classifier", "resolver"],
-                ["backup", "sync"],
-                ["monitoring", "sync"]
-            ])
-        }},
+        {
+            "operation": "orchestrate",
+            "weight": 1,
+            "data": {
+                "workflow": lambda: random.choice(
+                    ["ticket_resolution", "system_maintenance", "backup_and_sync"]
+                ),
+                "agents": lambda: random.choice(
+                    [["classifier", "resolver"], ["backup", "sync"], ["monitoring", "sync"]]
+                ),
+            },
+        },
     ],
 }
 
@@ -91,17 +102,12 @@ class AgentLoadTester:
         }
 
     async def execute_agent_operation(
-        self,
-        client: httpx.AsyncClient,
-        agent_name: str,
-        operation_config: Dict
+        self, client: httpx.AsyncClient, agent_name: str, operation_config: Dict
     ) -> Dict:
         """Execute a single agent operation."""
 
         # Build payload
-        payload = {
-            "operation": operation_config["operation"]
-        }
+        payload = {"operation": operation_config["operation"]}
 
         # Add dynamic data if configured
         if "data" in operation_config:
@@ -128,7 +134,7 @@ class AgentLoadTester:
                 "status": "success",
                 "agent": agent_name,
                 "operation": operation_config["operation"],
-                "result": result
+                "result": result,
             }
 
         except httpx.HTTPStatusError as e:
@@ -137,7 +143,7 @@ class AgentLoadTester:
                 "status": "error",
                 "agent": agent_name,
                 "operation": operation_config["operation"],
-                "error": str(e)
+                "error": str(e),
             }
 
         except Exception as e:
@@ -146,7 +152,7 @@ class AgentLoadTester:
                 "status": "error",
                 "agent": agent_name,
                 "operation": operation_config["operation"],
-                "error": str(e)
+                "error": str(e),
             }
 
     def select_random_operation(self, agent_name: str) -> Dict:
@@ -162,9 +168,7 @@ class AgentLoadTester:
         return selected
 
     async def run_continuous_load(
-        self,
-        duration_seconds: int = 300,
-        operations_per_minute: int = 60
+        self, duration_seconds: int = 300, operations_per_minute: int = 60
     ):
         """Run continuous load test for specified duration."""
 
@@ -172,7 +176,9 @@ class AgentLoadTester:
         print(f"🚀 TwisterLab Agent Load Testing")
         print(f"{'='*70}")
         print(f"Duration: {duration_seconds}s ({duration_seconds//60} minutes)")
-        print(f"Target Rate: {operations_per_minute} ops/minute (~{operations_per_minute/60:.1f} ops/sec)")
+        print(
+            f"Target Rate: {operations_per_minute} ops/minute (~{operations_per_minute/60:.1f} ops/sec)"
+        )
         print(f"Grafana Dashboard: {GRAFANA_DASHBOARD_URL}")
         print(f"{'='*70}\n")
 
@@ -207,21 +213,19 @@ class AgentLoadTester:
                         elapsed = (datetime.now() - self.stats["start_time"]).total_seconds()
                         rate = self.stats["total_operations"] / elapsed if elapsed > 0 else 0
 
-                        print(f"[{operation_count:04d}] "
-                              f"{agent_name:25s} → {operation_config['operation']:15s} "
-                              f"({result['status']}) "
-                              f"[Rate: {rate:.2f} ops/sec]")
+                        print(
+                            f"[{operation_count:04d}] "
+                            f"{agent_name:25s} → {operation_config['operation']:15s} "
+                            f"({result['status']}) "
+                            f"[Rate: {rate:.2f} ops/sec]"
+                        )
 
                     # Wait for next operation
                     await asyncio.sleep(interval)
 
         self.print_final_stats()
 
-    async def run_burst_test(
-        self,
-        num_operations: int = 100,
-        agents: List[str] = None
-    ):
+    async def run_burst_test(self, num_operations: int = 100, agents: List[str] = None):
         """Run a burst of operations as fast as possible."""
 
         print(f"\n{'='*70}")
@@ -264,7 +268,8 @@ class AgentLoadTester:
         elapsed = (datetime.now() - self.stats["start_time"]).total_seconds()
         success_rate = (
             self.stats["successful_operations"] / self.stats["total_operations"] * 100
-            if self.stats["total_operations"] > 0 else 0
+            if self.stats["total_operations"] > 0
+            else 0
         )
         avg_rate = self.stats["total_operations"] / elapsed if elapsed > 0 else 0
 
@@ -280,9 +285,7 @@ class AgentLoadTester:
         print(f"{'-'*70}")
 
         for agent, count in sorted(
-            self.stats["operations_by_agent"].items(),
-            key=lambda x: x[1],
-            reverse=True
+            self.stats["operations_by_agent"].items(), key=lambda x: x[1], reverse=True
         ):
             percentage = count / self.stats["total_operations"] * 100
             print(f"  {agent:30s} {count:5d} ops ({percentage:5.1f}%)")
@@ -331,6 +334,7 @@ async def main():
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

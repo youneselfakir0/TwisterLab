@@ -2,30 +2,30 @@
 Test Ollama Failover - TwisterLab v1.0.2
 Tests automatic failover from PRIMARY to BACKUP Ollama servers.
 """
+
 import asyncio
-import sys
 import os
+import sys
 
 # Add parent directory to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from agents.base.llm_client import OllamaClient
-from agents.config import OLLAMA_URL, OLLAMA_FALLBACK
+from agents.config import OLLAMA_FALLBACK, OLLAMA_URL
 
 
 async def test_primary():
     """Test PRIMARY Ollama (Corertx RTX 3060)"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 1: PRIMARY Ollama (Corertx RTX 3060)")
-    print("="*60)
+    print("=" * 60)
     print(f"URL: {OLLAMA_URL}")
 
     client = OllamaClient()
 
     try:
         result = await client.generate_with_fallback(
-            prompt="Respond with only 'OK' if you can read this.",
-            agent_type="general"
+            prompt="Respond with only 'OK' if you can read this.", agent_type="general"
         )
 
         print(f"✅ SUCCESS")
@@ -42,9 +42,9 @@ async def test_primary():
 
 async def test_fallback_only():
     """Test FALLBACK Ollama (Edgeserver GTX 1050) by forcing PRIMARY failure"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 2: FALLBACK Ollama (Edgeserver GTX 1050)")
-    print("="*60)
+    print("=" * 60)
     print(f"URL: {OLLAMA_FALLBACK}")
     print("⚠️  Simulating PRIMARY failure...")
 
@@ -54,8 +54,7 @@ async def test_fallback_only():
 
     try:
         result = await client.generate_with_fallback(
-            prompt="Respond with only 'BACKUP' if you can read this.",
-            agent_type="general"
+            prompt="Respond with only 'BACKUP' if you can read this.", agent_type="general"
         )
 
         print(f"✅ SUCCESS (Failover worked!)")
@@ -73,9 +72,9 @@ async def test_fallback_only():
 
 async def test_classifier_agent():
     """Test realistic ticket classification with failover"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 3: Real Agent Task (Ticket Classification)")
-    print("="*60)
+    print("=" * 60)
 
     client = OllamaClient()
 
@@ -94,10 +93,7 @@ Choose from: hardware, software, network, printer, access, other
 Category:"""
 
     try:
-        result = await client.generate_with_fallback(
-            prompt=prompt,
-            agent_type="classifier"
-        )
+        result = await client.generate_with_fallback(prompt=prompt, agent_type="classifier")
 
         print(f"✅ SUCCESS")
         print(f"   Ticket: WiFi connection issue")
@@ -114,9 +110,9 @@ Category:"""
 
 async def test_both_down():
     """Test behavior when both PRIMARY and FALLBACK are down"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 4: Both Ollama Servers Down (Error Handling)")
-    print("="*60)
+    print("=" * 60)
     print("⚠️  Simulating complete service failure...")
 
     client = OllamaClient()
@@ -126,8 +122,7 @@ async def test_both_down():
 
     try:
         result = await client.generate_with_fallback(
-            prompt="This should fail",
-            agent_type="general"
+            prompt="This should fail", agent_type="general"
         )
 
         print(f"❌ UNEXPECTED SUCCESS (should have failed)")
@@ -145,9 +140,9 @@ async def test_both_down():
 
 async def main():
     """Run all failover tests"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TWISTERLAB v1.0.2 - OLLAMA FAILOVER TESTS")
-    print("="*60)
+    print("=" * 60)
     print(f"PRIMARY:  {OLLAMA_URL} (Corertx RTX 3060 12GB)")
     print(f"FALLBACK: {OLLAMA_FALLBACK} (Edgeserver GTX 1050 2GB)")
 
@@ -166,9 +161,9 @@ async def main():
     results.append(("Error Handling", await test_both_down()))
 
     # Summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST SUMMARY")
-    print("="*60)
+    print("=" * 60)
 
     for test_name, passed in results:
         status = "✅ PASS" if passed else "❌ FAIL"

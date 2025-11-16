@@ -6,6 +6,7 @@ causing database import errors at startup.
 """
 
 import pytest
+
 from agents import get_agent
 
 
@@ -20,7 +21,7 @@ async def test_lazy_loading_desktop_commander():
     try:
         agent = agent_class()
         # Basic instantiation test - may fail in test environment
-        assert hasattr(agent, 'execute'), "Agent should have execute method"
+        assert hasattr(agent, "execute"), "Agent should have execute method"
     except Exception as e:
         # Allow instantiation failures in test environment
         pytest.skip(f"Agent instantiation failed (expected in test env): {e}")
@@ -34,7 +35,7 @@ async def test_lazy_loading_ticket_classifier():
 
     try:
         agent = agent_class()
-        assert hasattr(agent, 'execute'), "Agent should have execute method"
+        assert hasattr(agent, "execute"), "Agent should have execute method"
     except Exception as e:
         pytest.skip(f"Agent instantiation failed (expected in test env): {e}")
 
@@ -47,7 +48,7 @@ async def test_lazy_loading_resolver():
 
     try:
         agent = agent_class()
-        assert hasattr(agent, 'execute'), "Agent should have execute method"
+        assert hasattr(agent, "execute"), "Agent should have execute method"
     except Exception as e:
         pytest.skip(f"Agent instantiation failed (expected in test env): {e}")
 
@@ -74,19 +75,21 @@ def test_no_startup_imports():
     # that no database-related modules are imported at startup
 
     import sys
+
     import agents
 
     # Check that database modules are not imported
     database_modules = [
-        'psycopg2',  # This should definitely not be imported
-        'psycopg2.extensions',
-        'psycopg2.extras',
+        "psycopg2",  # This should definitely not be imported
+        "psycopg2.extensions",
+        "psycopg2.extras",
     ]
 
     imported_modules = list(sys.modules.keys())
     for module in database_modules:
-        assert not any(module in imported for imported in imported_modules), \
-            f"Database module {module} should not be imported at startup"
+        assert not any(
+            module in imported for imported in imported_modules
+        ), f"Database module {module} should not be imported at startup"
 
     # Note: database.config may be imported by other parts of the system
     # but the key is that psycopg2 itself is not imported at startup

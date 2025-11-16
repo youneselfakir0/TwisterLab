@@ -22,8 +22,7 @@ from agents.base import TwisterAgent
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("maestro_agent")
 
@@ -35,6 +34,7 @@ logger = logging.getLogger("maestro_agent")
 
 class LoadBalancingStrategy(Enum):
     """Load balancing strategies"""
+
     ROUND_ROBIN = "round_robin"
     LEAST_LOADED = "least_loaded"
     PRIORITY_BASED = "priority_based"
@@ -44,7 +44,7 @@ class LoadBalancingStrategy(Enum):
 class LoadBalancer:
     """
     Intelligent load balancer for distributing work across agent instances.
-    
+
     Features:
     - Round-robin distribution
     - Least-loaded selection
@@ -55,10 +55,10 @@ class LoadBalancer:
     def __init__(self):
         # agent_type -> list of instances
         self.agent_instances: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-        
+
         # Track current loads
         self.agent_loads: Dict[str, int] = {}
-        
+
         # Round-robin counters
         self.rr_counters: Dict[str, int] = defaultdict(int)
 
@@ -68,11 +68,11 @@ class LoadBalancer:
         instance_id: str,
         max_load: int = 10,
         priority: int = 1,
-        weight: float = 1.0
+        weight: float = 1.0,
     ):
         """
         Register an agent instance.
-        
+
         Args:
             agent_type: Type of agent (classifier, resolver, etc.)
             instance_id: Unique instance identifier
@@ -87,7 +87,7 @@ class LoadBalancer:
             "priority": priority,
             "weight": weight,
             "is_healthy": True,
-            "registered_at": datetime.now(timezone.utc)
+            "registered_at": datetime.now(timezone.utc),
         }
 
         self.agent_instances[agent_type].append(instance)
@@ -99,17 +99,15 @@ class LoadBalancer:
         )
 
     def select_instance(
-        self,
-        agent_type: str,
-        strategy: LoadBalancingStrategy = LoadBalancingStrategy.LEAST_LOADED
+        self, agent_type: str, strategy: LoadBalancingStrategy = LoadBalancingStrategy.LEAST_LOADED
     ) -> Optional[str]:
         """
         Select best instance based on strategy.
-        
+
         Args:
             agent_type: Type of agent needed
             strategy: Load balancing strategy
-            
+
         Returns:
             Instance ID or None if no available instance
         """
@@ -121,7 +119,8 @@ class LoadBalancer:
 
         # Filter healthy instances with capacity
         available = [
-            inst for inst in instances
+            inst
+            for inst in instances
             if inst["is_healthy"] and inst["current_load"] < inst["max_load"]
         ]
 
@@ -141,11 +140,7 @@ class LoadBalancer:
         else:
             return self._select_least_loaded(available)
 
-    def _select_round_robin(
-        self,
-        agent_type: str,
-        available: List[Dict[str, Any]]
-    ) -> str:
+    def _select_round_robin(self, agent_type: str, available: List[Dict[str, Any]]) -> str:
         """Round-robin selection"""
         counter = self.rr_counters[agent_type]
         instance = available[counter % len(available)]
@@ -214,6 +209,7 @@ class LoadBalancer:
 
 class HealthStatus(Enum):
     """Agent health status"""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -223,7 +219,7 @@ class HealthStatus(Enum):
 class HealthMonitor:
     """
     Monitors health of all agents in the system.
-    
+
     Features:
     - Continuous health checks
     - Response time monitoring
@@ -259,19 +255,21 @@ class HealthMonitor:
             "desktop_commander",
             "sync",
             "backup",
-            "monitoring"
+            "monitoring",
         ]
 
         for agent_type in agent_types:
             health = await self._check_agent_health(agent_type)
             self.agent_health[agent_type] = health
-            
+
             # Store in history
-            self.health_history[agent_type].append({
-                "timestamp": datetime.now(timezone.utc),
-                "status": health["status"],
-                "metrics": health.get("metrics", {})
-            })
+            self.health_history[agent_type].append(
+                {
+                    "timestamp": datetime.now(timezone.utc),
+                    "status": health["status"],
+                    "metrics": health.get("metrics", {}),
+                }
+            )
 
             # Keep only last 100 entries
             if len(self.health_history[agent_type]) > 100:
@@ -287,7 +285,7 @@ class HealthMonitor:
     async def _check_agent_health(self, agent_type: str) -> Dict[str, Any]:
         """
         Check individual agent health.
-        
+
         Checks:
         - Is agent responding?
         - Response time < threshold?
@@ -306,7 +304,7 @@ class HealthMonitor:
                     "status": HealthStatus.DEGRADED.value,
                     "reason": "slow_response",
                     "response_time": response_time,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
 
             # Check error rate (mock for now)
@@ -317,21 +315,21 @@ class HealthMonitor:
                     "status": HealthStatus.UNHEALTHY.value,
                     "reason": "high_error_rate",
                     "error_rate": error_rate,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             elif error_rate > 0.1:
                 return {
                     "status": HealthStatus.DEGRADED.value,
                     "reason": "elevated_error_rate",
                     "error_rate": error_rate,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
 
             return {
                 "status": HealthStatus.HEALTHY.value,
                 "response_time": response_time,
                 "error_rate": error_rate,
-                "last_check": datetime.now(timezone.utc).isoformat()
+                "last_check": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -339,34 +337,29 @@ class HealthMonitor:
             return {
                 "status": HealthStatus.OFFLINE.value,
                 "reason": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
     def get_agent_health(self, agent_type: str) -> Dict[str, Any]:
         """Get current health status of agent"""
-        return self.agent_health.get(agent_type, {
-            "status": HealthStatus.OFFLINE.value,
-            "reason": "not_monitored"
-        })
+        return self.agent_health.get(
+            agent_type, {"status": HealthStatus.OFFLINE.value, "reason": "not_monitored"}
+        )
 
     def get_system_health(self) -> Dict[str, Any]:
         """Get overall system health"""
         if not self.agent_health:
-            return {
-                "status": "unknown",
-                "reason": "no_health_data"
-            }
+            return {"status": "unknown", "reason": "no_health_data"}
 
         unhealthy_count = sum(
-            1 for health in self.agent_health.values()
-            if health["status"] in [
-                HealthStatus.UNHEALTHY.value,
-                HealthStatus.OFFLINE.value
-            ]
+            1
+            for health in self.agent_health.values()
+            if health["status"] in [HealthStatus.UNHEALTHY.value, HealthStatus.OFFLINE.value]
         )
 
         degraded_count = sum(
-            1 for health in self.agent_health.values()
+            1
+            for health in self.agent_health.values()
             if health["status"] == HealthStatus.DEGRADED.value
         )
 
@@ -378,20 +371,20 @@ class HealthMonitor:
                 "unhealthy_agents": unhealthy_count,
                 "degraded_agents": degraded_count,
                 "total_agents": total_agents,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         elif degraded_count > 0:
             return {
                 "status": "degraded",
                 "degraded_agents": degraded_count,
                 "total_agents": total_agents,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         else:
             return {
                 "status": "healthy",
                 "total_agents": total_agents,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
 
@@ -409,7 +402,7 @@ class ScheduledTask:
         name: str,
         callback: Callable,
         interval_seconds: int,
-        enabled: bool = True
+        enabled: bool = True,
     ):
         self.task_id = task_id
         self.name = name
@@ -424,7 +417,7 @@ class ScheduledTask:
 class TaskScheduler:
     """
     Cron-like task scheduler for background operations.
-    
+
     Schedules:
     - Sync operations (every 5 minutes)
     - Backups (every 6 hours)
@@ -442,11 +435,11 @@ class TaskScheduler:
         name: str,
         callback: Callable,
         interval_seconds: int,
-        enabled: bool = True
+        enabled: bool = True,
     ):
         """
         Schedule a recurring task.
-        
+
         Args:
             task_id: Unique task identifier
             name: Human-readable task name
@@ -459,7 +452,7 @@ class TaskScheduler:
             name=name,
             callback=callback,
             interval_seconds=interval_seconds,
-            enabled=enabled
+            enabled=enabled,
         )
 
         task.next_run = datetime.now(timezone.utc) + timedelta(seconds=interval_seconds)
@@ -526,7 +519,7 @@ class TaskScheduler:
                 "interval_seconds": task.interval_seconds,
                 "execution_count": task.execution_count,
                 "last_run": task.last_run.isoformat() if task.last_run else None,
-                "next_run": task.next_run.isoformat() if task.next_run else None
+                "next_run": task.next_run.isoformat() if task.next_run else None,
             }
             for task in self.tasks.values()
         ]
@@ -541,7 +534,7 @@ class MaestroOrchestratorAgent(TwisterAgent):
     """
     Enhanced Maestro Orchestrator with load balancing, health monitoring,
     and task scheduling.
-    
+
     The central nervous system of TwisterLab that:
     - Routes tickets to appropriate agents
     - Balances load across agent instances
@@ -557,7 +550,7 @@ class MaestroOrchestratorAgent(TwisterAgent):
             description="Central orchestrator coordinating all TwisterLab agents",
             model="deepseek-r1",
             temperature=0.1,  # Very low temperature for consistent routing
-            tools=[]  # No direct tools, orchestrates other agents
+            tools=[],  # No direct tools, orchestrates other agents
         )
 
         # Initialize components
@@ -577,7 +570,7 @@ class MaestroOrchestratorAgent(TwisterAgent):
             "classification_requests": 0,
             "resolution_requests": 0,
             "command_executions": 0,
-            "errors": 0
+            "errors": 0,
         }
 
         logger.info("MaestroOrchestratorAgent initialized")
@@ -586,27 +579,14 @@ class MaestroOrchestratorAgent(TwisterAgent):
         """Initialize load balancer with agent instances"""
         # Register classifier instances
         self.load_balancer.register_instance(
-            "classifier",
-            "classifier-001",
-            max_load=10,
-            priority=1
+            "classifier", "classifier-001", max_load=10, priority=1
         )
 
         # Register resolver instances
-        self.load_balancer.register_instance(
-            "resolver",
-            "resolver-001",
-            max_load=5,
-            priority=1
-        )
+        self.load_balancer.register_instance("resolver", "resolver-001", max_load=5, priority=1)
 
         # Register desktop commander instances
-        self.load_balancer.register_instance(
-            "desktop_commander",
-            "dc-001",
-            max_load=3,
-            priority=1
-        )
+        self.load_balancer.register_instance("desktop_commander", "dc-001", max_load=3, priority=1)
 
         logger.info("Load balancer initialized with agent instances")
 
@@ -619,7 +599,7 @@ class MaestroOrchestratorAgent(TwisterAgent):
             name="Data Synchronization",
             callback=self._run_sync_task,
             interval_seconds=300,
-            enabled=True
+            enabled=True,
         )
 
         # Backup every 6 hours (21600 seconds)
@@ -628,7 +608,7 @@ class MaestroOrchestratorAgent(TwisterAgent):
             name="Database Backup",
             callback=self._run_backup_task,
             interval_seconds=21600,
-            enabled=True
+            enabled=True,
         )
 
         # Collect metrics every 1 minute (60 seconds)
@@ -637,7 +617,7 @@ class MaestroOrchestratorAgent(TwisterAgent):
             name="Metrics Collection",
             callback=self._run_monitoring_task,
             interval_seconds=60,
-            enabled=True
+            enabled=True,
         )
 
         logger.info("Background tasks scheduled")
@@ -666,11 +646,11 @@ class MaestroOrchestratorAgent(TwisterAgent):
     async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute orchestration task.
-        
+
         Args:
             task: Task description (e.g., "route_ticket", "get_status")
             context: Task context with parameters
-            
+
         Returns:
             Execution result
         """
@@ -682,36 +662,27 @@ class MaestroOrchestratorAgent(TwisterAgent):
             elif task == "get_health":
                 return self.health_monitor.get_system_health()
             else:
-                return {
-                    "status": "error",
-                    "error": f"Unknown task: {task}"
-                }
+                return {"status": "error", "error": f"Unknown task: {task}"}
 
         except Exception as e:
             logger.error(f"Error executing task {task}: {e}", exc_info=True)
             self.metrics["errors"] += 1
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
-    async def route_ticket_with_load_balancing(
-        self,
-        context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def route_ticket_with_load_balancing(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Enhanced ticket routing with load balancing.
-        
+
         Pipeline:
         1. Select classifier instance (load balanced)
         2. Classify ticket
         3. Select resolver instance (load balanced)
         4. Resolve ticket
         5. Execute commands via Desktop Commander (if needed)
-        
+
         Args:
             context: Ticket context
-            
+
         Returns:
             Routing result
         """
@@ -726,26 +697,18 @@ class MaestroOrchestratorAgent(TwisterAgent):
 
             # Step 1: Select classifier instance
             classifier_instance = self.load_balancer.select_instance(
-                "classifier",
-                LoadBalancingStrategy.LEAST_LOADED
+                "classifier", LoadBalancingStrategy.LEAST_LOADED
             )
 
             if not classifier_instance:
-                return {
-                    "status": "error",
-                    "error": "No classifier instances available"
-                }
+                return {"status": "error", "error": "No classifier instances available"}
 
             # Increment load
             self.load_balancer.increment_load("classifier", classifier_instance)
 
             try:
                 # Step 2: Classify ticket
-                classification_result = await self._classify_ticket(
-                    ticket_id,
-                    subject,
-                    description
-                )
+                classification_result = await self._classify_ticket(ticket_id, subject, description)
 
                 self.metrics["classification_requests"] += 1
 
@@ -755,25 +718,18 @@ class MaestroOrchestratorAgent(TwisterAgent):
 
             # Step 3: Select resolver instance
             resolver_instance = self.load_balancer.select_instance(
-                "resolver",
-                LoadBalancingStrategy.LEAST_LOADED
+                "resolver", LoadBalancingStrategy.LEAST_LOADED
             )
 
             if not resolver_instance:
-                return {
-                    "status": "error",
-                    "error": "No resolver instances available"
-                }
+                return {"status": "error", "error": "No resolver instances available"}
 
             # Increment load
             self.load_balancer.increment_load("resolver", resolver_instance)
 
             try:
                 # Step 4: Resolve ticket
-                resolution_result = await self._resolve_ticket(
-                    ticket_id,
-                    classification_result
-                )
+                resolution_result = await self._resolve_ticket(ticket_id, classification_result)
 
                 self.metrics["resolution_requests"] += 1
 
@@ -787,45 +743,29 @@ class MaestroOrchestratorAgent(TwisterAgent):
                 "classification": classification_result,
                 "resolution": resolution_result,
                 "classifier_instance": classifier_instance,
-                "resolver_instance": resolver_instance
+                "resolver_instance": resolver_instance,
             }
 
         except Exception as e:
             logger.error(f"Error in load-balanced routing: {e}", exc_info=True)
             self.metrics["errors"] += 1
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def _classify_ticket(
-        self,
-        ticket_id: str,
-        subject: str,
-        description: str
+        self, ticket_id: str, subject: str, description: str
     ) -> Dict[str, Any]:
         """Call classifier agent (mock for now)"""
         # TODO: Replace with actual classifier call
         await asyncio.sleep(0.1)  # Simulate processing
-        return {
-            "category": "password_reset",
-            "priority": "medium",
-            "confidence": 0.92
-        }
+        return {"category": "password_reset", "priority": "medium", "confidence": 0.92}
 
     async def _resolve_ticket(
-        self,
-        ticket_id: str,
-        classification: Dict[str, Any]
+        self, ticket_id: str, classification: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Call resolver agent (mock for now)"""
         # TODO: Replace with actual resolver call
         await asyncio.sleep(0.2)  # Simulate processing
-        return {
-            "resolution_strategy": "direct",
-            "status": "resolved",
-            "confidence": 0.88
-        }
+        return {"resolution_strategy": "direct", "status": "resolved", "confidence": 0.88}
 
     async def _run_sync_task(self):
         """Execute sync task"""
@@ -859,15 +799,15 @@ class MaestroOrchestratorAgent(TwisterAgent):
                             "instance_id": inst["instance_id"],
                             "current_load": inst["current_load"],
                             "max_load": inst["max_load"],
-                            "is_healthy": inst["is_healthy"]
+                            "is_healthy": inst["is_healthy"],
                         }
                         for inst in instances
                     ]
                     for agent_type, instances in self.load_balancer.agent_instances.items()
-                }
+                },
             },
             "metrics": self.metrics,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def health_check(self) -> Dict[str, Any]:
@@ -878,10 +818,10 @@ class MaestroOrchestratorAgent(TwisterAgent):
             "components": {
                 "load_balancer": "operational",
                 "health_monitor": "running" if self.health_monitor.running else "stopped",
-                "task_scheduler": "running" if self.task_scheduler.running else "stopped"
+                "task_scheduler": "running" if self.task_scheduler.running else "stopped",
             },
             "metrics": self.metrics,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
@@ -890,30 +830,33 @@ class MaestroOrchestratorAgent(TwisterAgent):
 # ============================================================================
 
 if __name__ == "__main__":
+
     async def main():
         maestro = MaestroOrchestratorAgent()
-        
+
         # Start maestro
         await maestro.start()
-        
+
         # Test routing
-        result = await maestro.route_ticket_with_load_balancing({
-            "ticket_id": "TEST-001",
-            "subject": "Password Reset Request",
-            "description": "User cannot log in to system"
-        })
-        
+        result = await maestro.route_ticket_with_load_balancing(
+            {
+                "ticket_id": "TEST-001",
+                "subject": "Password Reset Request",
+                "description": "User cannot log in to system",
+            }
+        )
+
         print("\n=== Routing Result ===")
         print(result)
-        
+
         # Get status
         status = await maestro.get_orchestrator_status()
         print("\n=== Orchestrator Status ===")
         print(status)
-        
+
         # Let background tasks run for 5 seconds
         await asyncio.sleep(5)
-        
+
         # Stop maestro
         await maestro.stop()
 

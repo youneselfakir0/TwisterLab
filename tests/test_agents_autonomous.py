@@ -276,9 +276,7 @@ class TestBackupAgent:
                     # Integrity check - finds database corruption
                     {
                         "issues_found": 1,
-                        "issues": [
-                            {"type": "database_corruption", "severity": "critical"}
-                        ],
+                        "issues": [{"type": "database_corruption", "severity": "critical"}],
                         "integrity_status": "compromised",
                     },
                     # Database recovery
@@ -374,9 +372,7 @@ class TestSyncAgent:
                     # Consistency check - finds issues
                     {
                         "inconsistencies_found": 1,
-                        "inconsistencies": [
-                            {"type": "cache_db_drift", "severity": "medium"}
-                        ],
+                        "inconsistencies": [{"type": "cache_db_drift", "severity": "medium"}],
                         "consistency_status": "inconsistent",
                     },
                     # Reconciliation sync
@@ -413,9 +409,7 @@ class TestSyncAgent:
             assert result["status"] == "success"
             assert result["operation"] == "performance_check"
             assert result["result"]["optimization_needed"] == True
-            assert (
-                len(result["result"]["bottlenecks"]) >= 2
-            )  # Should find multiple bottlenecks
+            assert len(result["result"]["bottlenecks"]) >= 2  # Should find multiple bottlenecks
 
     @pytest.mark.asyncio
     async def test_sync_cache_database(self, agent):
@@ -493,9 +487,7 @@ async def test_agents_error_handling():
         context = {"operation": "health_check"}
 
         with patch.object(agent, "mcp_router") as mock_router:
-            mock_router.route_to_mcp = AsyncMock(
-                side_effect=Exception("MCP connection failed")
-            )
+            mock_router.route_to_mcp = AsyncMock(side_effect=Exception("MCP connection failed"))
 
             with pytest.raises(Exception):
                 await agent.execute(context)

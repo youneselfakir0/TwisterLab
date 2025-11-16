@@ -19,18 +19,10 @@ EXCLUDE_FILES = {
 }
 
 PATTERNS = {
-    "POSTGRES_PASSWORD": re.compile(
-        r"POSTGRES_PASSWORD\s*[=:]\s*[^\n\r]+", re.IGNORECASE
-    ),
-    "REDIS_PASSWORD": re.compile(
-        r"REDIS_PASSWORD\s*[=:]\s*[^\n\r]+", re.IGNORECASE
-    ),
-    "GF_ADMIN": re.compile(
-        r"GF_SECURITY_ADMIN_PASSWORD\s*[=:]\s*[^\n\r]+", re.IGNORECASE
-    ),
-    "DATABASE_URL_PW": re.compile(
-        r"DATABASE_URL=postgresql://[^:]+:[^@]+@", re.IGNORECASE
-    ),
+    "POSTGRES_PASSWORD": re.compile(r"POSTGRES_PASSWORD\s*[=:]\s*[^\n\r]+", re.IGNORECASE),
+    "REDIS_PASSWORD": re.compile(r"REDIS_PASSWORD\s*[=:]\s*[^\n\r]+", re.IGNORECASE),
+    "GF_ADMIN": re.compile(r"GF_SECURITY_ADMIN_PASSWORD\s*[=:]\s*[^\n\r]+", re.IGNORECASE),
+    "DATABASE_URL_PW": re.compile(r"DATABASE_URL=postgresql://[^:]+:[^@]+@", re.IGNORECASE),
 }
 IGNORE_PATTERNS = [
     re.compile(r"_FILE", re.IGNORECASE),
@@ -69,7 +61,7 @@ def main() -> int:
         f
         for f in files_to_scan
         if not any(part in EXCLUDE_DIRS for part in f.parts)
-        and str(f.relative_to(ROOT)).replace('\\', '/') not in EXCLUDE_FILES
+        and str(f.relative_to(ROOT)).replace("\\", "/") not in EXCLUDE_FILES
     ]
     hits = 0
     for f in files_to_scan:

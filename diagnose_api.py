@@ -12,12 +12,15 @@ from pathlib import Path
 # Ajouter le répertoire racine au path
 sys.path.insert(0, str(Path(__file__).parent))
 
+
 async def test_database():
     """Test de connexion à la base de données"""
     print("🔍 Test de la base de données...")
     try:
-        from agents.database.config import get_db
         from sqlalchemy import text
+
+        from agents.database.config import get_db
+
         async for session in get_db():
             result = await session.execute(text("SELECT 1 as test"))
             row = result.fetchone()
@@ -29,11 +32,13 @@ async def test_database():
         return False
     return True
 
+
 def test_imports():
     """Test des imports principaux"""
     print("🔍 Test des imports...")
     try:
         from agents.api.main import app
+
         print(f"✅ Import API OK: {len(app.routes)} routes")
         return True
     except Exception as e:
@@ -41,11 +46,13 @@ def test_imports():
         traceback.print_exc()
         return False
 
+
 async def test_startup_events():
     """Test des événements de démarrage"""
     print("🔍 Test des événements de démarrage...")
     try:
         from agents.api.main import app
+
         # Simuler les startup events
         for event in app.router.on_startup:
             if asyncio.iscoroutinefunction(event):
@@ -58,6 +65,7 @@ async def test_startup_events():
         print(f"❌ Erreur événements de démarrage: {e}")
         traceback.print_exc()
         return False
+
 
 async def main():
     """Fonction principale de diagnostic"""
@@ -82,6 +90,7 @@ async def main():
     print("✅ Tous les tests de diagnostic réussis!")
     print("\n🔧 L'API devrait pouvoir démarrer normalement.")
     print("💡 Si elle s'arrête toujours, vérifiez les logs détaillés.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

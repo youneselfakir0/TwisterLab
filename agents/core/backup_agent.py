@@ -249,9 +249,7 @@ class BackupAgent(BaseAgent):
         except Exception as e:
             return {"status": "failed", "error": str(e)}
 
-    async def _perform_incremental_backup(
-        self, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _perform_incremental_backup(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Perform incremental backup (only changed files)."""
         component = context.get("component", "all")
         results = {}
@@ -297,9 +295,7 @@ class BackupAgent(BaseAgent):
         except Exception as e:
             return {"status": "failed", "error": str(e)}
 
-    async def _perform_backup_verification(
-        self, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _perform_backup_verification(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Verify backup integrity and completeness."""
         verify_type = context.get("verify_type", "all")  # local, cloud, all
         results = {}
@@ -332,14 +328,10 @@ class BackupAgent(BaseAgent):
 
         try:
             if recovery_type in ["full", "database"]:
-                results["database"] = await self._download_from_cloud(
-                    "database", backup_timestamp
-                )
+                results["database"] = await self._download_from_cloud("database", backup_timestamp)
 
             if recovery_type in ["full", "config"]:
-                results["config"] = await self._download_from_cloud(
-                    "config", backup_timestamp
-                )
+                results["config"] = await self._download_from_cloud("config", backup_timestamp)
 
             # Then perform local recovery
             local_recovery = await self._perform_recovery(context)
@@ -628,9 +620,7 @@ class BackupAgent(BaseAgent):
         ]
         operation = context.get("operation")
         if operation and operation not in valid_operations:
-            raise ValueError(
-                f"Invalid operation: {operation}. Must be one of {valid_operations}"
-            )
+            raise ValueError(f"Invalid operation: {operation}. Must be one of {valid_operations}")
 
     # Cloud backup methods
     async def _upload_to_cloud(self, component: str) -> Dict[str, Any]:
@@ -651,9 +641,7 @@ class BackupAgent(BaseAgent):
         except Exception as e:
             return {"status": "failed", "error": str(e)}
 
-    async def _download_from_cloud(
-        self, component: str, timestamp: str
-    ) -> Dict[str, Any]:
+    async def _download_from_cloud(self, component: str, timestamp: str) -> Dict[str, Any]:
         """Download backup from cloud storage."""
         try:
             result = await self.mcp_router.route_to_mcp(
@@ -823,9 +811,7 @@ class BackupAgent(BaseAgent):
         for location, result in results.items():
             if result.get("status") != "success":
                 report["overall_status"] = "issues_found"
-                report["issues"].append(
-                    f"{location}: {result.get('error', 'unknown_error')}"
-                )
+                report["issues"].append(f"{location}: {result.get('error', 'unknown_error')}")
 
         # Add recommendations
         if len(results.get("local", {}).get("backups", [])) > self.max_backup_count:

@@ -6,7 +6,9 @@ Tests Claude Desktop integration and MCP protocol compliance.
 
 import asyncio
 import json
+
 import pytest
+
 from agents.mcp.mcp_server import MCPServer
 
 

@@ -12,12 +12,13 @@ Features:
 - Prometheus integration ready
 """
 
-import aiohttp
 import asyncio
 import logging
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone
 import os
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,10 @@ class OllamaClient:
         """Initialize Ollama client with multiple endpoints."""
         # Endpoints configurables via environment variables
         self.endpoints = [
-            os.getenv("OLLAMA_PRIMARY_URL", "http://192.168.0.30:11434"),   # edgeserver
-            os.getenv("OLLAMA_SECONDARY_URL", "http://192.168.0.31:11434")  # corertx (à configurer)
+            os.getenv("OLLAMA_PRIMARY_URL", "http://192.168.0.30:11434"),  # edgeserver
+            os.getenv(
+                "OLLAMA_SECONDARY_URL", "http://192.168.0.31:11434"
+            ),  # corertx (à configurer)
         ]
 
         self.current_endpoint_index = 0
@@ -47,10 +50,12 @@ class OllamaClient:
             "requests_failed": 0,
             "failovers": 0,
             "endpoint_health": {ep: True for ep in self.endpoints},
-            "latency_history": []  # Dernières 100 requêtes
+            "latency_history": [],  # Dernières 100 requêtes
         }
 
-        logger.info(f"OllamaClient initialized with {len(self.endpoints)} endpoints: {self.endpoints}")
+        logger.info(
+            f"OllamaClient initialized with {len(self.endpoints)} endpoints: {self.endpoints}"
+        )
 
     async def _check_endpoint_health(self, endpoint: str, timeout: int = 5) -> bool:
         """
@@ -66,8 +71,7 @@ class OllamaClient:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{endpoint}/api/tags",
-                    timeout=aiohttp.ClientTimeout(total=timeout)
+                    f"{endpoint}/api/tags", timeout=aiohttp.ClientTimeout(total=timeout)
                 ) as resp:
                     if resp.status == 200:
                         logger.debug(f"Endpoint healthy: {endpoint}")
@@ -85,7 +89,7 @@ class OllamaClient:
         model: str = "llama3.2:1b",
         temperature: float = 0.7,
         max_retries: int = 2,
-        timeout: int = 60
+        timeout: int = 60,
     ) -> Dict[str, Any]:
         """
         Générer une réponse avec failover automatique.
@@ -128,16 +132,18 @@ class OllamaClient:
                             "stream": False,
                             "options": {
                                 "temperature": temperature,
-                                "num_predict": 512  # Max tokens
-                            }
+                                "num_predict": 512,  # Max tokens
+                            },
                         }
 
-                        logger.debug(f"Sending request to {endpoint} (attempt {attempt+1}/{max_retries})")
+                        logger.debug(
+                            f"Sending request to {endpoint} (attempt {attempt+1}/{max_retries})"
+                        )
 
                         async with session.post(
                             f"{endpoint}/api/generate",
                             json=payload,
-                            timeout=aiohttp.ClientTimeout(total=timeout)
+                            timeout=aiohttp.ClientTimeout(total=timeout),
                         ) as resp:
                             if resp.status == 200:
                                 data = await resp.json()
@@ -167,15 +173,19 @@ class OllamaClient:
                                     "timing": {
                                         "total_seconds": elapsed,
                                         "eval_count": data.get("eval_count", 0),
-                                        "eval_duration_ms": data.get("eval_duration", 0) / 1_000_000,
+                                        "eval_duration_ms": data.get("eval_duration", 0)
+                                        / 1_000_000,
                                         "prompt_eval_count": data.get("prompt_eval_count", 0),
-                                        "prompt_eval_duration_ms": data.get("prompt_eval_duration", 0) / 1_000_000
+                                        "prompt_eval_duration_ms": data.get(
+                                            "prompt_eval_duration", 0
+                                        )
+                                        / 1_000_000,
                                     },
                                     "metadata": {
                                         "total_duration_ns": data.get("total_duration", 0),
                                         "load_duration_ns": data.get("load_duration", 0),
-                                        "done": data.get("done", False)
-                                    }
+                                        "done": data.get("done", False),
+                                    },
                                 }
                             else:
                                 logger.warning(f"Ollama error {resp.status} from {endpoint}")
@@ -210,8 +220,7 @@ class OllamaClient:
         elapsed = (datetime.now(timezone.utc) - start_time).total_seconds()
 
         logger.error(
-            f"All Ollama endpoints failed after {elapsed:.2f}s. "
-            f"Tried: {self.endpoints}"
+            f"All Ollama endpoints failed after {elapsed:.2f}s. " f"Tried: {self.endpoints}"
         )
 
         return {
@@ -219,7 +228,7 @@ class OllamaClient:
             "error": "All Ollama servers unavailable",
             "endpoints_tried": self.endpoints,
             "timing": {"total_seconds": elapsed},
-            "metrics": self.get_metrics()
+            "metrics": self.get_metrics(),
         }
 
     async def list_models(self) -> List[Dict[str, Any]]:
@@ -237,8 +246,7 @@ class OllamaClient:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{endpoint}/api/tags",
-                    timeout=aiohttp.ClientTimeout(total=10)
+                    f"{endpoint}/api/tags", timeout=aiohttp.ClientTimeout(total=10)
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
@@ -286,12 +294,14 @@ class OllamaClient:
         """
         success_rate = (
             self.metrics["requests_success"] / self.metrics["requests_total"] * 100
-            if self.metrics["requests_total"] > 0 else 0
+            if self.metrics["requests_total"] > 0
+            else 0
         )
 
         avg_latency = (
             sum(self.metrics["latency_history"]) / len(self.metrics["latency_history"])
-            if self.metrics["latency_history"] else 0
+            if self.metrics["latency_history"]
+            else 0
         )
 
         return {
@@ -304,15 +314,25 @@ class OllamaClient:
             "endpoint_health": self.metrics["endpoint_health"].copy(),
             "avg_latency_seconds": round(avg_latency, 3),
             "latency_p50": round(
-                sorted(self.metrics["latency_history"])[len(self.metrics["latency_history"])//2]
-                if self.metrics["latency_history"] else 0,
-                3
+                (
+                    sorted(self.metrics["latency_history"])[
+                        len(self.metrics["latency_history"]) // 2
+                    ]
+                    if self.metrics["latency_history"]
+                    else 0
+                ),
+                3,
             ),
             "latency_p95": round(
-                sorted(self.metrics["latency_history"])[int(len(self.metrics["latency_history"]) * 0.95)]
-                if len(self.metrics["latency_history"]) > 0 else 0,
-                3
-            )
+                (
+                    sorted(self.metrics["latency_history"])[
+                        int(len(self.metrics["latency_history"]) * 0.95)
+                    ]
+                    if len(self.metrics["latency_history"]) > 0
+                    else 0
+                ),
+                3,
+            ),
         }
 
     def reset_metrics(self):
@@ -323,7 +343,7 @@ class OllamaClient:
             "requests_failed": 0,
             "failovers": 0,
             "endpoint_health": {ep: True for ep in self.endpoints},
-            "latency_history": []
+            "latency_history": [],
         }
         logger.info("Metrics reset")
 

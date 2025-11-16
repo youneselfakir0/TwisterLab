@@ -167,9 +167,7 @@ class MonitoringAgent(BaseAgent):
 
         return issues
 
-    async def _perform_repairs(
-        self, issues: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    async def _perform_repairs(self, issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Perform automated repairs for diagnosed issues."""
         repairs = []
 
@@ -200,9 +198,7 @@ class MonitoringAgent(BaseAgent):
 
         return repairs
 
-    async def _execute_repair_action(
-        self, action: str, issue: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _execute_repair_action(self, action: str, issue: Dict[str, Any]) -> Dict[str, Any]:
         """Execute specific repair action."""
         if action == "restart_service":
             return await self._restart_service(issue["service"])

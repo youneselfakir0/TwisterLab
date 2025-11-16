@@ -4,8 +4,8 @@ TwisterLang Integration Example for TwisterLab Agents
 Shows how to integrate TwisterLang into existing agent communication
 """
 
-from core.twisterlang_encoder import encode, get_encoder
 from core.twisterlang_decoder import decode, get_decoder
+from core.twisterlang_encoder import encode, get_encoder
 from core.twisterlang_sync import get_sync_manager
 
 
@@ -27,8 +27,7 @@ class TwisterLabAgent:
         # In production, this would sync with GitHub/Azure Blob Storage
         # For demo, we just ensure local consistency
         status = self.sync_mgr.get_sync_status()
-        print(f"   ✅ Vocabulary synced: "
-              f"{status['current_vocab']['vocab_size']} entries")
+        print(f"   ✅ Vocabulary synced: " f"{status['current_vocab']['vocab_size']} entries")
 
     def send_message(self, recipient: str, message: str) -> str:
         """Send a message using TwisterLang compression"""
@@ -63,11 +62,12 @@ class TwisterLabAgent:
         """Check vocabulary synchronization health"""
         status = self.sync_mgr.get_sync_status()
         return {
-            'agent': self.agent_name,
-            'vocab_size': status['current_vocab']['vocab_size'],
-            'sync_operations': status['sync_statistics']['total_operations'],
-            'success_rate': status['sync_statistics']['success_rate']
+            "agent": self.agent_name,
+            "vocab_size": status["current_vocab"]["vocab_size"],
+            "sync_operations": status["sync_statistics"]["total_operations"],
+            "success_rate": status["sync_statistics"]["success_rate"],
         }
+
 
 def demonstrate_agent_communication():
     """Demonstrate TwisterLang communication between agents"""
@@ -83,8 +83,10 @@ def demonstrate_agent_communication():
     print("\n📊 Agent Health Check:")
     for agent in [orchestrator, classifier, resolver]:
         health = agent.check_sync_health()
-        print(f"   {health['agent']}: {health['vocab_size']} vocab entries, "
-              f"{health['sync_operations']} sync ops")
+        print(
+            f"   {health['agent']}: {health['vocab_size']} vocab entries, "
+            f"{health['sync_operations']} sync ops"
+        )
 
     print("\n💬 Communication Flow:")
 

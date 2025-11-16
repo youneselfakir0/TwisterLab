@@ -3,16 +3,14 @@ TwisterLab - Desktop Commander Agent Tests
 Comprehensive test suite for secure remote command execution
 """
 
-import pytest
 import asyncio
-from typing import Dict, Any
 from datetime import datetime
+from typing import Any, Dict
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agents.real.real_desktop_commander_agent import (
-    RealDesktopCommanderAgent,
-    CommandStatus
-)
+import pytest
+
+from agents.real.real_desktop_commander_agent import CommandStatus, RealDesktopCommanderAgent
 
 
 @pytest.fixture
@@ -30,7 +28,7 @@ def valid_execute_context():
         "command": "get_system_info",
         "parameters": {},
         "timeout": 60,
-        "ticket_id": "TKT-TEST-001"
+        "ticket_id": "TKT-TEST-001",
     }
 
 
@@ -42,13 +40,14 @@ def malicious_command_context():
         "device_id": "TEST-DEVICE-001",
         "command": "rm -rf /",
         "parameters": {},
-        "ticket_id": "TKT-TEST-002"
+        "ticket_id": "TKT-TEST-002",
     }
 
 
 # ============================================================================
 # INITIALIZATION TESTS
 # ============================================================================
+
 
 def test_commander_initialization(commander_agent):
     """Test Desktop Commander initializes correctly"""
@@ -75,6 +74,7 @@ def test_whitelist_structure(commander_agent):
 # ============================================================================
 # COMMAND WHITELISTING TESTS
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_whitelisted_command_execution(commander_agent, valid_execute_context):
@@ -105,10 +105,8 @@ async def test_command_injection_protection(commander_agent):
         "operation": "execute_command",
         "device_id": "TEST-DEVICE-001",
         "command": "ping",
-        "parameters": {
-            "target": "8.8.8.8; rm -rf /"  # Injection attempt
-        },
-        "ticket_id": "TKT-INJ-001"
+        "parameters": {"target": "8.8.8.8; rm -rf /"},  # Injection attempt
+        "ticket_id": "TKT-INJ-001",
     }
 
     result = await commander_agent.execute("Ping with injection", context)
@@ -122,16 +120,12 @@ async def test_command_injection_protection(commander_agent):
 # PARAMETER VALIDATION TESTS
 # ============================================================================
 
+
 def test_parameter_validation_success(commander_agent):
     """Test valid parameter validation"""
-    command_spec = {
-        "params": ["username", "temporary_password"]
-    }
+    command_spec = {"params": ["username", "temporary_password"]}
 
-    valid_params = {
-        "username": "john.doe",
-        "temporary_password": "TempPass123!"
-    }
+    valid_params = {"username": "john.doe", "temporary_password": "TempPass123!"}
 
     result = commander_agent._validate_parameters(command_spec, valid_params)
     assert result["valid"] is True
@@ -139,9 +133,7 @@ def test_parameter_validation_success(commander_agent):
 
 def test_parameter_validation_missing_param(commander_agent):
     """Test validation with missing required parameter"""
-    command_spec = {
-        "params": ["username", "temporary_password"]
-    }
+    command_spec = {"params": ["username", "temporary_password"]}
 
     invalid_params = {
         "username": "john.doe"
@@ -155,17 +147,13 @@ def test_parameter_validation_missing_param(commander_agent):
 
 def test_parameter_validation_injection_characters(commander_agent):
     """Test validation blocks injection characters"""
-    command_spec = {
-        "params": ["username"]
-    }
+    command_spec = {"params": ["username"]}
 
     # Test various injection characters
-    dangerous_chars = [';', '&', '|', '`', '$', '\n', '\r']
+    dangerous_chars = [";", "&", "|", "`", "$", "\n", "\r"]
 
     for char in dangerous_chars:
-        invalid_params = {
-            "username": f"user{char}name"
-        }
+        invalid_params = {"username": f"user{char}name"}
 
         result = commander_agent._validate_parameters(command_spec, invalid_params)
         assert result["valid"] is False, f"Should reject character: {char}"
@@ -175,6 +163,7 @@ def test_parameter_validation_injection_characters(commander_agent):
 # ============================================================================
 # DEVICE VALIDATION TESTS
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_device_validation_caching(commander_agent):
@@ -208,6 +197,7 @@ async def test_device_validation_accepts_any_device(commander_agent):
 # COMMAND EXECUTION TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_execute_command_full_flow(commander_agent):
     """Test complete command execution flow"""
@@ -215,11 +205,8 @@ async def test_execute_command_full_flow(commander_agent):
         "operation": "execute_command",
         "device_id": "TEST-DEVICE-FLOW",
         "command": "reset_ad_password",
-        "parameters": {
-            "username": "test.user",
-            "temporary_password": "TempPass123!"
-        },
-        "ticket_id": "TKT-FLOW-001"
+        "parameters": {"username": "test.user", "temporary_password": "TempPass123!"},
+        "ticket_id": "TKT-FLOW-001",
     }
 
     result = await commander_agent.execute("Reset password", context)
@@ -243,7 +230,7 @@ async def test_execute_command_with_missing_params(commander_agent):
             "username": "test.user"
             # Missing temporary_password
         },
-        "ticket_id": "TKT-MISSING-001"
+        "ticket_id": "TKT-MISSING-001",
     }
 
     result = await commander_agent.execute("Reset password incomplete", context)
@@ -261,15 +248,14 @@ async def test_execute_multiple_commands_concurrently(commander_agent):
             "device_id": f"TEST-DEVICE-{i}",
             "command": "get_system_info",
             "parameters": {},
-            "ticket_id": f"TKT-CONCURRENT-{i}"
+            "ticket_id": f"TKT-CONCURRENT-{i}",
         }
         for i in range(3)
     ]
 
-    results = await asyncio.gather(*[
-        commander_agent.execute(f"Command {i}", ctx)
-        for i, ctx in enumerate(contexts)
-    ])
+    results = await asyncio.gather(
+        *[commander_agent.execute(f"Command {i}", ctx) for i, ctx in enumerate(contexts)]
+    )
 
     assert len(results) == 3
     assert all(r["status"] == "success" for r in results)
@@ -279,6 +265,7 @@ async def test_execute_multiple_commands_concurrently(commander_agent):
 # ============================================================================
 # AUDIT LOGGING TESTS
 # ============================================================================
+
 
 def test_audit_id_generation(commander_agent):
     """Test audit ID generation is unique and formatted correctly"""
@@ -307,19 +294,13 @@ async def test_audit_logging(commander_agent):
     ticket_id = "TKT-001"
 
     # Should not raise exception
-    await commander_agent._log_audit(
-        audit_id,
-        device_id,
-        command,
-        parameters,
-        result,
-        ticket_id
-    )
+    await commander_agent._log_audit(audit_id, device_id, command, parameters, result, ticket_id)
 
 
 # ============================================================================
 # MCP EXECUTION TESTS
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_mcp_execution_simulates_commands(commander_agent):
@@ -332,12 +313,7 @@ async def test_mcp_execution_simulates_commands(commander_agent):
     ]
 
     for command, params in test_cases:
-        result = await commander_agent._execute_via_mcp(
-            "TEST-DEVICE",
-            command,
-            params,
-            timeout=60
-        )
+        result = await commander_agent._execute_via_mcp("TEST-DEVICE", command, params, timeout=60)
 
         assert result["status"] == "success"
         assert "result" in result
@@ -349,12 +325,7 @@ async def test_mcp_execution_tracks_active_commands(commander_agent):
     """Test MCP execution tracks active commands"""
     initial_count = len(commander_agent.active_commands)
 
-    await commander_agent._execute_via_mcp(
-        "TEST-DEVICE",
-        "get_system_info",
-        {},
-        timeout=60
-    )
+    await commander_agent._execute_via_mcp("TEST-DEVICE", "get_system_info", {}, timeout=60)
 
     # Should have added to active commands
     assert len(commander_agent.active_commands) > initial_count
@@ -364,13 +335,11 @@ async def test_mcp_execution_tracks_active_commands(commander_agent):
 # DEVICE MANAGEMENT TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_get_device_status(commander_agent):
     """Test getting device status"""
-    context = {
-        "operation": "get_device_status",
-        "device_id": "TEST-DEVICE-STATUS"
-    }
+    context = {"operation": "get_device_status", "device_id": "TEST-DEVICE-STATUS"}
 
     result = await commander_agent.execute("Get device status", context)
 
@@ -386,9 +355,7 @@ async def test_list_devices(commander_agent):
     await commander_agent._validate_device("DEVICE-1")
     await commander_agent._validate_device("DEVICE-2")
 
-    context = {
-        "operation": "list_devices"
-    }
+    context = {"operation": "list_devices"}
 
     result = await commander_agent.execute("List devices", context)
 
@@ -404,7 +371,7 @@ async def test_register_device(commander_agent):
         "operation": "register_device",
         "device_id": "NEW-DEVICE-001",
         "hostname": "laptop-user01",
-        "os": "Windows 11"
+        "os": "Windows 11",
     }
 
     result = await commander_agent.execute("Register device", context)
@@ -418,17 +385,9 @@ async def test_register_device(commander_agent):
 async def test_get_command_audit(commander_agent):
     """Test retrieving command audit logs"""
     # Execute a command first to create audit entry
-    await commander_agent._execute_via_mcp(
-        "TEST-DEVICE-AUDIT",
-        "get_system_info",
-        {},
-        timeout=60
-    )
+    await commander_agent._execute_via_mcp("TEST-DEVICE-AUDIT", "get_system_info", {}, timeout=60)
 
-    context = {
-        "operation": "get_command_audit",
-        "device_id": "TEST-DEVICE-AUDIT"
-    }
+    context = {"operation": "get_command_audit", "device_id": "TEST-DEVICE-AUDIT"}
 
     result = await commander_agent.execute("Get audit logs", context)
 
@@ -441,6 +400,7 @@ async def test_get_command_audit(commander_agent):
 # SECURITY TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_high_risk_command_approval_check(commander_agent):
     """Test high-risk commands are flagged for approval"""
@@ -448,11 +408,8 @@ async def test_high_risk_command_approval_check(commander_agent):
         "operation": "execute_command",
         "device_id": "TEST-DEVICE-001",
         "command": "add_to_group",
-        "parameters": {
-            "username": "test.user",
-            "group_name": "Domain Admins"
-        },
-        "ticket_id": "TKT-HIGH-RISK-001"
+        "parameters": {"username": "test.user", "group_name": "Domain Admins"},
+        "ticket_id": "TKT-HIGH-RISK-001",
     }
 
     result = await commander_agent.execute("Add to admin group", context)
@@ -473,11 +430,7 @@ async def test_missing_context_rejection(commander_agent):
 @pytest.mark.asyncio
 async def test_missing_device_id_rejection(commander_agent):
     """Test execution rejects missing device_id"""
-    context = {
-        "operation": "execute_command",
-        "command": "get_system_info",
-        "parameters": {}
-    }
+    context = {"operation": "execute_command", "command": "get_system_info", "parameters": {}}
 
     result = await commander_agent.execute("Execute without device", context)
 
@@ -489,10 +442,11 @@ async def test_missing_device_id_rejection(commander_agent):
 # HEALTH CHECK TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_health_check_all_healthy(commander_agent):
     """Test health check when system is healthy"""
-    with patch('agents.desktop_commander.desktop_commander_agent.get_db') as mock_db:
+    with patch("agents.desktop_commander.desktop_commander_agent.get_db") as mock_db:
         mock_db_session = MagicMock()
         mock_db_session.execute = AsyncMock()
         mock_db.return_value.__aiter__.return_value = [mock_db_session]
@@ -510,7 +464,7 @@ async def test_health_check_all_healthy(commander_agent):
 @pytest.mark.asyncio
 async def test_health_check_degraded(commander_agent):
     """Test health check when database is degraded"""
-    with patch('agents.desktop_commander.desktop_commander_agent.get_db') as mock_db:
+    with patch("agents.desktop_commander.desktop_commander_agent.get_db") as mock_db:
         mock_db.side_effect = Exception("Database connection error")
 
         health = await commander_agent.health_check()
@@ -523,13 +477,11 @@ async def test_health_check_degraded(commander_agent):
 # EDGE CASE TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_execute_unknown_operation(commander_agent):
     """Test execution with unknown operation"""
-    context = {
-        "operation": "unknown_operation",
-        "device_id": "TEST-DEVICE-001"
-    }
+    context = {"operation": "unknown_operation", "device_id": "TEST-DEVICE-001"}
 
     result = await commander_agent.execute("Unknown op", context)
 
@@ -546,7 +498,7 @@ async def test_execute_with_timeout_parameter(commander_agent):
         "command": "get_system_info",
         "parameters": {},
         "timeout": 1,  # Very short timeout
-        "ticket_id": "TKT-TIMEOUT-001"
+        "ticket_id": "TKT-TIMEOUT-001",
     }
 
     result = await commander_agent.execute("Execute with timeout", context)
@@ -558,13 +510,13 @@ async def test_execute_with_timeout_parameter(commander_agent):
 @pytest.mark.asyncio
 async def test_command_execution_error_handling(commander_agent):
     """Test error handling in command execution"""
-    with patch.object(commander_agent, '_execute_via_mcp', side_effect=Exception("MCP error")):
+    with patch.object(commander_agent, "_execute_via_mcp", side_effect=Exception("MCP error")):
         context = {
             "operation": "execute_command",
             "device_id": "TEST-DEVICE-001",
             "command": "get_system_info",
             "parameters": {},
-            "ticket_id": "TKT-ERROR-001"
+            "ticket_id": "TKT-ERROR-001",
         }
 
         result = await commander_agent.execute("Execute with error", context)

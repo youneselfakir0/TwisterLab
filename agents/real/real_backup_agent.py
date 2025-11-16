@@ -2,22 +2,24 @@
 TwisterLab - Real Working Backup Agent (v2 - Unified)
 Performs ACTUAL backups of PostgreSQL, Redis, and configs, aligned with the UnifiedAgentBase.
 """
+
 import asyncio
+import hashlib
+import json
+import logging
+import os  # Import os for environment variables
 import subprocess
-import os # Import os for environment variables
+import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, Optional
-import json
-import hashlib
-import tarfile
-import logging
+from typing import Any, Dict, Optional
 
-from agents.base.unified_agent import UnifiedAgentBase, AgentStatus
+from agents.base.unified_agent import AgentStatus, UnifiedAgentBase
 
 logger = logging.getLogger(__name__)
 
 from utils.secret_manager import read_secret_file
+
 
 class RealBackupAgent(UnifiedAgentBase):
     """
@@ -36,9 +38,11 @@ class RealBackupAgent(UnifiedAgentBase):
         # PostgreSQL connection (using Docker service names for inter-container communication)
         self.pg_host = "twisterlab_postgres"
         self.pg_port = 5432
-        self.pg_database = "twisterlab_prod" # Assuming production database name
+        self.pg_database = "twisterlab_prod"  # Assuming production database name
         self.pg_user = "twisterlab"
-        self.pg_password = read_secret_file("POSTGRES_PASSWORD", "twisterlab") # Read from secret or fallback
+        self.pg_password = read_secret_file(
+            "POSTGRES_PASSWORD", "twisterlab"
+        )  # Read from secret or fallback
 
         # Redis connection (using Docker service names for inter-container communication)
         self.redis_host = "twisterlab_redis"
@@ -131,7 +135,7 @@ class RealBackupAgent(UnifiedAgentBase):
                 "checksum": checksum,
                 "components": components_backed_up,
                 "execution_time_seconds": round(execution_time, 2),
-                "status": "success"
+                "status": "success",
             }
 
             metadata_file = self.backup_dir / f"{backup_name}.json"
@@ -140,7 +144,9 @@ class RealBackupAgent(UnifiedAgentBase):
             # Cleanup temp directory
             await self._cleanup_temp(temp_dir)
 
-            logger.info(f"✅ Backup completed: {backup_name} ({size_bytes} bytes, {execution_time:.2f}s)")
+            logger.info(
+                f"✅ Backup completed: {backup_name} ({size_bytes} bytes, {execution_time:.2f}s)"
+            )
 
             return {
                 "status": "success",
@@ -153,8 +159,8 @@ class RealBackupAgent(UnifiedAgentBase):
                     "checksum": checksum,
                     "components": components_backed_up,
                     "execution_time": execution_time,
-                    "timestamp": start_time.isoformat()
-                }
+                    "timestamp": start_time.isoformat(),
+                },
             }
 
         except Exception as e:
@@ -169,23 +175,25 @@ class RealBackupAgent(UnifiedAgentBase):
         try:
             cmd = [
                 "pg_dump",
-                "-h", self.pg_host,
-                "-p", str(self.pg_port),
-                "-U", self.pg_user,
-                "-d", self.pg_database,
-                "-f", str(output_file),
-                "--no-password" # PGPASSWORD will be passed via env
+                "-h",
+                self.pg_host,
+                "-p",
+                str(self.pg_port),
+                "-U",
+                self.pg_user,
+                "-d",
+                self.pg_database,
+                "-f",
+                str(output_file),
+                "--no-password",  # PGPASSWORD will be passed via env
             ]
 
             # Set PGPASSWORD environment variable for pg_dump
             env = os.environ.copy()
-            env["PGPASSWORD"] = self.pg_password # Use the securely read password
+            env["PGPASSWORD"] = self.pg_password  # Use the securely read password
 
             process = await asyncio.create_subprocess_exec(
-                *cmd,
-                env=env,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+                *cmd, env=env, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
 
             stdout, stderr = await process.communicate()
@@ -226,9 +234,7 @@ INSERT INTO tickets (id) VALUES (1), (2);
             cmd = ["redis-cli", "-h", self.redis_host, "-p", str(self.redis_port), "SAVE"]
 
             process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
 
             stdout, stderr = await process.communicate()
@@ -238,7 +244,9 @@ INSERT INTO tickets (id) VALUES (1), (2);
                 # For now, we'll create a mock RDB file.
                 return await self._mock_redis_snapshot(output_file)
             else:
-                logger.warning(f"redis-cli SAVE failed: {stderr.decode().strip()}. Using mock data.")
+                logger.warning(
+                    f"redis-cli SAVE failed: {stderr.decode().strip()}. Using mock data."
+                )
                 return await self._mock_redis_snapshot(output_file)
 
         except FileNotFoundError:
@@ -290,6 +298,7 @@ services: [api, postgres, redis]
     async def _cleanup_temp(self, temp_dir: Path):
         """Remove temporary directory."""
         import shutil
+
         if temp_dir.exists():
             shutil.rmtree(temp_dir)
 
@@ -302,11 +311,15 @@ services: [api, postgres, redis]
                 metadata = json.loads(metadata_file.read_text())
                 backups.append(metadata)
             else:
-                backups.append({
-                    "backup_name": backup_file.stem,
-                    "size_bytes": backup_file.stat().st_size,
-                    "timestamp": datetime.fromtimestamp(backup_file.stat().st_mtime, tz=timezone.utc).isoformat()
-                })
+                backups.append(
+                    {
+                        "backup_name": backup_file.stem,
+                        "size_bytes": backup_file.stat().st_size,
+                        "timestamp": datetime.fromtimestamp(
+                            backup_file.stat().st_mtime, tz=timezone.utc
+                        ).isoformat(),
+                    }
+                )
         return {"status": "success", "total_backups": len(backups), "backups": backups}
 
     async def _verify_backup(self, backup_id: str) -> Dict[str, Any]:
@@ -315,19 +328,31 @@ services: [api, postgres, redis]
         metadata_file = backup_file.with_suffix(".json")
         if not backup_file.exists() or not metadata_file.exists():
             return {"status": "error", "error": f"Backup or metadata not found for {backup_id}"}
-        
+
         metadata = json.loads(metadata_file.read_text())
         stored_checksum = metadata.get("checksum")
         current_checksum = self._calculate_checksum(backup_file)
 
         if current_checksum == stored_checksum:
-            return {"status": "success", "backup_id": backup_id, "integrity": "valid", "checksum": current_checksum}
+            return {
+                "status": "success",
+                "backup_id": backup_id,
+                "integrity": "valid",
+                "checksum": current_checksum,
+            }
         else:
-            return {"status": "error", "backup_id": backup_id, "integrity": "corrupted", "expected_checksum": stored_checksum, "actual_checksum": current_checksum}
+            return {
+                "status": "error",
+                "backup_id": backup_id,
+                "integrity": "corrupted",
+                "expected_checksum": stored_checksum,
+                "actual_checksum": current_checksum,
+            }
 
     async def _cleanup_old_backups(self, retention_days: int) -> Dict[str, Any]:
         """Remove backups older than retention period."""
         from datetime import timedelta
+
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
         removed_backups = []
         for backup_file in self.backup_dir.glob("twisterlab_backup_*.tar.gz"):
@@ -337,5 +362,15 @@ services: [api, postgres, redis]
                 backup_file.unlink()
                 if metadata_file.exists():
                     metadata_file.unlink()
-                removed_backups.append({"backup_name": backup_file.stem, "removed_at": datetime.now(timezone.utc).isoformat()})
-        return {"status": "success", "retention_days": retention_days, "removed_count": len(removed_backups), "removed_backups": removed_backups}
+                removed_backups.append(
+                    {
+                        "backup_name": backup_file.stem,
+                        "removed_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
+        return {
+            "status": "success",
+            "retention_days": retention_days,
+            "removed_count": len(removed_backups),
+            "removed_backups": removed_backups,
+        }

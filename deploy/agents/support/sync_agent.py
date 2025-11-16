@@ -176,9 +176,7 @@ class SyncAgent(BaseAgent):
                 return False
         return True
 
-    async def execute(
-        self, task: str, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Execute sync operation.
 
@@ -337,9 +335,7 @@ class SyncAgent(BaseAgent):
                     categories[category] = []
                 categories[category].append(sop["id"])
 
-            await self.redis_client.setex(
-                "sops:categories", 3600, json.dumps(categories)
-            )
+            await self.redis_client.setex("sops:categories", 3600, json.dumps(categories))
 
             # Update sync state
             self.sync_state["sops_last_sync"] = datetime.now(timezone.utc).isoformat()
@@ -403,9 +399,7 @@ class SyncAgent(BaseAgent):
                 synced_count += 1
 
             # Update sync state
-            self.sync_state["devices_last_sync"] = datetime.now(
-                timezone.utc
-            ).isoformat()
+            self.sync_state["devices_last_sync"] = datetime.now(timezone.utc).isoformat()
 
             logger.info(f"Synced {synced_count} devices to cache")
 
@@ -459,9 +453,7 @@ class SyncAgent(BaseAgent):
             )
 
             # Update sync state
-            self.sync_state["agent_state_last_sync"] = datetime.now(
-                timezone.utc
-            ).isoformat()
+            self.sync_state["agent_state_last_sync"] = datetime.now(timezone.utc).isoformat()
 
             logger.info(f"Synced state for {len(agent_states)} agents")
 
@@ -531,9 +523,7 @@ class SyncAgent(BaseAgent):
                 cached_data = await self.redis_client.get(cache_key)
 
                 if not cached_data:
-                    inconsistencies.append(
-                        {"type": "missing_cache", "entity": "sop", "id": sop_id}
-                    )
+                    inconsistencies.append({"type": "missing_cache", "entity": "sop", "id": sop_id})
 
             # Verify devices (mock check)
             device_ids = ["DESKTOP-001", "DESKTOP-002", "SERVER-001"]
@@ -642,9 +632,7 @@ if __name__ == "__main__":
 
         # Test consistency verification
         print("\n=== Consistency Verification ===")
-        result = await sync_agent.execute(
-            "Verify consistency", {"operation": "verify_consistency"}
-        )
+        result = await sync_agent.execute("Verify consistency", {"operation": "verify_consistency"})
         print(json.dumps(result, indent=2))
 
         # Get stats

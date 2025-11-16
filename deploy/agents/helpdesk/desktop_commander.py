@@ -139,9 +139,7 @@ class DesktopCommanderAgent(BaseAgent):
         self.mcp_client = MCPClient()
         self._mcp_started = False
 
-    async def execute(
-        self, task: str, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Exécute une commande de gestion à distance.
 
@@ -160,9 +158,7 @@ class DesktopCommanderAgent(BaseAgent):
             command = context.get("command") if context else None
             timeout = context.get("timeout", 300) if context else 300
             command_type = (
-                context.get("command_type", "execute_command")
-                if context
-                else "execute_command"
+                context.get("command_type", "execute_command") if context else "execute_command"
             )
 
             if not device_id:
@@ -202,9 +198,7 @@ class DesktopCommanderAgent(BaseAgent):
                     "error": f"Unknown command type: {command_type}",
                 }
 
-            logger.info(
-                f"Desktop command result for device {device_id}: {result['status']}"
-            )
+            logger.info(f"Desktop command result for device {device_id}: {result['status']}")
 
             return {
                 "device_id": device_id,
@@ -218,9 +212,7 @@ class DesktopCommanderAgent(BaseAgent):
             return {
                 "status": "error",
                 "error": str(e),
-                "device_id": (
-                    context.get("device_id", "unknown") if context else "unknown"
-                ),
+                "device_id": (context.get("device_id", "unknown") if context else "unknown"),
                 "timestamp": datetime.now().isoformat(),
             }
 
@@ -271,9 +263,7 @@ class DesktopCommanderAgent(BaseAgent):
                 self._mcp_started = True
 
             # Déployer le package via MCP
-            result = await self.mcp_client.deploy_package(
-                device_id, package_url, install_args
-            )
+            result = await self.mcp_client.deploy_package(device_id, package_url, install_args)
 
             return result
 
@@ -281,9 +271,7 @@ class DesktopCommanderAgent(BaseAgent):
             logger.error(f"Error deploying package: {e}")
             return {"status": "error", "error": str(e)}
 
-    async def get_system_info(
-        self, device_id: str, info_type: str = "all"
-    ) -> Dict[str, Any]:
+    async def get_system_info(self, device_id: str, info_type: str = "all") -> Dict[str, Any]:
         """
         Récupère les informations système d'un device distant.
         """
@@ -378,10 +366,7 @@ Approximate round trip times in milli-seconds:
     Minimum = 14ms, Maximum = 16ms, Average = 15ms
 """
         else:
-            return (
-                f"Command '{command}' executed successfully at "
-                f"{datetime.now().isoformat()}"
-            )
+            return f"Command '{command}' executed successfully at " f"{datetime.now().isoformat()}"
 
     async def _simulate_package_deployment(
         self, package_url: str, install_args: Optional[str]

@@ -10,7 +10,7 @@ Use HybridAuth for automatic fallback behavior.
 """
 
 from agents.auth.azure_ad_auth import AzureADAuth
-from agents.auth.local_auth import LocalAuth
 from agents.auth.hybrid_auth import HybridAuth
+from agents.auth.local_auth import LocalAuth
 
 __all__ = ["AzureADAuth", "LocalAuth", "HybridAuth"]

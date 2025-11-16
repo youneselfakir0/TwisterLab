@@ -2,22 +2,28 @@
 TwisterLab - Real Working Classifier Agent
 Analyzes tickets and routes them to appropriate agents with LLM intelligence
 """
+
 import asyncio
+import logging
 import re
 import time
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
-import logging
+from typing import Any, Dict, List, Optional
 
-from agents.metrics import track_agent_execution, tickets_processed_total
+from agents.metrics import tickets_processed_total, track_agent_execution
 
 logger = logging.getLogger(__name__)
 
 # Import LLM client for intelligent classification
 try:
     from agents.base.llm_client import ollama_client
-    from agents.config import VALID_TICKET_CATEGORIES, AGENT_ROUTING_MAP
-    from agents.metrics import record_classifier_llm, record_classifier_fallback, classifier_llm_error
+    from agents.config import AGENT_ROUTING_MAP, VALID_TICKET_CATEGORIES
+    from agents.metrics import (
+        classifier_llm_error,
+        record_classifier_fallback,
+        record_classifier_llm,
+    )
+
     LLM_AVAILABLE = True
 except ImportError:
     LLM_AVAILABLE = False
@@ -40,12 +46,21 @@ class RealClassifierAgent:
 
         # Classification rules (keyword-based FALLBACK)
         self.categories = {
-            "network": ["network", "wifi", "ethernet", "connection", "internet", "dns", "ip", "ping"],
+            "network": [
+                "network",
+                "wifi",
+                "ethernet",
+                "connection",
+                "internet",
+                "dns",
+                "ip",
+                "ping",
+            ],
             "software": ["install", "software", "application", "app", "program", "update", "patch"],
             "hardware": ["hardware", "disk", "cpu", "memory", "ram", "gpu", "keyboard", "mouse"],
             "security": ["password", "security", "virus", "malware", "unauthorized", "breach"],
             "performance": ["slow", "performance", "lag", "freeze", "crash", "hang"],
-            "database": ["database", "sql", "postgres", "redis", "query", "table"]
+            "database": ["database", "sql", "postgres", "redis", "query", "table"],
         }
 
         # Priority keywords
@@ -53,7 +68,7 @@ class RealClassifierAgent:
             "critical": ["down", "outage", "crash", "emergency", "critical", "production"],
             "high": ["urgent", "important", "asap", "blocking", "broken"],
             "medium": ["issue", "problem", "error", "bug", "not working"],
-            "low": ["question", "request", "suggestion", "enhancement"]
+            "low": ["question", "request", "suggestion", "enhancement"],
         }
 
         # Routing map - USE CENTRAL CONFIG
@@ -85,18 +100,26 @@ class RealClassifierAgent:
                         try:
                             result = await self._classify_ticket_llm(ticket)
                             if result.get("status") == "success":
-                                tickets_processed_total.labels(agent_name="classifier", status="success").inc()
+                                tickets_processed_total.labels(
+                                    agent_name="classifier", status="success"
+                                ).inc()
                             return result
                         except Exception as llm_error:
-                            logger.warning(f"⚠️ LLM classification failed: {llm_error}, using keywords")
+                            logger.warning(
+                                f"⚠️ LLM classification failed: {llm_error}, using keywords"
+                            )
                             result = await self._classify_ticket_keywords(ticket)
                             if result.get("status") == "success":
-                                tickets_processed_total.labels(agent_name="classifier", status="fallback").inc()
+                                tickets_processed_total.labels(
+                                    agent_name="classifier", status="fallback"
+                                ).inc()
                             return result
                     else:
                         result = await self._classify_ticket_keywords(ticket)
                         if result.get("status") == "success":
-                            tickets_processed_total.labels(agent_name="classifier", status="keyword").inc()
+                            tickets_processed_total.labels(
+                                agent_name="classifier", status="keyword"
+                            ).inc()
                         return result
                 elif operation == "analyze_logs":
                     logs = context.get("logs", [])
@@ -112,7 +135,7 @@ class RealClassifierAgent:
                 return {
                     "status": "error",
                     "error": str(e),
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
 
     async def _classify_ticket_llm(self, ticket: Dict[str, Any]) -> Dict[str, Any]:
@@ -168,8 +191,7 @@ Category:"""
             # Call Ollama LLM with automatic PRIMARY/BACKUP failover
             # Note: generate_with_fallback() has built-in timeout and retry logic
             result = await ollama_client.generate_with_fallback(
-                prompt=prompt,
-                agent_type="classifier"
+                prompt=prompt, agent_type="classifier"
             )
 
             # Log which Ollama server was used (for monitoring)
@@ -177,7 +199,9 @@ Category:"""
             if ollama_source == "primary":
                 logger.info(f"✅ Classification used PRIMARY Ollama (Corertx RTX 3060)")
             elif ollama_source == "fallback":
-                logger.warning(f"⚠️ Classification used BACKUP Ollama (Edgeserver GTX 1050) - PRIMARY may be down")
+                logger.warning(
+                    f"⚠️ Classification used BACKUP Ollama (Edgeserver GTX 1050) - PRIMARY may be down"
+                )
 
             end_time = datetime.now(timezone.utc)
             processing_time_ms = int((end_time - start_time).total_seconds() * 1000)
@@ -187,7 +211,9 @@ Category:"""
 
             # Validate category
             if category not in VALID_TICKET_CATEGORIES:
-                logger.warning(f"⚠️ LLM returned invalid category '{category}', using keywords fallback")
+                logger.warning(
+                    f"⚠️ LLM returned invalid category '{category}', using keywords fallback"
+                )
                 return await self._classify_ticket_keywords(ticket)
 
             # Determine priority (use keywords for now, could be LLM too)
@@ -206,15 +232,15 @@ Category:"""
                     "confidence": 0.90,  # LLM generally high confidence
                     "priority": priority,
                     "routed_to_agent": routed_to,
-                    "method": "llm"
+                    "method": "llm",
                 },
                 "analysis": {
                     "model": result["model"],
                     "tokens": result["tokens"],
-                    "llm_duration_seconds": result["duration_seconds"]
+                    "llm_duration_seconds": result["duration_seconds"],
                 },
                 "timestamp": end_time.isoformat(),
-                "processing_time_ms": processing_time_ms
+                "processing_time_ms": processing_time_ms,
             }
 
             # Record metrics
@@ -223,10 +249,12 @@ Category:"""
                     duration=result["duration_seconds"],
                     category=category,
                     confidence=0.90,
-                    tokens=result["tokens"]
+                    tokens=result["tokens"],
                 )
 
-            logger.info(f"✅ LLM classified as {category} ({priority}) → {routed_to} in {processing_time_ms}ms")
+            logger.info(
+                f"✅ LLM classified as {category} ({priority}) → {routed_to} in {processing_time_ms}ms"
+            )
             return classification_result
 
         except Exception as e:
@@ -310,24 +338,20 @@ Category:"""
                 "confidence": round(confidence, 2),
                 "priority": priority,
                 "routed_to_agent": routed_to,
-                "method": "keywords"
+                "method": "keywords",
             },
             "analysis": {
                 "keywords_found": found_keywords[:5],  # Top 5
                 "category_scores": category_scores,
-                "text_length": len(text)
+                "text_length": len(text),
             },
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "processing_time_ms": int(duration * 1000)
+            "processing_time_ms": int(duration * 1000),
         }
 
         # Record metrics
         if LLM_AVAILABLE:
-            record_classifier_fallback(
-                duration=duration,
-                category=category,
-                confidence=confidence
-            )
+            record_classifier_fallback(duration=duration, category=category, confidence=confidence)
 
         logger.info(f"✅ Keyword classified as {category} ({priority}) → {routed_to}")
         return result
@@ -354,14 +378,16 @@ Category:"""
             (r"WARN|WARNING", "high", "Warning condition detected"),
             (r"Exception|Traceback|Stack trace", "high", "Exception occurred"),
             (r"timeout|timed out", "medium", "Timeout issue"),
-            (r"connection refused|cannot connect", "high", "Connection failure")
+            (r"connection refused|cannot connect", "high", "Connection failure"),
         ]
 
         for log_entry in logs:
             for pattern, priority, description in error_patterns:
                 if re.search(pattern, log_entry, re.IGNORECASE):
                     # Extract relevant info
-                    timestamp_match = re.search(r'\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}', log_entry)
+                    timestamp_match = re.search(
+                        r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}", log_entry
+                    )
                     timestamp = timestamp_match.group(0) if timestamp_match else "unknown"
 
                     ticket = {
@@ -369,7 +395,7 @@ Category:"""
                         "description": log_entry[:200],  # First 200 chars
                         "priority": priority,
                         "source": "log_analysis",
-                        "timestamp": timestamp
+                        "timestamp": timestamp,
                     }
 
                     # Classify the auto-generated ticket (use LLM if available)
@@ -381,10 +407,7 @@ Category:"""
                     else:
                         classification = await self._classify_ticket_keywords(ticket)
 
-                    tickets_created.append({
-                        "ticket": ticket,
-                        "classification": classification
-                    })
+                    tickets_created.append({"ticket": ticket, "classification": classification})
 
                     if "ERROR" in pattern:
                         errors_found += 1
@@ -400,10 +423,12 @@ Category:"""
             "errors_found": errors_found,
             "warnings_found": warnings_found,
             "tickets": tickets_created[:10],  # Return max 10
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-        logger.info(f"✅ Log analysis: {errors_found} errors, {warnings_found} warnings, {len(tickets_created)} tickets")
+        logger.info(
+            f"✅ Log analysis: {errors_found} errors, {warnings_found} warnings, {len(tickets_created)} tickets"
+        )
         return result
 
     async def _detect_patterns(self, tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -453,10 +478,10 @@ Category:"""
             "patterns": {
                 "by_category": category_counts,
                 "by_priority": priority_counts,
-                "trending_issues": dict(trending[:3])  # Top 3
+                "trending_issues": dict(trending[:3]),  # Top 3
             },
             "recommendations": recommendations,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         logger.info(f"✅ Pattern detection complete: {len(trending)} categories found")

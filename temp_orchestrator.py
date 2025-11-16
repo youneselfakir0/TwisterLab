@@ -33,9 +33,7 @@ class AutonomousAgentOrchestrator:
         self.agents: Dict[str, BaseAgent] = {}
         self.agent_tasks: Dict[str, asyncio.Task] = {}
         self.scheduled_tasks: Dict[str, asyncio.Task] = {}
-        self.executor = ThreadPoolExecutor(
-            max_workers=4, thread_name_prefix="agent_orchestrator"
-        )
+        self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="agent_orchestrator")
 
         # Agent health monitoring
         self.agent_health: Dict[str, Dict[str, Any]] = {}
@@ -105,9 +103,7 @@ class AutonomousAgentOrchestrator:
         logger.info("≡ƒ¢æ Stopping autonomous agent orchestration...")
 
         # Cancel all tasks
-        for task in list(self.agent_tasks.values()) + list(
-            self.scheduled_tasks.values()
-        ):
+        for task in list(self.agent_tasks.values()) + list(self.scheduled_tasks.values()):
             task.cancel()
 
         # Shutdown executor
@@ -166,9 +162,7 @@ class AutonomousAgentOrchestrator:
             logger.error(f"Γ¥î {agent_name} {operation} failed: {str(e)}")
             raise
 
-    async def get_agent_status(
-        self, agent_name: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def get_agent_status(self, agent_name: Optional[str] = None) -> Dict[str, Any]:
         """
         Get status of agents.
 
@@ -207,14 +201,12 @@ class AutonomousAgentOrchestrator:
         return {
             "system_status": self.system_status,
             "agents": all_status,
-            "last_coordination": self.last_coordination.isoformat()
-            if self.last_coordination
-            else None,
+            "last_coordination": (
+                self.last_coordination.isoformat() if self.last_coordination else None
+            ),
         }
 
-    async def trigger_emergency_response(
-        self, issue_type: str, severity: str
-    ) -> Dict[str, Any]:
+    async def trigger_emergency_response(self, issue_type: str, severity: str) -> Dict[str, Any]:
         """
         Trigger emergency response for critical issues.
 
@@ -397,9 +389,7 @@ class AutonomousAgentOrchestrator:
 
         # Performance check every hour
         self.scheduled_tasks["performance_check"] = asyncio.create_task(
-            self._schedule_task(
-                "sync", "performance_check", self.schedules["performance_check"]
-            )
+            self._schedule_task("sync", "performance_check", self.schedules["performance_check"])
         )
 
         logger.info(f"Γ£à Started {len(self.scheduled_tasks)} scheduled tasks")
@@ -424,13 +414,9 @@ class AutonomousAgentOrchestrator:
 
         while self.system_status == "running":
             try:
-                await self.execute_agent_operation(
-                    agent_name, operation, context.copy()
-                )
+                await self.execute_agent_operation(agent_name, operation, context.copy())
             except Exception as e:
-                logger.error(
-                    f"Scheduled task failed ({agent_name}:{operation}): {str(e)}"
-                )
+                logger.error(f"Scheduled task failed ({agent_name}:{operation}): {str(e)}")
 
             await asyncio.sleep(interval.total_seconds())
 
@@ -470,9 +456,7 @@ class AutonomousAgentOrchestrator:
 
             if overall_health == "degraded":
                 logger.info("≡ƒöä System degraded - triggering synchronization")
-                await self.execute_agent_operation(
-                    "sync", "sync", {"sync_type": "full"}
-                )
+                await self.execute_agent_operation("sync", "sync", {"sync_type": "full"})
 
             # If system has issues, trigger backup
             issues = diagnosis
@@ -506,14 +490,14 @@ class AutonomousAgentOrchestrator:
             "healthy_agents": sum(
                 1 for h in self.agent_health.values() if h["status"] == "healthy"
             ),
-            "last_coordination": self.last_coordination.isoformat()
-            if self.last_coordination
-            else None,
-            "uptime": str(
-                datetime.now() - datetime.fromisoformat("2025-11-09T00:00:00")
-            )
-            if self.system_status == "running"
-            else None,
+            "last_coordination": (
+                self.last_coordination.isoformat() if self.last_coordination else None
+            ),
+            "uptime": (
+                str(datetime.now() - datetime.fromisoformat("2025-11-09T00:00:00"))
+                if self.system_status == "running"
+                else None
+            ),
         }
 
 

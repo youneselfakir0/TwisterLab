@@ -4,9 +4,10 @@ TwisterLab GitHub Repository Setup Script
 Run this script to push the local repository to GitHub
 """
 
+import os
 import subprocess
 import sys
-import os
+
 
 def run_command(command, description):
     """Run a shell command and return success status"""
@@ -19,6 +20,7 @@ def run_command(command, description):
         print(f"❌ {description} failed:")
         print(f"Error: {e.stderr}")
         return False
+
 
 def main():
     print("🚀 TwisterLab GitHub Repository Setup")
@@ -71,6 +73,7 @@ def main():
     print(f"• GitHub: https://github.com/youneselfakir0/twisterlab")
     print(f"• Actions: https://github.com/youneselfakir0/twisterlab/actions")
     print(f"• Issues: https://github.com/youneselfakir0/twisterlab/issues")
+
 
 if __name__ == "__main__":
     main()

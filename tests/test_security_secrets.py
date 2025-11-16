@@ -145,14 +145,12 @@ class TestSecretsManagement:
 
             content_lower = content.lower()
             for weak in weak_patterns:
-                assert weak not in content_lower, (
-                    f"{secret} contains weak pattern: {weak}"
-                )
+                assert weak not in content_lower, f"{secret} contains weak pattern: {weak}"
 
             # Check for repeated characters (aaa, 111, etc.)
-            assert not re.search(r"(.)\1{4,}", content), (
-                f"{secret} has too many repeated characters"
-            )
+            assert not re.search(
+                r"(.)\1{4,}", content
+            ), f"{secret} has too many repeated characters"
 
     def test_docker_compose_uses_secrets(self):
         """docker-compose.prod.yml must define secrets"""

@@ -4,9 +4,11 @@ Integration tests for autonomous agent orchestration.
 Tests end-to-end workflows with real agents and orchestrator.
 """
 
-import pytest
 import asyncio
-from typing import Dict, Any
+from typing import Any, Dict
+
+import pytest
+
 from agents.orchestrator.autonomous_orchestrator import AutonomousAgentOrchestrator
 
 
@@ -53,9 +55,7 @@ async def test_full_autonomous_orchestration():
 
     # Test sync agent
     try:
-        sync_result = await orchestrator.execute_agent_operation(
-            "sync", "sync_operation", {}
-        )
+        sync_result = await orchestrator.execute_agent_operation("sync", "sync_operation", {})
         results["sync"] = sync_result
         assert sync_result["status"] in ["success", "warning", "error"]
     except Exception as e:
@@ -101,9 +101,7 @@ async def test_agent_operation_error_handling():
     # Test with valid agent but invalid operation (should not raise)
     # This depends on how the agent handles unknown operations
     try:
-        result = await orchestrator.execute_agent_operation(
-            "monitoring", "invalid_operation", {}
-        )
+        result = await orchestrator.execute_agent_operation("monitoring", "invalid_operation", {})
         # Agent should handle gracefully
         assert isinstance(result, dict)
     except Exception:
@@ -148,7 +146,7 @@ async def test_lazy_agent_integration():
 
         if agent_class is not None:
             # Should be a class that can be instantiated
-            assert hasattr(agent_class, '__call__')
+            assert hasattr(agent_class, "__call__")
 
 
 @pytest.mark.asyncio
@@ -163,7 +161,7 @@ async def test_maestro_workflow_simulation():
         "id": "TICKET-001",
         "description": "WiFi not working on workstation WS-001",
         "priority": "high",
-        "category": "network"
+        "category": "network",
     }
 
     try:
@@ -182,10 +180,11 @@ async def test_maestro_workflow_simulation():
         # Should include classification, resolution, monitoring
         workflow_keywords = ["classify", "resolve", "monitor", "backup"]
         has_workflow_steps = any(
-            any(keyword in step.lower() for keyword in workflow_keywords)
-            for step in step_names
+            any(keyword in step.lower() for keyword in workflow_keywords) for step in step_names
         )
-        assert has_workflow_steps, f"Workflow should contain steps with keywords: {workflow_keywords}"
+        assert (
+            has_workflow_steps
+        ), f"Workflow should contain steps with keywords: {workflow_keywords}"
 
     except Exception as e:
         pytest.skip(f"Maestro workflow test failed: {e}")
@@ -194,18 +193,17 @@ async def test_maestro_workflow_simulation():
 @pytest.mark.asyncio
 async def test_real_agents_integration():
     """Test integration with real production agents"""
-    from agents.real.real_classifier_agent import RealClassifierAgent
-    from agents.real.real_resolver_agent import RealResolverAgent
-    from agents.real.real_monitoring_agent import RealMonitoringAgent
     from agents.real.real_backup_agent import RealBackupAgent
+    from agents.real.real_classifier_agent import RealClassifierAgent
+    from agents.real.real_monitoring_agent import RealMonitoringAgent
+    from agents.real.real_resolver_agent import RealResolverAgent
 
     # Test classifier agent
     try:
         classifier = RealClassifierAgent()
-        result = await classifier.execute({
-            "description": "Cannot access network share",
-            "priority": "medium"
-        })
+        result = await classifier.execute(
+            {"description": "Cannot access network share", "priority": "medium"}
+        )
         assert result["status"] == "success"
         # Result structure may vary, just check it has data
         assert "data" in result or isinstance(result, dict)
@@ -215,10 +213,9 @@ async def test_real_agents_integration():
     # Test resolver agent
     try:
         resolver = RealResolverAgent()
-        result = await resolver.execute({
-            "category": "network",
-            "description": "WiFi connectivity issues"
-        })
+        result = await resolver.execute(
+            {"category": "network", "description": "WiFi connectivity issues"}
+        )
         assert result["status"] == "success"
         # Result structure may vary
         assert "data" in result or isinstance(result, dict)
@@ -257,7 +254,7 @@ async def test_end_to_end_workflow():
         "description": "User cannot connect to WiFi network on floor 3",
         "priority": "high",
         "user": "john.doe@company.com",
-        "location": "Floor 3, Office 301"
+        "location": "Floor 3, Office 301",
     }
 
     results = {}
@@ -265,11 +262,11 @@ async def test_end_to_end_workflow():
     # Step 1: Classification
     try:
         from agents.real.real_classifier_agent import RealClassifierAgent
+
         classifier = RealClassifierAgent()
-        classification = await classifier.execute({
-            "description": ticket["description"],
-            "priority": ticket["priority"]
-        })
+        classification = await classifier.execute(
+            {"description": ticket["description"], "priority": ticket["priority"]}
+        )
         results["classification"] = classification
         ticket["category"] = classification["data"]["category"]
     except Exception as e:
@@ -279,11 +276,11 @@ async def test_end_to_end_workflow():
     if "classification" in results:
         try:
             from agents.real.real_resolver_agent import RealResolverAgent
+
             resolver = RealResolverAgent()
-            resolution = await resolver.execute({
-                "category": ticket["category"],
-                "description": ticket["description"]
-            })
+            resolution = await resolver.execute(
+                {"category": ticket["category"], "description": ticket["description"]}
+            )
             results["resolution"] = resolution
         except Exception as e:
             pytest.skip(f"Resolution step failed: {e}")
@@ -291,6 +288,7 @@ async def test_end_to_end_workflow():
     # Step 3: Monitoring (system health check)
     try:
         from agents.real.real_monitoring_agent import RealMonitoringAgent
+
         monitoring = RealMonitoringAgent()
         health_check = await monitoring.execute({})
         results["monitoring"] = health_check
@@ -301,6 +299,7 @@ async def test_end_to_end_workflow():
     if ticket["priority"] == "high":
         try:
             from agents.real.real_backup_agent import RealBackupAgent
+
             backup = RealBackupAgent()
             backup_result = await backup.execute({"backup_type": "incremental"})
             results["backup"] = backup_result

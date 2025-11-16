@@ -2,11 +2,13 @@
 Unit tests for Azure AD authentication module
 """
 
-import pytest
 import os
-from unittest.mock import Mock, patch, MagicMock
-from agents.auth.azure_ad_auth import AzureADAuth
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from fastapi import HTTPException
+
+from agents.auth.azure_ad_auth import AzureADAuth
 
 
 @pytest.fixture
@@ -20,7 +22,7 @@ def mock_env(monkeypatch):
 @pytest.fixture
 def mock_msal_app():
     """Mock MSAL ConfidentialClientApplication"""
-    with patch('agents.auth.azure_ad_auth.ConfidentialClientApplication') as mock:
+    with patch("agents.auth.azure_ad_auth.ConfidentialClientApplication") as mock:
         yield mock
 
 
@@ -77,7 +79,7 @@ async def test_get_app_token_success(mock_env, mock_msal_app):
     mock_instance.acquire_token_for_client.return_value = {
         "access_token": "test-token-123456789",
         "token_type": "Bearer",
-        "expires_in": 3600
+        "expires_in": 3600,
     }
     mock_msal_app.return_value = mock_instance
 
@@ -97,7 +99,7 @@ async def test_get_app_token_auth_failure(mock_env, mock_msal_app):
     mock_instance = MagicMock()
     mock_instance.acquire_token_for_client.return_value = {
         "error": "invalid_client",
-        "error_description": "Client credentials are invalid"
+        "error_description": "Client credentials are invalid",
     }
     mock_msal_app.return_value = mock_instance
 
@@ -139,8 +141,7 @@ def test_get_authorization_url(mock_env, mock_msal_app):
 
     auth = AzureADAuth()
     url = auth.get_authorization_url(
-        redirect_uri="http://localhost:8000/auth/callback",
-        state="random-state-123"
+        redirect_uri="http://localhost:8000/auth/callback", state="random-state-123"
     )
 
     assert "login.microsoftonline.com" in url
@@ -158,14 +159,13 @@ async def test_acquire_token_by_code_success(mock_env, mock_msal_app):
         "refresh_token": "refresh-token-xyz789",
         "id_token": "id-token-def456",
         "token_type": "Bearer",
-        "expires_in": 3600
+        "expires_in": 3600,
     }
     mock_msal_app.return_value = mock_instance
 
     auth = AzureADAuth()
     result = await auth.acquire_token_by_code(
-        code="auth-code-123",
-        redirect_uri="http://localhost:8000/auth/callback"
+        code="auth-code-123", redirect_uri="http://localhost:8000/auth/callback"
     )
 
     assert result["access_token"] == "user-token-abc123"
@@ -173,7 +173,7 @@ async def test_acquire_token_by_code_success(mock_env, mock_msal_app):
     mock_instance.acquire_token_by_authorization_code.assert_called_once_with(
         code="auth-code-123",
         scopes=["User.Read"],
-        redirect_uri="http://localhost:8000/auth/callback"
+        redirect_uri="http://localhost:8000/auth/callback",
     )
 
 
@@ -184,7 +184,7 @@ async def test_acquire_token_by_code_failure(mock_env, mock_msal_app):
     mock_instance = MagicMock()
     mock_instance.acquire_token_by_authorization_code.return_value = {
         "error": "invalid_grant",
-        "error_description": "Authorization code expired"
+        "error_description": "Authorization code expired",
     }
     mock_msal_app.return_value = mock_instance
 
@@ -192,8 +192,7 @@ async def test_acquire_token_by_code_failure(mock_env, mock_msal_app):
 
     with pytest.raises(HTTPException) as exc_info:
         await auth.acquire_token_by_code(
-            code="expired-code",
-            redirect_uri="http://localhost:8000/auth/callback"
+            code="expired-code", redirect_uri="http://localhost:8000/auth/callback"
         )
 
     assert exc_info.value.status_code == 400
@@ -220,5 +219,7 @@ def test_validate_token_structure_invalid(mock_env, mock_msal_app):
     assert auth.validate_token_structure("not-a-jwt-token") is False
     assert auth.validate_token_structure("only.two") is False  # Only 2 parts
     assert auth.validate_token_structure("") is False
-    assert auth.validate_token_structure("too.many.parts.here.invalid") is False  # More than 3 parts
+    assert (
+        auth.validate_token_structure("too.many.parts.here.invalid") is False
+    )  # More than 3 parts
     assert auth.validate_token_structure("..") is False  # 3 parts but all empty

@@ -9,10 +9,11 @@ Tests:
 - User management (create, disable, list)
 """
 
-import pytest
 import os
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
+
+import pytest
 
 # Set required env vars before importing
 os.environ["JWT_SECRET_KEY"] = "test_secret_key_min_32_chars_for_testing_purposes_12345"
@@ -59,9 +60,7 @@ def test_password_hashing(local_auth):
 @pytest.mark.unit
 def test_create_access_token(local_auth):
     """Test JWT token creation."""
-    token = local_auth.create_access_token(
-        {"sub": "testuser", "roles": ["user"]}
-    )
+    token = local_auth.create_access_token({"sub": "testuser", "roles": ["user"]})
 
     assert isinstance(token, str)
     assert len(token) > 50  # JWT tokens are long
@@ -74,19 +73,13 @@ def test_create_access_token(local_auth):
 @pytest.mark.unit
 def test_create_access_token_with_custom_expiry(local_auth):
     """Test JWT token with custom expiration time."""
-    token = local_auth.create_access_token(
-        {"sub": "testuser"},
-        expires_delta=timedelta(minutes=30)
-    )
+    token = local_auth.create_access_token({"sub": "testuser"}, expires_delta=timedelta(minutes=30))
 
     assert isinstance(token, str)
     # Verify token is valid
     from jose import jwt
-    decoded = jwt.decode(
-        token,
-        local_auth.secret_key,
-        algorithms=[local_auth.algorithm]
-    )
+
+    decoded = jwt.decode(token, local_auth.secret_key, algorithms=[local_auth.algorithm])
     assert "exp" in decoded
 
 
@@ -141,11 +134,9 @@ async def test_verify_token_success(local_auth):
     local_auth.create_user("testuser", "password123", email="test@example.com", roles=["user"])
 
     # Create token
-    token = local_auth.create_access_token({
-        "sub": "testuser",
-        "email": "test@example.com",
-        "roles": ["user"]
-    })
+    token = local_auth.create_access_token(
+        {"sub": "testuser", "email": "test@example.com", "roles": ["user"]}
+    )
 
     # Verify token
     payload = await local_auth.verify_token(token)
@@ -163,8 +154,7 @@ async def test_verify_token_expired(local_auth):
     """Test token verification fails for expired token."""
     # Create token that expires immediately
     token = local_auth.create_access_token(
-        {"sub": "testuser"},
-        expires_delta=timedelta(seconds=-1)  # Already expired
+        {"sub": "testuser"}, expires_delta=timedelta(seconds=-1)  # Already expired
     )
 
     # Verify token
@@ -202,10 +192,7 @@ async def test_verify_token_disabled_user(local_auth):
 def test_create_user(local_auth):
     """Test creating new user."""
     user = local_auth.create_user(
-        "newuser",
-        "password123",
-        email="newuser@example.com",
-        roles=["user", "viewer"]
+        "newuser", "password123", email="newuser@example.com", roles=["user", "viewer"]
     )
 
     assert user["username"] == "newuser"

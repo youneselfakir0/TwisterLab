@@ -16,10 +16,10 @@ import argparse
 import asyncio
 import json
 import os
+import subprocess
 import sys
 import time
-from typing import Dict, List, Optional, Any
-import subprocess
+from typing import Any, Dict, List, Optional
 
 
 class MCPTester:
@@ -33,7 +33,7 @@ class MCPTester:
         """Load MCP configuration"""
         config_path = ".copilot/mcp_config.json"
         if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
+            with open(config_path, "r") as f:
                 return json.load(f)
         else:
             # Default configuration
@@ -42,7 +42,7 @@ class MCPTester:
                     "github": {"description": "GitHub operations"},
                     "azure": {"description": "Azure operations"},
                     "local": {"description": "Local development tasks"},
-                    "grafana": {"description": "Grafana monitoring"}
+                    "grafana": {"description": "Grafana monitoring"},
                 }
             }
 
@@ -50,31 +50,32 @@ class MCPTester:
         """Test GitHub MCP server"""
         print("🔍 Testing GitHub MCP...")
 
-        result = {
-            "server": "github",
-            "status": "unknown",
-            "tests": [],
-            "errors": []
-        }
+        result = {"server": "github", "status": "unknown", "tests": [], "errors": []}
 
         try:
             # Test 1: Check authentication
             print("  🧪 Test 1: Authentication")
             test_result = await self._run_mcp_command("github", "list-user-repos")
-            result["tests"].append({
-                "name": "authentication",
-                "status": "passed" if test_result["success"] else "failed",
-                "details": test_result.get("output", "")
-            })
+            result["tests"].append(
+                {
+                    "name": "authentication",
+                    "status": "passed" if test_result["success"] else "failed",
+                    "details": test_result.get("output", ""),
+                }
+            )
 
             # Test 2: Repository access
             print("  🧪 Test 2: Repository access")
-            test_result = await self._run_mcp_command("github", "get-repo-info", "youneselfakir0/twisterlab")
-            result["tests"].append({
-                "name": "repo_access",
-                "status": "passed" if test_result["success"] else "failed",
-                "details": test_result.get("output", "")
-            })
+            test_result = await self._run_mcp_command(
+                "github", "get-repo-info", "youneselfakir0/twisterlab"
+            )
+            result["tests"].append(
+                {
+                    "name": "repo_access",
+                    "status": "passed" if test_result["success"] else "failed",
+                    "details": test_result.get("output", ""),
+                }
+            )
 
             # Overall status
             passed_tests = sum(1 for t in result["tests"] if t["status"] == "passed")
@@ -90,31 +91,30 @@ class MCPTester:
         """Test Azure MCP server"""
         print("🔍 Testing Azure MCP...")
 
-        result = {
-            "server": "azure",
-            "status": "unknown",
-            "tests": [],
-            "errors": []
-        }
+        result = {"server": "azure", "status": "unknown", "tests": [], "errors": []}
 
         try:
             # Test 1: Check credentials
             print("  🧪 Test 1: Credentials validation")
             test_result = await self._run_mcp_command("azure", "get-subscription-info")
-            result["tests"].append({
-                "name": "credentials",
-                "status": "passed" if test_result["success"] else "failed",
-                "details": test_result.get("output", "")
-            })
+            result["tests"].append(
+                {
+                    "name": "credentials",
+                    "status": "passed" if test_result["success"] else "failed",
+                    "details": test_result.get("output", ""),
+                }
+            )
 
             # Test 2: Resource access
             print("  🧪 Test 2: Resource access")
             test_result = await self._run_mcp_command("azure", "list-resource-groups")
-            result["tests"].append({
-                "name": "resource_access",
-                "status": "passed" if test_result["success"] else "failed",
-                "details": test_result.get("output", "")
-            })
+            result["tests"].append(
+                {
+                    "name": "resource_access",
+                    "status": "passed" if test_result["success"] else "failed",
+                    "details": test_result.get("output", ""),
+                }
+            )
 
             # Overall status
             passed_tests = sum(1 for t in result["tests"] if t["status"] == "passed")
@@ -130,31 +130,30 @@ class MCPTester:
         """Test Local MCP server"""
         print("🔍 Testing Local MCP...")
 
-        result = {
-            "server": "local",
-            "status": "unknown",
-            "tests": [],
-            "errors": []
-        }
+        result = {"server": "local", "status": "unknown", "tests": [], "errors": []}
 
         try:
             # Test 1: Run tests
             print("  🧪 Test 1: Test execution")
             test_result = await self._run_mcp_command("local", "run-tests")
-            result["tests"].append({
-                "name": "test_execution",
-                "status": "passed" if test_result["success"] else "failed",
-                "details": test_result.get("output", "")
-            })
+            result["tests"].append(
+                {
+                    "name": "test_execution",
+                    "status": "passed" if test_result["success"] else "failed",
+                    "details": test_result.get("output", ""),
+                }
+            )
 
             # Test 2: Code linting
             print("  🧪 Test 2: Code linting")
             test_result = await self._run_mcp_command("local", "run-linting")
-            result["tests"].append({
-                "name": "code_linting",
-                "status": "passed" if test_result["success"] else "failed",
-                "details": test_result.get("output", "")
-            })
+            result["tests"].append(
+                {
+                    "name": "code_linting",
+                    "status": "passed" if test_result["success"] else "failed",
+                    "details": test_result.get("output", ""),
+                }
+            )
 
             # Overall status
             passed_tests = sum(1 for t in result["tests"] if t["status"] == "passed")
@@ -170,31 +169,30 @@ class MCPTester:
         """Test Grafana MCP server"""
         print("🔍 Testing Grafana MCP...")
 
-        result = {
-            "server": "grafana",
-            "status": "unknown",
-            "tests": [],
-            "errors": []
-        }
+        result = {"server": "grafana", "status": "unknown", "tests": [], "errors": []}
 
         try:
             # Test 1: List dashboards
             print("  🧪 Test 1: Dashboard access")
             test_result = await self._run_mcp_command("grafana", "list-dashboards")
-            result["tests"].append({
-                "name": "dashboard_access",
-                "status": "passed" if test_result["success"] else "failed",
-                "details": test_result.get("output", "")
-            })
+            result["tests"].append(
+                {
+                    "name": "dashboard_access",
+                    "status": "passed" if test_result["success"] else "failed",
+                    "details": test_result.get("output", ""),
+                }
+            )
 
             # Test 2: Data source check
             print("  🧪 Test 2: Data source access")
             test_result = await self._run_mcp_command("grafana", "list-data-sources")
-            result["tests"].append({
-                "name": "data_source_access",
-                "status": "passed" if test_result["success"] else "failed",
-                "details": test_result.get("output", "")
-            })
+            result["tests"].append(
+                {
+                    "name": "data_source_access",
+                    "status": "passed" if test_result["success"] else "failed",
+                    "details": test_result.get("output", ""),
+                }
+            )
 
             # Overall status
             passed_tests = sum(1 for t in result["tests"] if t["status"] == "passed")
@@ -246,7 +244,7 @@ class MCPTester:
             ("github", self.test_github_mcp),
             ("azure", self.test_azure_mcp),
             ("local", self.test_local_mcp),
-            ("grafana", self.test_grafana_mcp)
+            ("grafana", self.test_grafana_mcp),
         ]
 
         for server_name, test_method in test_methods:
@@ -257,7 +255,11 @@ class MCPTester:
             results[server_name] = result
 
             # Print immediate result
-            status_emoji = "✅" if result["status"] == "passed" else "❌" if result["status"] == "failed" else "⚠️"
+            status_emoji = (
+                "✅"
+                if result["status"] == "passed"
+                else "❌" if result["status"] == "failed" else "⚠️"
+            )
             print(f"{status_emoji} {server_name.upper()}: {result['status']}")
 
             if result["errors"]:
@@ -302,7 +304,11 @@ class MCPTester:
         # Detailed results
         report.append("## 🔍 Detailed Results")
         for server_name, result in results.items():
-            status_emoji = "✅" if result["status"] == "passed" else "❌" if result["status"] == "failed" else "⚠️"
+            status_emoji = (
+                "✅"
+                if result["status"] == "passed"
+                else "❌" if result["status"] == "failed" else "⚠️"
+            )
             report.append(f"### {status_emoji} {server_name.upper()} MCP")
             report.append(f"**Status:** {result['status']}")
 
@@ -325,7 +331,9 @@ class MCPTester:
             report.append("### Issues Found:")
             for server_name, result in results.items():
                 if result["status"] != "passed":
-                    report.append(f"- **{server_name.upper()}**: Check configuration and credentials")
+                    report.append(
+                        f"- **{server_name.upper()}**: Check configuration and credentials"
+                    )
 
             report.append("")
             report.append("### Next Steps:")
@@ -341,19 +349,20 @@ class MCPTester:
 
     def save_report(self, report: str, filename: str = "mcp_test_report.md") -> None:
         """Save test report to file"""
-        with open(filename, 'w', encoding='utf-8') as f:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write(report)
         print(f"💾 Report saved to {filename}")
 
 
 async def main():
     parser = argparse.ArgumentParser(description="TwisterLab MCP Isolation Tests")
-    parser.add_argument("--server", choices=["github", "azure", "local", "grafana"],
-                       help="Test specific MCP server")
-    parser.add_argument("--all", action="store_true", default=True,
-                       help="Test all MCP servers (default)")
-    parser.add_argument("--report", default="mcp_test_report.md",
-                       help="Report output file")
+    parser.add_argument(
+        "--server", choices=["github", "azure", "local", "grafana"], help="Test specific MCP server"
+    )
+    parser.add_argument(
+        "--all", action="store_true", default=True, help="Test all MCP servers (default)"
+    )
+    parser.add_argument("--report", default="mcp_test_report.md", help="Report output file")
 
     args = parser.parse_args()
 

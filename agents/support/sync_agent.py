@@ -20,8 +20,7 @@ from agents.base import TwisterAgent
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("sync_agent")
 
@@ -33,6 +32,7 @@ logger = logging.getLogger("sync_agent")
 
 class SyncStatus:
     """Sync operation status constants"""
+
     SUCCESS = "success"
     PARTIAL = "partial"
     FAILED = "failed"
@@ -48,14 +48,14 @@ class SyncStatus:
 class SyncAgent(TwisterAgent):
     """
     Agent for maintaining data consistency across system components.
-    
+
     Features:
     - PostgreSQL ↔ Redis cache synchronization
     - Agent state propagation
     - Conflict detection and resolution
     - Data integrity verification
     - Cache invalidation
-    
+
     Sync Types:
     - Real-time: Ticket status, agent state
     - Scheduled: SOPs, devices (every 5 minutes)
@@ -69,7 +69,7 @@ class SyncAgent(TwisterAgent):
             description="Maintains consistency across PostgreSQL, Redis, and agent state",
             model="llama-3.2",
             temperature=0.2,
-            tools=self._define_tools()
+            tools=self._define_tools(),
         )
 
         # Redis connection (mock for now)
@@ -82,14 +82,14 @@ class SyncAgent(TwisterAgent):
             "successful_syncs": 0,
             "failed_syncs": 0,
             "last_sync": None,
-            "last_sync_duration": 0.0
+            "last_sync_duration": 0.0,
         }
 
         # Cache for sync state
         self.sync_state = {
             "sops_last_sync": None,
             "devices_last_sync": None,
-            "agent_state_last_sync": None
+            "agent_state_last_sync": None,
         }
 
         logger.info("SyncAgent initialized")
@@ -102,44 +102,32 @@ class SyncAgent(TwisterAgent):
                 "function": {
                     "name": "sync_all",
                     "description": "Synchronize all data sources (SOPs, devices, agent state)",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
+                    "parameters": {"type": "object", "properties": {}},
+                },
             },
             {
                 "type": "function",
                 "function": {
                     "name": "sync_sops",
                     "description": "Sync SOPs from PostgreSQL to Redis cache",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
+                    "parameters": {"type": "object", "properties": {}},
+                },
             },
             {
                 "type": "function",
                 "function": {
                     "name": "sync_devices",
                     "description": "Sync device registry from PostgreSQL to Redis cache",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
+                    "parameters": {"type": "object", "properties": {}},
+                },
             },
             {
                 "type": "function",
                 "function": {
                     "name": "sync_agent_state",
                     "description": "Sync agent state to Redis for distributed access",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
+                    "parameters": {"type": "object", "properties": {}},
+                },
             },
             {
                 "type": "function",
@@ -151,30 +139,27 @@ class SyncAgent(TwisterAgent):
                         "properties": {
                             "pattern": {
                                 "type": "string",
-                                "description": "Redis key pattern (e.g., 'sop:*', 'device:*')"
+                                "description": "Redis key pattern (e.g., 'sop:*', 'device:*')",
                             }
                         },
-                        "required": ["pattern"]
-                    }
-                }
+                        "required": ["pattern"],
+                    },
+                },
             },
             {
                 "type": "function",
                 "function": {
                     "name": "verify_consistency",
                     "description": "Verify data consistency between database and cache",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
-            }
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            },
         ]
 
     async def _ensure_redis_connection(self) -> bool:
         """
         Ensure Redis connection is established.
-        
+
         For v1.0, this simulates Redis connection.
         In production, use redis.asyncio.
         """
@@ -191,18 +176,14 @@ class SyncAgent(TwisterAgent):
                 return False
         return True
 
-    async def execute(
-        self,
-        task: str,
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Execute sync operation.
-        
+
         Args:
             task: Task description
             context: Operation context with parameters
-            
+
         Returns:
             Sync result with status and details
         """
@@ -212,10 +193,7 @@ class SyncAgent(TwisterAgent):
 
             # Ensure Redis connection
             if not await self._ensure_redis_connection():
-                return {
-                    "status": SyncStatus.FAILED,
-                    "error": "Redis connection unavailable"
-                }
+                return {"status": SyncStatus.FAILED, "error": "Redis connection unavailable"}
 
             # Parse operation
             context = context or {}
@@ -236,10 +214,7 @@ class SyncAgent(TwisterAgent):
             elif operation == "verify_consistency":
                 result = await self._verify_consistency()
             else:
-                result = {
-                    "status": SyncStatus.FAILED,
-                    "error": f"Unknown operation: {operation}"
-                }
+                result = {"status": SyncStatus.FAILED, "error": f"Unknown operation: {operation}"}
 
             # Update statistics
             duration = (datetime.now(timezone.utc) - start_time).total_seconds()
@@ -262,13 +237,13 @@ class SyncAgent(TwisterAgent):
             return {
                 "status": SyncStatus.FAILED,
                 "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
     async def _sync_all(self) -> Dict[str, Any]:
         """
         Sync all data sources.
-        
+
         Synchronizes:
         - SOPs (PostgreSQL → Redis)
         - Devices (PostgreSQL → Redis)
@@ -279,7 +254,7 @@ class SyncAgent(TwisterAgent):
         results = {
             "sops": await self._sync_sops(),
             "devices": await self._sync_devices(),
-            "agent_state": await self._sync_agent_state()
+            "agent_state": await self._sync_agent_state(),
         }
 
         # Determine overall status
@@ -295,13 +270,13 @@ class SyncAgent(TwisterAgent):
         return {
             "status": overall_status,
             "results": results,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     async def _sync_sops(self) -> Dict[str, Any]:
         """
         Sync SOPs from PostgreSQL to Redis cache.
-        
+
         Syncs:
         - Individual SOPs with 1 hour TTL
         - Category index
@@ -316,22 +291,22 @@ class SyncAgent(TwisterAgent):
                     "title": "Password Reset Procedure",
                     "category": "IAM",
                     "steps": ["Verify identity", "Reset password", "Notify user"],
-                    "keywords": ["password", "reset", "account"]
+                    "keywords": ["password", "reset", "account"],
                 },
                 {
                     "id": "sop-002",
                     "title": "Software Installation",
                     "category": "Desktop",
                     "steps": ["Check compatibility", "Install", "Verify"],
-                    "keywords": ["install", "software", "application"]
+                    "keywords": ["install", "software", "application"],
                 },
                 {
                     "id": "sop-003",
                     "title": "Network Troubleshooting",
                     "category": "Network",
                     "steps": ["Check connectivity", "Verify config", "Test"],
-                    "keywords": ["network", "connectivity", "troubleshoot"]
-                }
+                    "keywords": ["network", "connectivity", "troubleshoot"],
+                },
             ]
 
             synced_count = 0
@@ -339,11 +314,7 @@ class SyncAgent(TwisterAgent):
             # Cache each SOP
             for sop in mock_sops:
                 cache_key = f"sop:{sop['id']}"
-                await self.redis_client.setex(
-                    cache_key,
-                    3600,  # 1 hour TTL
-                    json.dumps(sop)
-                )
+                await self.redis_client.setex(cache_key, 3600, json.dumps(sop))  # 1 hour TTL
                 synced_count += 1
 
             # Build and cache category index
@@ -354,11 +325,7 @@ class SyncAgent(TwisterAgent):
                     categories[category] = []
                 categories[category].append(sop["id"])
 
-            await self.redis_client.setex(
-                "sops:categories",
-                3600,
-                json.dumps(categories)
-            )
+            await self.redis_client.setex("sops:categories", 3600, json.dumps(categories))
 
             # Update sync state
             self.sync_state["sops_last_sync"] = datetime.now(timezone.utc).isoformat()
@@ -369,20 +336,17 @@ class SyncAgent(TwisterAgent):
                 "status": SyncStatus.SUCCESS,
                 "synced_count": synced_count,
                 "categories": len(categories),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
             logger.error(f"Error syncing SOPs: {e}", exc_info=True)
-            return {
-                "status": SyncStatus.FAILED,
-                "error": str(e)
-            }
+            return {"status": SyncStatus.FAILED, "error": str(e)}
 
     async def _sync_devices(self) -> Dict[str, Any]:
         """
         Sync device registry from PostgreSQL to Redis.
-        
+
         Syncs device data with 10 minute TTL.
         """
         try:
@@ -395,33 +359,29 @@ class SyncAgent(TwisterAgent):
                     "hostname": "WKS-SALES-01",
                     "os": "Windows 11",
                     "is_online": True,
-                    "last_seen": datetime.now(timezone.utc).isoformat()
+                    "last_seen": datetime.now(timezone.utc).isoformat(),
                 },
                 {
                     "device_id": "DESKTOP-002",
                     "hostname": "WKS-IT-05",
                     "os": "Windows 10",
                     "is_online": True,
-                    "last_seen": datetime.now(timezone.utc).isoformat()
+                    "last_seen": datetime.now(timezone.utc).isoformat(),
                 },
                 {
                     "device_id": "SERVER-001",
                     "hostname": "SRV-DC-01",
                     "os": "Windows Server 2022",
                     "is_online": True,
-                    "last_seen": datetime.now(timezone.utc).isoformat()
-                }
+                    "last_seen": datetime.now(timezone.utc).isoformat(),
+                },
             ]
 
             synced_count = 0
 
             for device in mock_devices:
                 cache_key = f"device:{device['device_id']}"
-                await self.redis_client.setex(
-                    cache_key,
-                    600,  # 10 minutes TTL
-                    json.dumps(device)
-                )
+                await self.redis_client.setex(cache_key, 600, json.dumps(device))  # 10 minutes TTL
                 synced_count += 1
 
             # Update sync state
@@ -432,20 +392,17 @@ class SyncAgent(TwisterAgent):
             return {
                 "status": SyncStatus.SUCCESS,
                 "synced_count": synced_count,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
             logger.error(f"Error syncing devices: {e}", exc_info=True)
-            return {
-                "status": SyncStatus.FAILED,
-                "error": str(e)
-            }
+            return {"status": SyncStatus.FAILED, "error": str(e)}
 
     async def _sync_agent_state(self) -> Dict[str, Any]:
         """
         Sync agent state to Redis for distributed access.
-        
+
         Syncs current agent states with 1 minute TTL.
         """
         try:
@@ -456,29 +413,27 @@ class SyncAgent(TwisterAgent):
                 "classifier": {
                     "status": "healthy",
                     "load": 2,
-                    "last_activity": datetime.now(timezone.utc).isoformat()
+                    "last_activity": datetime.now(timezone.utc).isoformat(),
                 },
                 "resolver": {
                     "status": "healthy",
                     "load": 1,
-                    "last_activity": datetime.now(timezone.utc).isoformat()
+                    "last_activity": datetime.now(timezone.utc).isoformat(),
                 },
                 "desktop_commander": {
                     "status": "healthy",
                     "load": 0,
-                    "last_activity": datetime.now(timezone.utc).isoformat()
+                    "last_activity": datetime.now(timezone.utc).isoformat(),
                 },
                 "maestro": {
                     "status": "healthy",
                     "tickets_routed": 42,
-                    "last_activity": datetime.now(timezone.utc).isoformat()
-                }
+                    "last_activity": datetime.now(timezone.utc).isoformat(),
+                },
             }
 
             await self.redis_client.setex(
-                "agents:state",
-                60,  # 1 minute TTL
-                json.dumps(agent_states)
+                "agents:state", 60, json.dumps(agent_states)  # 1 minute TTL
             )
 
             # Update sync state
@@ -489,20 +444,17 @@ class SyncAgent(TwisterAgent):
             return {
                 "status": SyncStatus.SUCCESS,
                 "agents_synced": len(agent_states),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
             logger.error(f"Error syncing agent state: {e}", exc_info=True)
-            return {
-                "status": SyncStatus.FAILED,
-                "error": str(e)
-            }
+            return {"status": SyncStatus.FAILED, "error": str(e)}
 
     async def _invalidate_cache(self, pattern: str) -> Dict[str, Any]:
         """
         Invalidate cache keys matching pattern.
-        
+
         Args:
             pattern: Redis key pattern (e.g., 'sop:*', 'device:*')
         """
@@ -525,20 +477,17 @@ class SyncAgent(TwisterAgent):
                 "status": SyncStatus.SUCCESS,
                 "invalidated_count": invalidated_count,
                 "pattern": pattern,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
             logger.error(f"Error invalidating cache: {e}", exc_info=True)
-            return {
-                "status": SyncStatus.FAILED,
-                "error": str(e)
-            }
+            return {"status": SyncStatus.FAILED, "error": str(e)}
 
     async def _verify_consistency(self) -> Dict[str, Any]:
         """
         Verify data consistency between database and cache.
-        
+
         Checks:
         - SOPs: Database vs Cache
         - Devices: Database vs Cache
@@ -558,11 +507,7 @@ class SyncAgent(TwisterAgent):
                 cached_data = await self.redis_client.get(cache_key)
 
                 if not cached_data:
-                    inconsistencies.append({
-                        "type": "missing_cache",
-                        "entity": "sop",
-                        "id": sop_id
-                    })
+                    inconsistencies.append({"type": "missing_cache", "entity": "sop", "id": sop_id})
 
             # Verify devices (mock check)
             device_ids = ["DESKTOP-001", "DESKTOP-002", "SERVER-001"]
@@ -572,11 +517,9 @@ class SyncAgent(TwisterAgent):
                 cached_data = await self.redis_client.get(cache_key)
 
                 if not cached_data:
-                    inconsistencies.append({
-                        "type": "missing_cache",
-                        "entity": "device",
-                        "id": device_id
-                    })
+                    inconsistencies.append(
+                        {"type": "missing_cache", "entity": "device", "id": device_id}
+                    )
 
             # Determine status
             if inconsistencies:
@@ -590,22 +533,19 @@ class SyncAgent(TwisterAgent):
                 "inconsistencies": inconsistencies,
                 "checked_sops": len(sop_ids),
                 "checked_devices": len(device_ids),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
             logger.error(f"Error verifying consistency: {e}", exc_info=True)
-            return {
-                "status": SyncStatus.FAILED,
-                "error": str(e)
-            }
+            return {"status": SyncStatus.FAILED, "error": str(e)}
 
     def get_sync_stats(self) -> Dict[str, Any]:
         """Get sync statistics"""
         return {
             **self.sync_stats,
             "sync_state": self.sync_state,
-            "redis_connected": self.redis_connected
+            "redis_connected": self.redis_connected,
         }
 
     def health_check(self) -> Dict[str, Any]:
@@ -615,7 +555,7 @@ class SyncAgent(TwisterAgent):
             "agent": self.name,
             "redis_connected": self.redis_connected,
             "sync_stats": self.sync_stats,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
@@ -649,6 +589,7 @@ class MockRedisClient:
     async def keys(self, pattern: str) -> List[str]:
         """Get keys matching pattern"""
         import fnmatch
+
         return [k for k in self.data.keys() if fnmatch.fnmatch(k, pattern)]
 
 
@@ -657,6 +598,7 @@ class MockRedisClient:
 # ============================================================================
 
 if __name__ == "__main__":
+
     async def main():
         sync_agent = SyncAgent()
 
@@ -668,17 +610,13 @@ if __name__ == "__main__":
         # Test cache invalidation
         print("\n=== Cache Invalidation ===")
         result = await sync_agent.execute(
-            "Invalidate cache",
-            {"operation": "invalidate_cache", "pattern": "sop:*"}
+            "Invalidate cache", {"operation": "invalidate_cache", "pattern": "sop:*"}
         )
         print(json.dumps(result, indent=2))
 
         # Test consistency verification
         print("\n=== Consistency Verification ===")
-        result = await sync_agent.execute(
-            "Verify consistency",
-            {"operation": "verify_consistency"}
-        )
+        result = await sync_agent.execute("Verify consistency", {"operation": "verify_consistency"})
         print(json.dumps(result, indent=2))
 
         # Get stats

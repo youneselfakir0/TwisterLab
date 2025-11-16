@@ -2,12 +2,13 @@
 Production monitoring and observability configuration
 """
 
+import json
 import logging
 import logging.handlers
-import json
 import time
-from typing import Dict, Any
 from pathlib import Path
+from typing import Any, Dict
+
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -86,7 +87,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                     "duration_ms": round(process_time * 1000, 2),
                     "user_agent": request.headers.get("user-agent", ""),
                     "client_ip": request.client.host if request.client else "",
-                }
+                },
             )
 
             return response
@@ -101,13 +102,12 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                     "error": str(e),
                     "duration_ms": round(process_time * 1000, 2),
                 },
-                exc_info=True
+                exc_info=True,
             )
             raise
 
 
-def setup_logging(log_level: str = "INFO",
-                  log_file: str = "logs/twisterlab.log") -> logging.Logger:
+def setup_logging(log_level: str = "INFO", log_file: str = "logs/twisterlab.log") -> logging.Logger:
     """Setup structured logging for production"""
 
     # Create logs directory
@@ -135,9 +135,7 @@ def setup_logging(log_level: str = "INFO",
 
     # File handler with rotation
     file_handler = logging.handlers.RotatingFileHandler(
-        log_file,
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5
+        log_file, maxBytes=10 * 1024 * 1024, backupCount=5  # 10MB
     )
     file_handler.setFormatter(json_formatter)
     logger.addHandler(file_handler)
@@ -154,8 +152,8 @@ def get_health_status() -> Dict[str, Any]:
         "services": {
             "api": "up",
             "database": "up",  # TODO: Add actual DB health check
-            "redis": "up",     # TODO: Add actual Redis health check
-            "ollama": "up",    # TODO: Add actual Ollama health check
+            "redis": "up",  # TODO: Add actual Redis health check
+            "ollama": "up",  # TODO: Add actual Ollama health check
         },
         "uptime": time.time(),  # TODO: Track actual uptime
     }
@@ -163,9 +161,8 @@ def get_health_status() -> Dict[str, Any]:
 
 def create_health_endpoint():
     """Create health check endpoint"""
+
     async def health_check():
-        return JSONResponse(
-            content=get_health_status(),
-            status_code=200
-        )
+        return JSONResponse(content=get_health_status(), status_code=200)
+
     return health_check

@@ -7,8 +7,10 @@ Comprehensive test suite for the RealMonitoringAgent functionality.
 Run with: pytest tests/test_monitoring_agent.py -v
 """
 
-import pytest
 from datetime import datetime, timezone
+
+import pytest
+
 from agents.real.real_monitoring_agent import RealMonitoringAgent
 from agents.support.monitoring_agent import AlertSeverity
 
@@ -22,6 +24,7 @@ def monitoring_agent():
 # ============================================================================
 # AGENT INITIALIZATION TESTS
 # ============================================================================
+
 
 def test_monitoring_agent_initialization(monitoring_agent):
     """Test MonitoringAgent initializes correctly"""
@@ -49,13 +52,11 @@ def test_monitoring_agent_thresholds(monitoring_agent):
 # METRICS COLLECTION TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_collect_metrics(monitoring_agent):
     """Test collecting all metrics"""
-    result = await monitoring_agent.execute(
-        "Collect metrics",
-        {"operation": "collect_metrics"}
-    )
+    result = await monitoring_agent.execute("Collect metrics", {"operation": "collect_metrics"})
 
     assert result["status"] == "success"
     assert "metrics_collected" in result
@@ -143,20 +144,15 @@ async def test_collect_api_metrics(monitoring_agent):
 # METRICS RETRIEVAL TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_get_all_metrics(monitoring_agent):
     """Test getting all metrics summary"""
     # Collect some metrics first
-    await monitoring_agent.execute(
-        "Collect metrics",
-        {"operation": "collect_metrics"}
-    )
+    await monitoring_agent.execute("Collect metrics", {"operation": "collect_metrics"})
 
     # Get all metrics
-    result = await monitoring_agent.execute(
-        "Get metrics",
-        {"operation": "get_metrics"}
-    )
+    result = await monitoring_agent.execute("Get metrics", {"operation": "get_metrics"})
 
     assert result["status"] == "success"
     assert "total_metrics" in result
@@ -169,18 +165,11 @@ async def test_get_all_metrics(monitoring_agent):
 async def test_get_specific_metric(monitoring_agent):
     """Test getting a specific metric"""
     # Collect metrics first
-    await monitoring_agent.execute(
-        "Collect metrics",
-        {"operation": "collect_metrics"}
-    )
+    await monitoring_agent.execute("Collect metrics", {"operation": "collect_metrics"})
 
     # Get specific metric
     result = await monitoring_agent.execute(
-        "Get metrics",
-        {
-            "operation": "get_metrics",
-            "metric_name": "system_cpu_usage_percent"
-        }
+        "Get metrics", {"operation": "get_metrics", "metric_name": "system_cpu_usage_percent"}
     )
 
     assert result["status"] == "success"
@@ -194,11 +183,7 @@ async def test_get_specific_metric(monitoring_agent):
 async def test_get_nonexistent_metric(monitoring_agent):
     """Test getting a metric that doesn't exist"""
     result = await monitoring_agent.execute(
-        "Get metrics",
-        {
-            "operation": "get_metrics",
-            "metric_name": "nonexistent_metric"
-        }
+        "Get metrics", {"operation": "get_metrics", "metric_name": "nonexistent_metric"}
     )
 
     assert result["status"] == "error"
@@ -209,13 +194,12 @@ async def test_get_nonexistent_metric(monitoring_agent):
 # ALERT CREATION TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_create_alert(monitoring_agent):
     """Test alert creation"""
     await monitoring_agent._create_alert(
-        "Test Alert",
-        "This is a test alert",
-        AlertSeverity.WARNING
+        "Test Alert", "This is a test alert", AlertSeverity.WARNING
     )
 
     assert len(monitoring_agent.alerts) == 1
@@ -231,20 +215,10 @@ async def test_create_alert(monitoring_agent):
 @pytest.mark.asyncio
 async def test_alert_severity_levels(monitoring_agent):
     """Test different alert severity levels"""
+    await monitoring_agent._create_alert("Info Alert", "Info message", AlertSeverity.INFO)
+    await monitoring_agent._create_alert("Warning Alert", "Warning message", AlertSeverity.WARNING)
     await monitoring_agent._create_alert(
-        "Info Alert",
-        "Info message",
-        AlertSeverity.INFO
-    )
-    await monitoring_agent._create_alert(
-        "Warning Alert",
-        "Warning message",
-        AlertSeverity.WARNING
-    )
-    await monitoring_agent._create_alert(
-        "Critical Alert",
-        "Critical message",
-        AlertSeverity.CRITICAL
+        "Critical Alert", "Critical message", AlertSeverity.CRITICAL
     )
 
     assert len(monitoring_agent.alerts) == 3
@@ -259,14 +233,12 @@ async def test_alert_severity_levels(monitoring_agent):
 # THRESHOLD CHECKING TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_check_thresholds_no_alerts(monitoring_agent):
     """Test threshold checking with normal metrics (no alerts)"""
     # Collect metrics (should be normal)
-    await monitoring_agent.execute(
-        "Collect metrics",
-        {"operation": "collect_metrics"}
-    )
+    await monitoring_agent.execute("Collect metrics", {"operation": "collect_metrics"})
 
     # Should have no alerts (unless system is actually under stress)
     # This is a soft check since real system metrics vary
@@ -277,18 +249,14 @@ async def test_check_thresholds_no_alerts(monitoring_agent):
 async def test_check_thresholds_cpu_alert(monitoring_agent):
     """Test CPU threshold alert"""
     # Manually add high CPU metric
-    monitoring_agent.metrics["system_cpu_usage_percent"].append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "value": 95.0
-    })
+    monitoring_agent.metrics["system_cpu_usage_percent"].append(
+        {"timestamp": datetime.now(timezone.utc).isoformat(), "value": 95.0}
+    )
 
     await monitoring_agent._check_thresholds()
 
     # Should have CPU alert
-    cpu_alerts = [
-        a for a in monitoring_agent.alerts
-        if "CPU" in a["title"]
-    ]
+    cpu_alerts = [a for a in monitoring_agent.alerts if "CPU" in a["title"]]
     assert len(cpu_alerts) > 0
 
 
@@ -296,18 +264,14 @@ async def test_check_thresholds_cpu_alert(monitoring_agent):
 async def test_check_thresholds_memory_alert(monitoring_agent):
     """Test memory threshold alert"""
     # Manually add high memory metric
-    monitoring_agent.metrics["system_memory_usage_percent"].append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "value": 90.0
-    })
+    monitoring_agent.metrics["system_memory_usage_percent"].append(
+        {"timestamp": datetime.now(timezone.utc).isoformat(), "value": 90.0}
+    )
 
     await monitoring_agent._check_thresholds()
 
     # Should have memory alert
-    memory_alerts = [
-        a for a in monitoring_agent.alerts
-        if "Memory" in a["title"]
-    ]
+    memory_alerts = [a for a in monitoring_agent.alerts if "Memory" in a["title"]]
     assert len(memory_alerts) > 0
 
 
@@ -315,18 +279,14 @@ async def test_check_thresholds_memory_alert(monitoring_agent):
 async def test_check_thresholds_disk_alert(monitoring_agent):
     """Test disk threshold alert"""
     # Manually add high disk metric
-    monitoring_agent.metrics["system_disk_usage_percent"].append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "value": 95.0
-    })
+    monitoring_agent.metrics["system_disk_usage_percent"].append(
+        {"timestamp": datetime.now(timezone.utc).isoformat(), "value": 95.0}
+    )
 
     await monitoring_agent._check_thresholds()
 
     # Should have disk alert (critical)
-    disk_alerts = [
-        a for a in monitoring_agent.alerts
-        if "Disk" in a["title"]
-    ]
+    disk_alerts = [a for a in monitoring_agent.alerts if "Disk" in a["title"]]
     assert len(disk_alerts) > 0
     assert disk_alerts[0]["severity"] == AlertSeverity.CRITICAL.value
 
@@ -335,18 +295,14 @@ async def test_check_thresholds_disk_alert(monitoring_agent):
 async def test_check_thresholds_api_alert(monitoring_agent):
     """Test API response time threshold alert"""
     # Manually add slow API metric
-    monitoring_agent.metrics["api_response_time_avg_ms"].append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "value": 3000.0  # 3 seconds
-    })
+    monitoring_agent.metrics["api_response_time_avg_ms"].append(
+        {"timestamp": datetime.now(timezone.utc).isoformat(), "value": 3000.0}  # 3 seconds
+    )
 
     await monitoring_agent._check_thresholds()
 
     # Should have API alert
-    api_alerts = [
-        a for a in monitoring_agent.alerts
-        if "API" in a["title"]
-    ]
+    api_alerts = [a for a in monitoring_agent.alerts if "API" in a["title"]]
     assert len(api_alerts) > 0
 
 
@@ -354,18 +310,14 @@ async def test_check_thresholds_api_alert(monitoring_agent):
 async def test_check_thresholds_agent_response_alert(monitoring_agent):
     """Test agent response time threshold alert"""
     # Manually add slow agent metric
-    monitoring_agent.metrics["agent_classifier_response_time_ms"].append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "value": 6000.0  # 6 seconds
-    })
+    monitoring_agent.metrics["agent_classifier_response_time_ms"].append(
+        {"timestamp": datetime.now(timezone.utc).isoformat(), "value": 6000.0}  # 6 seconds
+    )
 
     await monitoring_agent._check_thresholds()
 
     # Should have agent response alert
-    agent_alerts = [
-        a for a in monitoring_agent.alerts
-        if "Slow Agent Response" in a["title"]
-    ]
+    agent_alerts = [a for a in monitoring_agent.alerts if "Slow Agent Response" in a["title"]]
     assert len(agent_alerts) > 0
 
 
@@ -373,18 +325,14 @@ async def test_check_thresholds_agent_response_alert(monitoring_agent):
 async def test_check_thresholds_error_rate_alert(monitoring_agent):
     """Test error rate threshold alert"""
     # Manually add high error rate metric
-    monitoring_agent.metrics["agent_resolver_error_rate"].append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "value": 15.0  # 15% error rate
-    })
+    monitoring_agent.metrics["agent_resolver_error_rate"].append(
+        {"timestamp": datetime.now(timezone.utc).isoformat(), "value": 15.0}  # 15% error rate
+    )
 
     await monitoring_agent._check_thresholds()
 
     # Should have error rate alert (critical)
-    error_alerts = [
-        a for a in monitoring_agent.alerts
-        if "Error Rate" in a["title"]
-    ]
+    error_alerts = [a for a in monitoring_agent.alerts if "Error Rate" in a["title"]]
     assert len(error_alerts) > 0
     assert error_alerts[0]["severity"] == AlertSeverity.CRITICAL.value
 
@@ -393,13 +341,11 @@ async def test_check_thresholds_error_rate_alert(monitoring_agent):
 # ALERT RETRIEVAL TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_get_alerts_empty(monitoring_agent):
     """Test getting alerts when none exist"""
-    result = await monitoring_agent.execute(
-        "Get alerts",
-        {"operation": "get_alerts"}
-    )
+    result = await monitoring_agent.execute("Get alerts", {"operation": "get_alerts"})
 
     assert result["status"] == "success"
     assert result["total_alerts"] == 0
@@ -410,21 +356,10 @@ async def test_get_alerts_empty(monitoring_agent):
 async def test_get_alerts_with_alerts(monitoring_agent):
     """Test getting alerts when they exist"""
     # Create some alerts
-    await monitoring_agent._create_alert(
-        "Test Alert 1",
-        "Message 1",
-        AlertSeverity.WARNING
-    )
-    await monitoring_agent._create_alert(
-        "Test Alert 2",
-        "Message 2",
-        AlertSeverity.CRITICAL
-    )
+    await monitoring_agent._create_alert("Test Alert 1", "Message 1", AlertSeverity.WARNING)
+    await monitoring_agent._create_alert("Test Alert 2", "Message 2", AlertSeverity.CRITICAL)
 
-    result = await monitoring_agent.execute(
-        "Get alerts",
-        {"operation": "get_alerts"}
-    )
+    result = await monitoring_agent.execute("Get alerts", {"operation": "get_alerts"})
 
     assert result["status"] == "success"
     assert result["total_alerts"] == 2
@@ -435,24 +370,15 @@ async def test_get_alerts_with_alerts(monitoring_agent):
 async def test_get_alerts_acknowledged_filtered(monitoring_agent):
     """Test that acknowledged alerts are filtered out"""
     # Create alerts
+    await monitoring_agent._create_alert("Active Alert", "Still active", AlertSeverity.WARNING)
     await monitoring_agent._create_alert(
-        "Active Alert",
-        "Still active",
-        AlertSeverity.WARNING
-    )
-    await monitoring_agent._create_alert(
-        "Acknowledged Alert",
-        "Already handled",
-        AlertSeverity.INFO
+        "Acknowledged Alert", "Already handled", AlertSeverity.INFO
     )
 
     # Acknowledge one alert
     monitoring_agent.alerts[1]["acknowledged"] = True
 
-    result = await monitoring_agent.execute(
-        "Get alerts",
-        {"operation": "get_alerts"}
-    )
+    result = await monitoring_agent.execute("Get alerts", {"operation": "get_alerts"})
 
     assert result["status"] == "success"
     assert result["total_alerts"] == 1  # Only unacknowledged
@@ -463,13 +389,11 @@ async def test_get_alerts_acknowledged_filtered(monitoring_agent):
 # HEALTH CHECK TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_check_health(monitoring_agent):
     """Test health check operation"""
-    result = await monitoring_agent.execute(
-        "Check health",
-        {"operation": "check_health"}
-    )
+    result = await monitoring_agent.execute("Check health", {"operation": "check_health"})
 
     assert result["status"] == "success"
     assert "health" in result
@@ -481,10 +405,7 @@ async def test_check_health(monitoring_agent):
 @pytest.mark.asyncio
 async def test_health_check_services(monitoring_agent):
     """Test health check includes all services"""
-    result = await monitoring_agent.execute(
-        "Check health",
-        {"operation": "check_health"}
-    )
+    result = await monitoring_agent.execute("Check health", {"operation": "check_health"})
 
     services = result["health"]["services"]
     assert "postgresql" in services
@@ -511,13 +432,11 @@ async def test_health_check_endpoint(monitoring_agent):
 # PROMETHEUS EXPORT TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_export_prometheus_empty(monitoring_agent):
     """Test Prometheus export with no metrics"""
-    result = await monitoring_agent.execute(
-        "Export Prometheus",
-        {"operation": "export_prometheus"}
-    )
+    result = await monitoring_agent.execute("Export Prometheus", {"operation": "export_prometheus"})
 
     assert result["status"] == "success"
     assert result["format"] == "prometheus"
@@ -529,16 +448,10 @@ async def test_export_prometheus_empty(monitoring_agent):
 async def test_export_prometheus_with_metrics(monitoring_agent):
     """Test Prometheus export with collected metrics"""
     # Collect metrics first
-    await monitoring_agent.execute(
-        "Collect metrics",
-        {"operation": "collect_metrics"}
-    )
+    await monitoring_agent.execute("Collect metrics", {"operation": "collect_metrics"})
 
     # Export to Prometheus
-    result = await monitoring_agent.execute(
-        "Export Prometheus",
-        {"operation": "export_prometheus"}
-    )
+    result = await monitoring_agent.execute("Export Prometheus", {"operation": "export_prometheus"})
 
     assert result["status"] == "success"
     assert result["format"] == "prometheus"
@@ -558,6 +471,7 @@ async def test_export_prometheus_with_metrics(monitoring_agent):
 # DASHBOARD DATA TESTS
 # ============================================================================
 
+
 def test_get_dashboard_data_empty(monitoring_agent):
     """Test dashboard data with no metrics"""
     data = monitoring_agent.get_dashboard_data()
@@ -574,10 +488,7 @@ def test_get_dashboard_data_empty(monitoring_agent):
 async def test_get_dashboard_data_with_metrics(monitoring_agent):
     """Test dashboard data with collected metrics"""
     # Collect metrics
-    await monitoring_agent.execute(
-        "Collect metrics",
-        {"operation": "collect_metrics"}
-    )
+    await monitoring_agent.execute("Collect metrics", {"operation": "collect_metrics"})
 
     data = monitoring_agent.get_dashboard_data()
 
@@ -590,11 +501,7 @@ async def test_get_dashboard_data_with_metrics(monitoring_agent):
 async def test_get_dashboard_data_with_alerts(monitoring_agent):
     """Test dashboard data with alerts"""
     # Create an alert
-    await monitoring_agent._create_alert(
-        "Test Alert",
-        "Test message",
-        AlertSeverity.WARNING
-    )
+    await monitoring_agent._create_alert("Test Alert", "Test message", AlertSeverity.WARNING)
 
     data = monitoring_agent.get_dashboard_data()
 
@@ -606,12 +513,12 @@ async def test_get_dashboard_data_with_alerts(monitoring_agent):
 # OPERATION ERROR HANDLING TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_invalid_operation(monitoring_agent):
     """Test handling of invalid operation"""
     result = await monitoring_agent.execute(
-        "Invalid operation",
-        {"operation": "nonexistent_operation"}
+        "Invalid operation", {"operation": "nonexistent_operation"}
     )
 
     assert result["status"] == "error"
@@ -621,10 +528,7 @@ async def test_invalid_operation(monitoring_agent):
 @pytest.mark.asyncio
 async def test_missing_operation(monitoring_agent):
     """Test handling of missing operation"""
-    result = await monitoring_agent.execute(
-        "Missing operation",
-        {}
-    )
+    result = await monitoring_agent.execute("Missing operation", {})
 
     assert result["status"] == "error"
     assert "Unknown operation" in result["error"]
@@ -634,15 +538,15 @@ async def test_missing_operation(monitoring_agent):
 # METRICS STORAGE TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_metrics_storage_limit(monitoring_agent):
     """Test metrics storage respects maxlen limit"""
     # Add 1500 metrics (exceeds maxlen of 1440)
     for i in range(1500):
-        monitoring_agent.metrics["test_metric"].append({
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "value": float(i)
-        })
+        monitoring_agent.metrics["test_metric"].append(
+            {"timestamp": datetime.now(timezone.utc).isoformat(), "value": float(i)}
+        )
 
     # Should only have 1440 entries (24 hours @ 1 min)
     assert len(monitoring_agent.metrics["test_metric"]) == 1440
@@ -656,10 +560,7 @@ async def test_multiple_metric_collections(monitoring_agent):
     """Test multiple metric collection cycles"""
     # Collect metrics 3 times
     for _ in range(3):
-        result = await monitoring_agent.execute(
-            "Collect metrics",
-            {"operation": "collect_metrics"}
-        )
+        result = await monitoring_agent.execute("Collect metrics", {"operation": "collect_metrics"})
         assert result["status"] == "success"
 
     # Each metric should have 3 data points
@@ -671,35 +572,28 @@ async def test_multiple_metric_collections(monitoring_agent):
 # INTEGRATION TESTS
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_full_monitoring_cycle(monitoring_agent):
     """Test complete monitoring workflow"""
     # 1. Collect metrics
     collect_result = await monitoring_agent.execute(
-        "Collect metrics",
-        {"operation": "collect_metrics"}
+        "Collect metrics", {"operation": "collect_metrics"}
     )
     assert collect_result["status"] == "success"
 
     # 2. Get metrics summary
-    metrics_result = await monitoring_agent.execute(
-        "Get metrics",
-        {"operation": "get_metrics"}
-    )
+    metrics_result = await monitoring_agent.execute("Get metrics", {"operation": "get_metrics"})
     assert metrics_result["status"] == "success"
     assert metrics_result["total_metrics"] > 0
 
     # 3. Check health
-    health_result = await monitoring_agent.execute(
-        "Check health",
-        {"operation": "check_health"}
-    )
+    health_result = await monitoring_agent.execute("Check health", {"operation": "check_health"})
     assert health_result["status"] == "success"
 
     # 4. Export to Prometheus
     prom_result = await monitoring_agent.execute(
-        "Export Prometheus",
-        {"operation": "export_prometheus"}
+        "Export Prometheus", {"operation": "export_prometheus"}
     )
     assert prom_result["status"] == "success"
     assert len(prom_result["metrics"]) > 0
@@ -713,23 +607,18 @@ async def test_full_monitoring_cycle(monitoring_agent):
 async def test_alert_workflow(monitoring_agent):
     """Test complete alert workflow"""
     # 1. Trigger alerts by setting high metrics
-    monitoring_agent.metrics["system_cpu_usage_percent"].append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "value": 95.0
-    })
-    monitoring_agent.metrics["system_memory_usage_percent"].append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "value": 90.0
-    })
+    monitoring_agent.metrics["system_cpu_usage_percent"].append(
+        {"timestamp": datetime.now(timezone.utc).isoformat(), "value": 95.0}
+    )
+    monitoring_agent.metrics["system_memory_usage_percent"].append(
+        {"timestamp": datetime.now(timezone.utc).isoformat(), "value": 90.0}
+    )
 
     # 2. Check thresholds
     await monitoring_agent._check_thresholds()
 
     # 3. Get alerts
-    alerts_result = await monitoring_agent.execute(
-        "Get alerts",
-        {"operation": "get_alerts"}
-    )
+    alerts_result = await monitoring_agent.execute("Get alerts", {"operation": "get_alerts"})
     assert alerts_result["total_alerts"] >= 2
 
     # 4. Check dashboard shows degraded health

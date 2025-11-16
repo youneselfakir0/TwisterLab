@@ -23,8 +23,7 @@ from agents.base import TwisterAgent
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("backup_agent")
 
@@ -36,6 +35,7 @@ logger = logging.getLogger("backup_agent")
 
 class BackupType:
     """Backup type constants"""
+
     FULL = "full"
     INCREMENTAL = "incremental"
     ON_DEMAND = "on_demand"
@@ -43,6 +43,7 @@ class BackupType:
 
 class BackupStatus:
     """Backup operation status constants"""
+
     SUCCESS = "success"
     FAILED = "failed"
     IN_PROGRESS = "in_progress"
@@ -58,14 +59,14 @@ class BackupStatus:
 class BackupAgent(TwisterAgent):
     """
     Agent for automated backup and disaster recovery.
-    
+
     Features:
     - Automated scheduled backups (full/incremental)
     - Backup integrity verification with checksums
     - Retention policy management
     - Point-in-time recovery support
     - Disaster recovery capabilities
-    
+
     Backup Schedule:
     - Full backup: Daily at 00:00 UTC
     - Incremental backup: Every 6 hours
@@ -79,7 +80,7 @@ class BackupAgent(TwisterAgent):
             description="Automated backup and disaster recovery for TwisterLab data",
             model="llama-3.2",
             temperature=0.1,
-            tools=self._define_tools()
+            tools=self._define_tools(),
         )
 
         # Backup configuration
@@ -98,7 +99,7 @@ class BackupAgent(TwisterAgent):
             "successful_backups": 0,
             "failed_backups": 0,
             "last_backup": None,
-            "total_size_bytes": 0
+            "total_size_bytes": 0,
         }
 
         # In-memory backup history
@@ -120,23 +121,20 @@ class BackupAgent(TwisterAgent):
                             "backup_type": {
                                 "type": "string",
                                 "enum": ["full", "incremental", "on_demand"],
-                                "description": "Type of backup to create"
+                                "description": "Type of backup to create",
                             }
                         },
-                        "required": ["backup_type"]
-                    }
-                }
+                        "required": ["backup_type"],
+                    },
+                },
             },
             {
                 "type": "function",
                 "function": {
                     "name": "list_backups",
                     "description": "List all available backups",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
+                    "parameters": {"type": "object", "properties": {}},
+                },
             },
             {
                 "type": "function",
@@ -146,14 +144,11 @@ class BackupAgent(TwisterAgent):
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "backup_id": {
-                                "type": "string",
-                                "description": "Backup ID to verify"
-                            }
+                            "backup_id": {"type": "string", "description": "Backup ID to verify"}
                         },
-                        "required": ["backup_id"]
-                    }
-                }
+                        "required": ["backup_id"],
+                    },
+                },
             },
             {
                 "type": "function",
@@ -163,40 +158,30 @@ class BackupAgent(TwisterAgent):
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "backup_id": {
-                                "type": "string",
-                                "description": "Backup ID to restore"
-                            }
+                            "backup_id": {"type": "string", "description": "Backup ID to restore"}
                         },
-                        "required": ["backup_id"]
-                    }
-                }
+                        "required": ["backup_id"],
+                    },
+                },
             },
             {
                 "type": "function",
                 "function": {
                     "name": "apply_retention",
                     "description": "Apply retention policy and cleanup old backups",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {}
-                    }
-                }
-            }
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            },
         ]
 
-    async def execute(
-        self,
-        task: str,
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Execute backup operation.
-        
+
         Args:
             task: Task description
             context: Operation context with parameters
-            
+
         Returns:
             Operation result
         """
@@ -221,10 +206,7 @@ class BackupAgent(TwisterAgent):
             elif operation == "apply_retention":
                 result = await self._apply_retention()
             else:
-                result = {
-                    "status": BackupStatus.FAILED,
-                    "error": f"Unknown operation: {operation}"
-                }
+                result = {"status": BackupStatus.FAILED, "error": f"Unknown operation: {operation}"}
 
             return result
 
@@ -233,13 +215,13 @@ class BackupAgent(TwisterAgent):
             return {
                 "status": BackupStatus.FAILED,
                 "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
     async def _create_backup(self, backup_type: str) -> Dict[str, Any]:
         """
         Create a new backup.
-        
+
         Steps:
         1. Generate backup ID
         2. Backup PostgreSQL database
@@ -271,10 +253,7 @@ class BackupAgent(TwisterAgent):
 
             # Create archive
             logger.info("Creating compressed archive")
-            await self._create_archive(
-                backup_path,
-                [db_file, redis_file, config_file]
-            )
+            await self._create_archive(backup_path, [db_file, redis_file, config_file])
 
             # Calculate checksum
             checksum = await self._calculate_checksum(backup_path)
@@ -294,7 +273,7 @@ class BackupAgent(TwisterAgent):
                 "checksum": checksum,
                 "status": BackupStatus.SUCCESS,
                 "execution_time": execution_time,
-                "components": ["database", "redis", "config"]
+                "components": ["database", "redis", "config"],
             }
 
             await self._save_backup_metadata(metadata)
@@ -308,8 +287,7 @@ class BackupAgent(TwisterAgent):
             self.backup_history.append(metadata)
 
             logger.info(
-                f"Backup {backup_id} completed: "
-                f"{size_bytes} bytes, {execution_time:.2f}s"
+                f"Backup {backup_id} completed: " f"{size_bytes} bytes, {execution_time:.2f}s"
             )
 
             return {
@@ -319,16 +297,13 @@ class BackupAgent(TwisterAgent):
                 "size_bytes": size_bytes,
                 "checksum": checksum,
                 "execution_time": round(execution_time, 3),
-                "timestamp": start_time.isoformat()
+                "timestamp": start_time.isoformat(),
             }
 
         except Exception as e:
             logger.error(f"Error creating backup: {e}", exc_info=True)
             self.backup_stats["failed_backups"] += 1
-            return {
-                "status": BackupStatus.FAILED,
-                "error": str(e)
-            }
+            return {"status": BackupStatus.FAILED, "error": str(e)}
 
     async def _backup_database(self, backup_id: str) -> str:
         """Mock database backup (PostgreSQL)"""
@@ -375,7 +350,7 @@ class BackupAgent(TwisterAgent):
         mock_config = {
             "backup_id": backup_id,
             "config_files": [".env", "docker-compose.yml", "alembic.ini"],
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         config_file.write_text(json.dumps(mock_config, indent=2))
@@ -383,11 +358,7 @@ class BackupAgent(TwisterAgent):
         logger.debug(f"Config backup created: {config_file}")
         return str(config_file)
 
-    async def _create_archive(
-        self,
-        output_path: Path,
-        files_to_archive: List[str]
-    ):
+    async def _create_archive(self, output_path: Path, files_to_archive: List[str]):
         """Create compressed tar.gz archive"""
         with tarfile.open(output_path, "w:gz") as tar:
             for file_path in files_to_archive:
@@ -448,11 +419,7 @@ class BackupAgent(TwisterAgent):
             manifest_file = self.backup_dir / "metadata" / "backup_manifest.json"
 
             if not manifest_file.exists():
-                return {
-                    "status": "success",
-                    "backups": [],
-                    "total_backups": 0
-                }
+                return {"status": "success", "backups": [], "total_backups": 0}
 
             with open(manifest_file, "r") as f:
                 manifest = json.load(f)
@@ -463,24 +430,18 @@ class BackupAgent(TwisterAgent):
                 "status": "success",
                 "backups": backups,
                 "total_backups": len(backups),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
             logger.error(f"Error listing backups: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def _verify_backup(self, backup_id: str) -> Dict[str, Any]:
         """Verify backup integrity using checksum"""
         try:
             if not backup_id:
-                return {
-                    "status": "error",
-                    "error": "backup_id is required"
-                }
+                return {"status": "error", "error": "backup_id is required"}
 
             logger.info(f"Verifying backup: {backup_id}")
 
@@ -494,20 +455,14 @@ class BackupAgent(TwisterAgent):
                     break
 
             if not backup_metadata:
-                return {
-                    "status": "error",
-                    "error": f"Backup {backup_id} not found in manifest"
-                }
+                return {"status": "error", "error": f"Backup {backup_id} not found in manifest"}
 
             # Find backup file
             backup_type = backup_metadata["backup_type"]
             backup_path = self.backup_dir / backup_type / f"{backup_id}.tar.gz"
 
             if not backup_path.exists():
-                return {
-                    "status": "error",
-                    "error": f"Backup file not found: {backup_path}"
-                }
+                return {"status": "error", "error": f"Backup file not found: {backup_path}"}
 
             # Verify checksum
             stored_checksum = backup_metadata["checksum"]
@@ -519,7 +474,7 @@ class BackupAgent(TwisterAgent):
                     "status": BackupStatus.VERIFIED,
                     "backup_id": backup_id,
                     "checksum_match": True,
-                    "checksum": stored_checksum
+                    "checksum": stored_checksum,
                 }
             else:
                 logger.error(f"Backup {backup_id} is corrupted!")
@@ -528,24 +483,18 @@ class BackupAgent(TwisterAgent):
                     "backup_id": backup_id,
                     "checksum_match": False,
                     "stored_checksum": stored_checksum,
-                    "calculated_checksum": calculated_checksum
+                    "calculated_checksum": calculated_checksum,
                 }
 
         except Exception as e:
             logger.error(f"Error verifying backup: {e}", exc_info=True)
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def _restore_backup(self, backup_id: str) -> Dict[str, Any]:
         """Restore from backup (disaster recovery)"""
         try:
             if not backup_id:
-                return {
-                    "status": "error",
-                    "error": "backup_id is required"
-                }
+                return {"status": "error", "error": "backup_id is required"}
 
             logger.warning(f"Initiating restore from backup: {backup_id}")
 
@@ -555,7 +504,7 @@ class BackupAgent(TwisterAgent):
             if verify_result["status"] != BackupStatus.VERIFIED:
                 return {
                     "status": "error",
-                    "error": f"Cannot restore: {verify_result.get('error', 'Backup verification failed')}"
+                    "error": f"Cannot restore: {verify_result.get('error', 'Backup verification failed')}",
                 }
 
             # In production, this would:
@@ -571,15 +520,12 @@ class BackupAgent(TwisterAgent):
                 "status": "success",
                 "backup_id": backup_id,
                 "message": "Restore simulation (actual restore not performed in demo)",
-                "note": "In production: stop agents → restore DB → restore Redis → restore config → restart"
+                "note": "In production: stop agents → restore DB → restore Redis → restore config → restart",
             }
 
         except Exception as e:
             logger.error(f"Error restoring backup: {e}", exc_info=True)
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def _apply_retention(self) -> Dict[str, Any]:
         """Apply retention policy and delete old backups"""
@@ -591,21 +537,17 @@ class BackupAgent(TwisterAgent):
 
             # Calculate cutoff dates
             cutoffs = {
-                BackupType.FULL: datetime.now(timezone.utc) - timedelta(
-                    days=self.retention_policy[BackupType.FULL]
-                ),
-                BackupType.INCREMENTAL: datetime.now(timezone.utc) - timedelta(
-                    days=self.retention_policy[BackupType.INCREMENTAL]
-                )
+                BackupType.FULL: datetime.now(timezone.utc)
+                - timedelta(days=self.retention_policy[BackupType.FULL]),
+                BackupType.INCREMENTAL: datetime.now(timezone.utc)
+                - timedelta(days=self.retention_policy[BackupType.INCREMENTAL]),
             }
 
             # Get all backups
             backups_list = await self._list_backups()
 
             for backup in backups_list.get("backups", []):
-                backup_date = datetime.fromisoformat(
-                    backup["timestamp"].replace("Z", "+00:00")
-                )
+                backup_date = datetime.fromisoformat(backup["timestamp"].replace("Z", "+00:00"))
                 backup_type = backup["backup_type"]
                 backup_id = backup["backup_id"]
 
@@ -627,22 +569,16 @@ class BackupAgent(TwisterAgent):
                 "deleted_count": deleted_count,
                 "deleted_backups": deleted_backups,
                 "retention_policy": self.retention_policy,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
             logger.error(f"Error applying retention: {e}", exc_info=True)
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     def get_backup_stats(self) -> Dict[str, Any]:
         """Get backup statistics"""
-        return {
-            **self.backup_stats,
-            "retention_policy": self.retention_policy
-        }
+        return {**self.backup_stats, "retention_policy": self.retention_policy}
 
     def health_check(self) -> Dict[str, Any]:
         """Agent health check"""
@@ -651,7 +587,7 @@ class BackupAgent(TwisterAgent):
             "agent": self.name,
             "backup_dir": str(self.backup_dir),
             "backup_stats": self.backup_stats,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
@@ -660,14 +596,14 @@ class BackupAgent(TwisterAgent):
 # ============================================================================
 
 if __name__ == "__main__":
+
     async def main():
         backup_agent = BackupAgent(backup_dir="test_backups")
 
         # Test full backup
         print("\n=== Creating Full Backup ===")
         result = await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.FULL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
         )
         print(json.dumps(result, indent=2))
 
@@ -677,17 +613,13 @@ if __name__ == "__main__":
         if backup_id:
             print("\n=== Verifying Backup ===")
             verify_result = await backup_agent.execute(
-                "Verify backup",
-                {"operation": "verify_backup", "backup_id": backup_id}
+                "Verify backup", {"operation": "verify_backup", "backup_id": backup_id}
             )
             print(json.dumps(verify_result, indent=2))
 
         # Test listing backups
         print("\n=== Listing Backups ===")
-        list_result = await backup_agent.execute(
-            "List backups",
-            {"operation": "list_backups"}
-        )
+        list_result = await backup_agent.execute("List backups", {"operation": "list_backups"})
         print(json.dumps(list_result, indent=2))
 
         # Test statistics

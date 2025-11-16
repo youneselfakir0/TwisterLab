@@ -25,9 +25,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 LDAP_SERVER = os.getenv("LDAP_SERVER", "ldap://192.168.0.10:389")
 LDAP_BASE_DN = os.getenv("LDAP_BASE_DN", "DC=twisterlab,DC=local")
 LDAP_USER_DN = os.getenv("LDAP_USER_DN", "CN=Users,DC=twisterlab,DC=local")
-LDAP_BIND_USER = os.getenv(
-    "LDAP_BIND_USER", "CN=twisterlab,CN=Users,DC=twisterlab,DC=local"
-)
+LDAP_BIND_USER = os.getenv("LDAP_BIND_USER", "CN=twisterlab,CN=Users,DC=twisterlab,DC=local")
 LDAP_BIND_PASSWORD = os.getenv("LDAP_BIND_PASSWORD", "")
 
 # Password hashing
@@ -51,9 +49,7 @@ class SSOAuthManager:
         self.ldap_server = Server(LDAP_SERVER, get_info=ALL)
         self.sessions = {}  # In-memory session store (use Redis in production)
 
-    def authenticate_ldap(
-        self, username: str, password: str
-    ) -> Optional[Dict[str, Any]]:
+    def authenticate_ldap(self, username: str, password: str) -> Optional[Dict[str, Any]]:
         """
         Authenticate user against LDAP/Active Directory
 
@@ -94,15 +90,11 @@ class SSOAuthManager:
             user_info = {
                 "username": str(entry.cn),
                 "email": str(entry.mail) if hasattr(entry, "mail") else None,
-                "display_name": str(entry.displayName)
-                if hasattr(entry, "displayName")
-                else username,
-                "groups": [str(g) for g in entry.memberOf]
-                if hasattr(entry, "memberOf")
-                else [],
-                "roles": self._extract_roles(
-                    entry.memberOf if hasattr(entry, "memberOf") else []
+                "display_name": (
+                    str(entry.displayName) if hasattr(entry, "displayName") else username
                 ),
+                "groups": [str(g) for g in entry.memberOf] if hasattr(entry, "memberOf") else [],
+                "roles": self._extract_roles(entry.memberOf if hasattr(entry, "memberOf") else []),
             }
 
             conn.unbind()

@@ -127,9 +127,7 @@ class SyncAgent(BaseAgent):
 
         return results
 
-    async def _perform_consistency_check(
-        self, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _perform_consistency_check(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Check system consistency and detect drift."""
         check_type = context.get("check_type", "full")
         inconsistencies = []
@@ -172,9 +170,7 @@ class SyncAgent(BaseAgent):
 
         return results
 
-    async def _perform_performance_check(
-        self, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _perform_performance_check(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Check system performance and identify bottlenecks."""
         performance_metrics = {}
 
@@ -264,9 +260,9 @@ class SyncAgent(BaseAgent):
                     inconsistencies.append(
                         {
                             "type": "cache_db_drift",
-                            "severity": "medium"
-                            if inconsistency.get("drift_seconds", 0) < 300
-                            else "high",
+                            "severity": (
+                                "medium" if inconsistency.get("drift_seconds", 0) < 300 else "high"
+                            ),
                             "description": f"Cache-DB inconsistency: {inconsistency.get('key', 'unknown')}",
                             "details": inconsistency,
                         }
@@ -433,9 +429,7 @@ class SyncAgent(BaseAgent):
         except Exception as e:
             return {"status": "failed", "error": str(e)}
 
-    def _identify_bottlenecks(
-        self, performance_metrics: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+    def _identify_bottlenecks(self, performance_metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Identify performance bottlenecks."""
         bottlenecks = []
 
@@ -514,6 +508,4 @@ class SyncAgent(BaseAgent):
         ]
         operation = context.get("operation")
         if operation and operation not in valid_operations:
-            raise ValueError(
-                f"Invalid operation: {operation}. Must be one of {valid_operations}"
-            )
+            raise ValueError(f"Invalid operation: {operation}. Must be one of {valid_operations}")

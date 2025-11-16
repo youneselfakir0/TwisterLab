@@ -8,9 +8,7 @@ import sys
 def run_cmd(cmd):
     """Exécute une commande et retourne le résultat"""
     try:
-        result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=10
-        )
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
         return result.stdout.strip(), result.returncode
     except Exception as e:
         return f"ERROR: {e}", 1
@@ -64,9 +62,7 @@ def test_services_on_edgeserver():
         )
 
         if code == 0 and output:
-            node, state = (
-                output.split("|")[0:2] if "|" in output else (output, "unknown")
-            )
+            node, state = output.split("|")[0:2] if "|" in output else (output, "unknown")
             results[service] = {
                 "node": node,
                 "state": state,
@@ -98,9 +94,7 @@ def test_services_on_edgeserver():
 
         print(f"{status} {short_name:20} → {info['node']:30} [{info['state'][:20]}]")
 
-    running_on_edge = sum(
-        1 for i in results.values() if i["on_edgeserver"] and i["running"]
-    )
+    running_on_edge = sum(1 for i in results.values() if i["on_edgeserver"] and i["running"])
     return running_on_edge >= 2
 
 
@@ -119,9 +113,7 @@ def test_service_ports():
     # Récupérer les services avec ports
     output, code = run_cmd("docker service ls --format '{{.Name}}|{{.Ports}}'")
     if code == 0:
-        service_ports = dict(
-            line.split("|") for line in output.split("\n") if "|" in line
-        )
+        service_ports = dict(line.split("|") for line in output.split("\n") if "|" in line)
 
         for desc, endpoint in ports_to_check.items():
             # Extraire le port de l'endpoint

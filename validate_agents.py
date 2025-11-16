@@ -101,9 +101,7 @@ async def validate_agents():
             print("✓ MonitoringAgent executed successfully")
             print(f"  CPU: {result.get('data', {}).get('cpu_percent', 'N/A')}%")
             print(f"  Memory: {result.get('data', {}).get('memory_percent', 'N/A')}%")
-            print(
-                f"  Disk: {result.get('data', {}).get('disk_usage', {}).get('percent', 'N/A')}%"
-            )
+            print(f"  Disk: {result.get('data', {}).get('disk_usage', {}).get('percent', 'N/A')}%")
         else:
             print(f"✗ MonitoringAgent execution failed: {result.get('error')}")
             return False

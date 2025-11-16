@@ -21,12 +21,8 @@ tickets_db: dict[str, dict] = {}
 class TicketCreate(BaseModel):
     """Request model for creating a new ticket."""
 
-    subject: str = Field(
-        ..., min_length=1, max_length=200, description="Ticket subject"
-    )
-    description: str = Field(
-        ..., min_length=1, max_length=2000, description="Ticket description"
-    )
+    subject: str = Field(..., min_length=1, max_length=200, description="Ticket subject")
+    description: str = Field(..., min_length=1, max_length=2000, description="Ticket description")
     priority: str = Field(
         "medium", pattern="^(low|medium|high|urgent)$", description="Ticket priority"
     )
@@ -45,9 +41,7 @@ class TicketUpdate(BaseModel):
     description: Optional[str] = Field(None, min_length=1, max_length=2000)
     priority: Optional[str] = Field(None, pattern="^(low|medium|high|urgent)$")
     category: Optional[str] = Field(None)
-    status: Optional[str] = Field(
-        None, pattern="^(new|classified|assigned|resolved|closed)$"
-    )
+    status: Optional[str] = Field(None, pattern="^(new|classified|assigned|resolved|closed)$")
 
 
 class TicketResponse(BaseModel):
@@ -111,9 +105,7 @@ async def create_ticket(ticket: TicketCreate) -> TicketResponse:
 
 @router.get("/", response_model=List[TicketResponse])
 async def list_tickets(
-    status: Optional[str] = Query(
-        None, pattern="^(new|classified|assigned|resolved|closed)$"
-    ),
+    status: Optional[str] = Query(None, pattern="^(new|classified|assigned|resolved|closed)$"),
     priority: Optional[str] = Query(None, pattern="^(low|medium|high|urgent)$"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -212,9 +204,7 @@ async def resolve_ticket(
     ticket = tickets_db[ticket_id].copy()
 
     if ticket["status"] not in ["assigned", "new"]:
-        raise HTTPException(
-            status_code=400, detail="Ticket must be assigned or new to be resolved"
-        )
+        raise HTTPException(status_code=400, detail="Ticket must be assigned or new to be resolved")
 
     ticket["status"] = "resolved"
     ticket["resolution"] = resolution
@@ -238,9 +228,7 @@ async def close_ticket(ticket_id: str) -> TicketResponse:
     ticket = tickets_db[ticket_id].copy()
 
     if ticket["status"] != "resolved":
-        raise HTTPException(
-            status_code=400, detail="Only resolved tickets can be closed"
-        )
+        raise HTTPException(status_code=400, detail="Only resolved tickets can be closed")
 
     ticket["status"] = "closed"
     ticket["updated_at"] = datetime.now(timezone.utc)

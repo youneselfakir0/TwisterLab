@@ -3,9 +3,11 @@
 Test individual router imports
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
+
 
 def test_router_import(router_name, import_path):
     """Test importing a specific router"""
@@ -17,8 +19,10 @@ def test_router_import(router_name, import_path):
     except Exception as e:
         print(f"    ❌ {router_name} import failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def main():
     """Test all routers"""
@@ -40,6 +44,7 @@ def main():
         print("\n✅ All routers imported successfully")
     else:
         print("\n❌ Some routers failed to import")
+
 
 if __name__ == "__main__":
     main()

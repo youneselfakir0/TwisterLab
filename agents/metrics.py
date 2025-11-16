@@ -40,9 +40,7 @@ tickets_failed_total = Counter(
     ["agent_name", "reason"],
 )
 
-agents_active = Gauge(
-    "agents_active", "Number of currently active agents", ["agent_name"]
-)
+agents_active = Gauge("agents_active", "Number of currently active agents", ["agent_name"])
 
 # ============================================================================
 # OLLAMA LLM METRICS
@@ -237,17 +235,11 @@ ollama_health = Gauge("ollama_health_status", "Ollama service health (1=up, 0=do
 
 gpu_utilization = Gauge("nvidia_gpu_utilization", "GPU utilization percentage", ["gpu"])
 
-gpu_memory_used = Gauge(
-    "nvidia_gpu_memory_used_bytes", "GPU memory used in bytes", ["gpu"]
-)
+gpu_memory_used = Gauge("nvidia_gpu_memory_used_bytes", "GPU memory used in bytes", ["gpu"])
 
-gpu_memory_total = Gauge(
-    "nvidia_gpu_memory_total_bytes", "GPU total memory in bytes", ["gpu"]
-)
+gpu_memory_total = Gauge("nvidia_gpu_memory_total_bytes", "GPU total memory in bytes", ["gpu"])
 
-gpu_temperature = Gauge(
-    "nvidia_gpu_temperature_celsius", "GPU temperature in Celsius", ["gpu"]
-)
+gpu_temperature = Gauge("nvidia_gpu_temperature_celsius", "GPU temperature in Celsius", ["gpu"])
 
 # ============================================================================
 # OLLAMA LLM METRICS (High Availability & Failover)
@@ -264,9 +256,7 @@ ticket_processing_duration = Histogram(
     buckets=[1.0, 5.0, 10.0, 15.0, 30.0, 60.0, 120.0],
 )
 
-ticket_success = Counter(
-    "ticket_success_total", "Number of successfully processed tickets"
-)
+ticket_success = Counter("ticket_success_total", "Number of successfully processed tickets")
 
 ticket_failure = Counter(
     "ticket_failure_total", "Number of failed ticket processing", ["failure_reason"]
@@ -296,9 +286,7 @@ llm_model_info.info(
 # ============================================================================
 
 
-def record_classifier_llm(
-    duration: float, category: str, confidence: float, tokens: int
-):
+def record_classifier_llm(duration: float, category: str, confidence: float, tokens: int):
     """Record ClassifierAgent LLM metrics."""
     classifier_llm_duration.observe(duration)
     classifier_llm_success.inc()
@@ -315,9 +303,7 @@ def record_classifier_fallback(duration: float, category: str, confidence: float
     classifier_category_count.labels(category=category).inc()
 
 
-def record_resolver_llm(
-    duration: float, steps_count: int, tokens: int, avg_step_length: float
-):
+def record_resolver_llm(duration: float, steps_count: int, tokens: int, avg_step_length: float):
     """Record ResolverAgent LLM metrics."""
     resolver_llm_duration.observe(duration)
     resolver_llm_success.inc()
@@ -365,9 +351,7 @@ def record_ollama_health(is_up: bool):
     ollama_health.set(1 if is_up else 0)
 
 
-def record_ticket_processing(
-    duration: float, success: bool, failure_reason: str = None
-):
+def record_ticket_processing(duration: float, success: bool, failure_reason: str = None):
     """Record end-to-end ticket processing."""
     ticket_processing_duration.observe(duration)
     if success:

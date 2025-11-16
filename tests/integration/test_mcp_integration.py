@@ -4,11 +4,13 @@ Tests du workflow complet: Registration → Command Execution → Monitoring
 """
 
 import asyncio
+
 import pytest
+
 from agents.mcp.desktop_commander_server import (
+    CommandStatus,
     DesktopCommanderMCPServer,
     DeviceStatus,
-    CommandStatus
 )
 
 
@@ -25,15 +27,8 @@ def sample_client_info():
         "device_id": "CLIENT-TEST-001",
         "hostname": "DESKTOP-TEST01",
         "ip_address": "192.168.1.100",
-        "os_info": {
-            "name": "Windows 11 Pro",
-            "version": "10.0.22621",
-            "build": "22621"
-        },
-        "metadata": {
-            "department": "IT",
-            "location": "Building A"
-        }
+        "os_info": {"name": "Windows 11 Pro", "version": "10.0.22621", "build": "22621"},
+        "metadata": {"department": "IT", "location": "Building A"},
     }
 
 
@@ -70,10 +65,7 @@ async def test_execute_allowed_command(mcp_server, sample_client_info):
     await mcp_server.register_client(**sample_client_info)
 
     # Exécuter une commande autorisée
-    result = await mcp_server.execute_command(
-        device_id="CLIENT-TEST-001",
-        command="systeminfo"
-    )
+    result = await mcp_server.execute_command(device_id="CLIENT-TEST-001", command="systeminfo")
 
     assert result["status"] == "success"
     assert result["device_id"] == "CLIENT-TEST-001"
@@ -89,8 +81,7 @@ async def test_execute_denied_command(mcp_server, sample_client_info):
 
     # Tenter d'exécuter une commande dangereuse
     result = await mcp_server.execute_command(
-        device_id="CLIENT-TEST-001",
-        command="del C:\\Windows"  # Commande interdite
+        device_id="CLIENT-TEST-001", command="del C:\\Windows"  # Commande interdite
     )
 
     assert result["status"] == CommandStatus.DENIED.value
@@ -101,10 +92,7 @@ async def test_execute_denied_command(mcp_server, sample_client_info):
 @pytest.mark.asyncio
 async def test_execute_on_nonexistent_client(mcp_server):
     """Test l'exécution sur un client qui n'existe pas"""
-    result = await mcp_server.execute_command(
-        device_id="NONEXISTENT",
-        command="systeminfo"
-    )
+    result = await mcp_server.execute_command(device_id="NONEXISTENT", command="systeminfo")
 
     assert result["status"] == CommandStatus.FAILED.value
     assert "not connected" in result["error"]
@@ -223,7 +211,7 @@ async def test_complete_workflow():
         device_id="WORKFLOW-CLIENT",
         hostname="WORKFLOW-TEST",
         ip_address="10.0.0.100",
-        os_info={"name": "Windows 11", "version": "22H2"}
+        os_info={"name": "Windows 11", "version": "22H2"},
     )
     print(f"Registration: {reg_result['status']}")
     assert reg_result["status"] == "success"

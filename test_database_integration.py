@@ -10,8 +10,7 @@ from datetime import datetime
 
 # Configuration du logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -42,9 +41,9 @@ async def test_sop_operations() -> bool:
     logger.info("Testing SOP CRUD operations...")
 
     try:
+        from agents.api.models_sops import SOPCreate, SOPUpdate
         from agents.database.config import get_db
         from agents.database.services import SOPService
-        from agents.api.models_sops import SOPCreate, SOPUpdate
 
         async for session in get_db():
             service = SOPService(session)
@@ -59,9 +58,9 @@ async def test_sop_operations() -> bool:
                     "Verify user identity",
                     "Reset password in Active Directory",
                     "Send temporary password to user",
-                    "Instruct user to change password on next login"
+                    "Instruct user to change password on next login",
                 ],
-                applicable_issues=["password_reset", "account_locked", "login_issues"]
+                applicable_issues=["password_reset", "account_locked", "login_issues"],
             )
 
             # Test création
@@ -118,7 +117,7 @@ async def test_classifier_with_database() -> bool:
         context = {
             "ticket": {
                 "subject": "Password Reset Request",
-                "description": "I forgot my password and need to reset it. Please help me access my account."
+                "description": "I forgot my password and need to reset it. Please help me access my account.",
             }
         }
 
@@ -156,12 +155,8 @@ async def test_resolver_with_database() -> bool:
         # Test avec un ticket classifié
         context = {
             "ticket_id": "TEST-002",
-            "classification": {
-                "category": "password",
-                "priority": "high",
-                "complexity": "simple"
-            },
-            "requestor": "john.doe@company.com"
+            "classification": {"category": "password", "priority": "high", "complexity": "simple"},
+            "requestor": "john.doe@company.com",
         }
 
         result = await resolver.execute("Resolve password reset ticket", context)
@@ -193,7 +188,7 @@ async def test_maestro_with_database() -> bool:
             "ticket_id": "TEST-003",
             "subject": "Password Reset Request",
             "description": "I forgot my password and need to reset it. Please help me access my account.",
-            "requestor": "john.doe@company.com"
+            "requestor": "john.doe@company.com",
         }
 
         context = {"operation": "route_ticket", **ticket}
@@ -227,7 +222,7 @@ async def test_performance_metrics() -> bool:
                 "ticket_id": f"PERF-{i:03d}",
                 "subject": "Password Reset Request",
                 "description": "I forgot my password and need to reset it.",
-                "requestor": f"user{i}@company.com"
+                "requestor": f"user{i}@company.com",
             }
             for i in range(10)
         ]
@@ -301,7 +296,7 @@ async def run_database_tests() -> int:
         "resolver": False,
         "maestro": False,
         "performance": False,
-        "errors": []
+        "errors": [],
     }
 
     try:

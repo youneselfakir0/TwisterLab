@@ -7,15 +7,17 @@ Target: >90% success rate across all scenarios.
 
 import asyncio
 import json
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Dict, Any, List
-from dataclasses import dataclass, asdict
+from typing import Any, Dict, List
+
 import aiohttp
 
 
 @dataclass
 class UATScenario:
     """User acceptance test scenario"""
+
     id: int
     name: str
     description: str
@@ -29,6 +31,7 @@ class UATScenario:
 @dataclass
 class UATResult:
     """Results from UAT scenario execution"""
+
     scenario: UATScenario
     status: str  # "passed", "failed", "skipped"
     ticket_id: str
@@ -40,12 +43,12 @@ class UATResult:
 
 class UATTester:
     """User acceptance testing framework"""
-    
+
     def __init__(self, base_url: str = "http://localhost:8001"):
         self.base_url = base_url
         self.scenarios = self._define_scenarios()
         self.results: List[UATResult] = []
-    
+
     def _define_scenarios(self) -> List[UATScenario]:
         """Define real-world helpdesk scenarios"""
         return [
@@ -59,9 +62,9 @@ class UATTester:
                 expected_actions=[
                     "Check network connectivity",
                     "Verify email server settings",
-                    "Clear Outlook cache"
+                    "Clear Outlook cache",
                 ],
-                success_criteria="Outlook reconnected, emails syncing"
+                success_criteria="Outlook reconnected, emails syncing",
             ),
             UATScenario(
                 id=2,
@@ -73,9 +76,9 @@ class UATTester:
                 expected_actions=[
                     "Check WiFi adapter status",
                     "Forget and reconnect network",
-                    "Update WiFi drivers"
+                    "Update WiFi drivers",
                 ],
-                success_criteria="WiFi connected and stable"
+                success_criteria="WiFi connected and stable",
             ),
             UATScenario(
                 id=3,
@@ -87,9 +90,9 @@ class UATTester:
                 expected_actions=[
                     "Check printer power and network",
                     "Clear print queue",
-                    "Restart print spooler service"
+                    "Restart print spooler service",
                 ],
-                success_criteria="Printer online, queue cleared"
+                success_criteria="Printer online, queue cleared",
             ),
             UATScenario(
                 id=4,
@@ -101,9 +104,9 @@ class UATTester:
                 expected_actions=[
                     "Verify user identity",
                     "Reset AD password",
-                    "Send temporary password securely"
+                    "Send temporary password securely",
                 ],
-                success_criteria="User can login with new password"
+                success_criteria="User can login with new password",
             ),
             UATScenario(
                 id=5,
@@ -115,9 +118,9 @@ class UATTester:
                 expected_actions=[
                     "Check VPN client version",
                     "Verify credentials",
-                    "Reset VPN connection"
+                    "Reset VPN connection",
                 ],
-                success_criteria="VPN connected, can access resources"
+                success_criteria="VPN connected, can access resources",
             ),
             UATScenario(
                 id=6,
@@ -129,9 +132,9 @@ class UATTester:
                 expected_actions=[
                     "Verify license availability",
                     "Download Teams installer",
-                    "Install and configure Teams"
+                    "Install and configure Teams",
                 ],
-                success_criteria="Teams installed and working"
+                success_criteria="Teams installed and working",
             ),
             UATScenario(
                 id=7,
@@ -143,9 +146,9 @@ class UATTester:
                 expected_actions=[
                     "Check CPU and memory usage",
                     "Close unnecessary processes",
-                    "Run disk cleanup"
+                    "Run disk cleanup",
                 ],
-                success_criteria="Computer responsive, apps running smoothly"
+                success_criteria="Computer responsive, apps running smoothly",
             ),
             UATScenario(
                 id=8,
@@ -157,9 +160,9 @@ class UATTester:
                 expected_actions=[
                     "Verify user permissions",
                     "Check security group membership",
-                    "Grant appropriate access"
+                    "Grant appropriate access",
                 ],
-                success_criteria="User can read/write to file share"
+                success_criteria="User can read/write to file share",
             ),
             UATScenario(
                 id=9,
@@ -171,9 +174,9 @@ class UATTester:
                 expected_actions=[
                     "Analyze crash dump",
                     "Check hardware diagnostics",
-                    "Boot in safe mode, repair Windows"
+                    "Boot in safe mode, repair Windows",
                 ],
-                success_criteria="Windows boots normally"
+                success_criteria="Windows boots normally",
             ),
             UATScenario(
                 id=10,
@@ -185,9 +188,9 @@ class UATTester:
                 expected_actions=[
                     "Explain attachment policy",
                     "Suggest alternative (zip, cloud storage)",
-                    "Request exception if justified"
+                    "Request exception if justified",
                 ],
-                success_criteria="User understands policy, uses alternative"
+                success_criteria="User understands policy, uses alternative",
             ),
             UATScenario(
                 id=11,
@@ -199,9 +202,9 @@ class UATTester:
                 expected_actions=[
                     "Isolate infected machine",
                     "Run full antivirus scan",
-                    "Remove malware, verify clean"
+                    "Remove malware, verify clean",
                 ],
-                success_criteria="System clean, no malware detected"
+                success_criteria="System clean, no malware detected",
             ),
             UATScenario(
                 id=12,
@@ -213,55 +216,46 @@ class UATTester:
                 expected_actions=[
                     "Check Office license status",
                     "Re-activate with product key",
-                    "Verify activation successful"
+                    "Verify activation successful",
                 ],
-                success_criteria="Office fully activated and functional"
-            )
+                success_criteria="Office fully activated and functional",
+            ),
         ]
-    
-    async def create_ticket(
-        self,
-        session: aiohttp.ClientSession,
-        scenario: UATScenario
-    ) -> str:
+
+    async def create_ticket(self, session: aiohttp.ClientSession, scenario: UATScenario) -> str:
         """Create ticket for scenario"""
         ticket_data = {
             "subject": scenario.name,
             "description": scenario.description,
             "priority": scenario.priority,
-            "source": "uat_test"
+            "source": "uat_test",
         }
-        
+
         async with session.post(
             f"{self.base_url}/api/v1/tickets",
             json=ticket_data,
-            timeout=aiohttp.ClientTimeout(total=10)
+            timeout=aiohttp.ClientTimeout(total=10),
         ) as response:
             if response.status in [200, 201]:
                 data = await response.json()
                 return data.get("id", "")
             else:
                 raise Exception(f"Failed to create ticket: HTTP {response.status}")
-    
+
     async def get_ticket_status(
-        self,
-        session: aiohttp.ClientSession,
-        ticket_id: str
+        self, session: aiohttp.ClientSession, ticket_id: str
     ) -> Dict[str, Any]:
         """Get ticket classification and resolution status"""
         async with session.get(
-            f"{self.base_url}/api/v1/tickets/{ticket_id}",
-            timeout=aiohttp.ClientTimeout(total=10)
+            f"{self.base_url}/api/v1/tickets/{ticket_id}", timeout=aiohttp.ClientTimeout(total=10)
         ) as response:
             if response.status == 200:
                 return await response.json()
             else:
                 raise Exception(f"Failed to get ticket: HTTP {response.status}")
-    
+
     async def run_scenario(
-        self,
-        session: aiohttp.ClientSession,
-        scenario: UATScenario
+        self, session: aiohttp.ClientSession, scenario: UATScenario
     ) -> UATResult:
         """Execute single UAT scenario"""
         print(f"\n{'='*60}")
@@ -270,46 +264,46 @@ class UATTester:
         print(f"Description: {scenario.description}")
         print(f"Category: {scenario.category}")
         print(f"Priority: {scenario.priority}")
-        
+
         start_time = asyncio.get_event_loop().time()
-        
+
         try:
             # Step 1: Create ticket
             print("\n[1/3] Creating ticket...")
             ticket_id = await self.create_ticket(session, scenario)
             print(f"  ✅ Ticket created: {ticket_id}")
-            
+
             # Step 2: Wait for classification
             print("\n[2/3] Waiting for classification...")
             await asyncio.sleep(3)  # Wait for agents to process
-            
+
             ticket_status = await self.get_ticket_status(session, ticket_id)
             classification = ticket_status.get("classification", {})
             print(f"  Category: {classification.get('category', 'N/A')}")
             print(f"  Urgency: {classification.get('urgency', 'N/A')}")
             print(f"  Complexity: {classification.get('complexity', 'N/A')}")
-            
+
             # Step 3: Check resolution
             print("\n[3/3] Checking resolution...")
             await asyncio.sleep(5)  # Wait for resolution
-            
+
             ticket_status = await self.get_ticket_status(session, ticket_id)
             resolution = ticket_status.get("resolution", {})
             status = ticket_status.get("status", "CREATED")
-            
+
             print(f"  Status: {status}")
             print(f"  SOP: {resolution.get('sop_id', 'N/A')}")
             print(f"  Actions: {resolution.get('actions_executed', 0)}")
-            
+
             # Validate scenario
             elapsed = asyncio.get_event_loop().time() - start_time
-            
+
             # Check if category matches
-            category_match = classification.get('category') == scenario.category
-            
+            category_match = classification.get("category") == scenario.category
+
             # Check if resolved
             is_resolved = status in ["RESOLVED", "CLOSED"]
-            
+
             if category_match and is_resolved:
                 print(f"\n✅ PASSED - Scenario completed successfully")
                 result_status = "passed"
@@ -318,7 +312,7 @@ class UATTester:
                 print(f"\n⚠️  PARTIAL - Scenario incomplete")
                 result_status = "failed"
                 error_msg = f"Category match: {category_match}, Resolved: {is_resolved}"
-            
+
             return UATResult(
                 scenario=scenario,
                 status=result_status,
@@ -326,13 +320,13 @@ class UATTester:
                 classification=classification,
                 resolution=resolution,
                 execution_time_sec=elapsed,
-                error_message=error_msg
+                error_message=error_msg,
             )
-        
+
         except Exception as e:
             elapsed = asyncio.get_event_loop().time() - start_time
             print(f"\n❌ FAILED - {e}")
-            
+
             return UATResult(
                 scenario=scenario,
                 status="failed",
@@ -340,9 +334,9 @@ class UATTester:
                 classification={},
                 resolution={},
                 execution_time_sec=elapsed,
-                error_message=str(e)
+                error_message=str(e),
             )
-    
+
     async def run_all_scenarios(self):
         """Execute all UAT scenarios"""
         print(f"\n{'='*60}")
@@ -350,35 +344,35 @@ class UATTester:
         print(f"{'='*60}\n")
         print(f"Total Scenarios: {len(self.scenarios)}")
         print(f"Target Success Rate: >90%\n")
-        
+
         input("Press ENTER to start UAT (ensure staging environment running)...")
-        
+
         async with aiohttp.ClientSession() as session:
             for scenario in self.scenarios:
                 result = await self.run_scenario(session, scenario)
                 self.results.append(result)
                 await asyncio.sleep(2)  # Cool-down between scenarios
-        
+
         self.print_summary()
         self.save_results()
-    
+
     def print_summary(self):
         """Print test summary"""
         print(f"\n{'='*60}")
         print("  UAT SUMMARY")
         print(f"{'='*60}\n")
-        
+
         passed = sum(1 for r in self.results if r.status == "passed")
         failed = sum(1 for r in self.results if r.status == "failed")
         total = len(self.results)
-        
+
         success_rate = (passed / total * 100) if total > 0 else 0
-        
+
         print(f"Total Scenarios:     {total}")
         print(f"Passed:              {passed} ({passed/total*100:.1f}%)")
         print(f"Failed:              {failed} ({failed/total*100:.1f}%)")
         print(f"Success Rate:        {success_rate:.1f}%")
-        
+
         print(f"\n{'='*60}")
         if success_rate >= 90:
             print("  ✅ UAT PASSED - Production ready (>90% success)")
@@ -387,7 +381,7 @@ class UATTester:
         else:
             print("  ❌ UAT FAILED - Critical issues (<75% success)")
         print(f"{'='*60}\n")
-        
+
         # Failed scenarios
         if failed > 0:
             print("Failed Scenarios:")
@@ -395,7 +389,7 @@ class UATTester:
                 if result.status == "failed":
                     print(f"  - Scenario {result.scenario.id}: {result.scenario.name}")
                     print(f"    Error: {result.error_message}")
-    
+
     def save_results(self):
         """Save UAT results to JSON"""
         results_data = {
@@ -410,15 +404,15 @@ class UATTester:
                     "status": r.status,
                     "ticket_id": r.ticket_id,
                     "execution_time": r.execution_time_sec,
-                    "error": r.error_message
+                    "error": r.error_message,
                 }
                 for r in self.results
-            ]
+            ],
         }
-        
+
         with open("uat_results.json", "w") as f:
             json.dump(results_data, f, indent=2)
-        
+
         print(f"Results saved: uat_results.json")
 
 

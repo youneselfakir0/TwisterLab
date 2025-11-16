@@ -4,11 +4,11 @@ Configures automatic execution of agents with cron-like scheduling
 """
 
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
-import json
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +83,7 @@ class AgentScheduler:
             if config.get("enabled", True):
                 task = asyncio.create_task(self._run_scheduled_task(task_name, config))
                 self.scheduled_tasks[task_name] = task
-                logger.info(
-                    f"  ✅ Scheduled: {task_name} (every {config['interval']}s)"
-                )
+                logger.info(f"  ✅ Scheduled: {task_name} (every {config['interval']}s)")
 
         logger.info(f"✅ Scheduler started with {len(self.scheduled_tasks)} tasks")
 
@@ -117,9 +115,7 @@ class AgentScheduler:
         interval = config["interval"]
         params = config.get("params", {})
 
-        logger.info(
-            f"📅 Task '{task_name}' started (agent={agent_name}, op={operation})"
-        )
+        logger.info(f"📅 Task '{task_name}' started (agent={agent_name}, op={operation})")
 
         while True:
             try:
@@ -131,9 +127,7 @@ class AgentScheduler:
 
                 agent = self.orchestrator.agents.get(agent_name)
                 if not agent:
-                    logger.warning(
-                        f"Agent '{agent_name}' not found for task '{task_name}'"
-                    )
+                    logger.warning(f"Agent '{agent_name}' not found for task '{task_name}'")
                     continue
 
                 logger.debug(f"⏰ Executing scheduled task: {task_name}")
@@ -145,9 +139,7 @@ class AgentScheduler:
                         timeout=300,  # 5 minute timeout
                     )
 
-                    execution_time = (
-                        datetime.now(timezone.utc) - start_time
-                    ).total_seconds()
+                    execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
                     # Record in history
                     self._record_execution(
@@ -160,9 +152,7 @@ class AgentScheduler:
                     )
 
                     if result.get("status") == "success":
-                        logger.info(
-                            f"✅ Task '{task_name}' completed ({execution_time:.2f}s)"
-                        )
+                        logger.info(f"✅ Task '{task_name}' completed ({execution_time:.2f}s)")
                     else:
                         logger.warning(
                             f"⚠️  Task '{task_name}' partial success: {result.get('error', 'Unknown error')}"

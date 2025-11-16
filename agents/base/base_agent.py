@@ -258,9 +258,7 @@ class BaseAgent(ABC):
             "details": self.health_status_details,
         }
 
-    async def update_health_status(
-        self, healthy: bool, details: Dict[str, Any] = None
-    ) -> None:
+    async def update_health_status(self, healthy: bool, details: Dict[str, Any] = None) -> None:
         """
         Update agent health status.
 
@@ -272,9 +270,7 @@ class BaseAgent(ABC):
         if details:
             self.health_status_details.update(details)
 
-        await self.audit_log(
-            "health_status_update", {"healthy": healthy, "details": details}
-        )
+        await self.audit_log("health_status_update", {"healthy": healthy, "details": details})
 
     def get_capabilities(self) -> List[str]:
         """

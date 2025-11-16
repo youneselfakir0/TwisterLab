@@ -1,6 +1,5 @@
-
 import pytest
- 
+
 from agents.orchestrator.maestro import MaestroOrchestratorAgent
 
 
@@ -10,7 +9,7 @@ async def test_maestro_basic_routing() -> None:
     context = {
         "ticket_id": "T-001",
         "subject": "Problème de mot de passe",
-        "description": "Impossible de se connecter à la messagerie."
+        "description": "Impossible de se connecter à la messagerie.",
     }
     result = await agent.route_ticket(context)
     assert "status" in result

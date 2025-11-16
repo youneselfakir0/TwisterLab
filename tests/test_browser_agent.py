@@ -18,15 +18,11 @@ async def test_browser_agent_open_and_close():
         or importlib.util.find_spec("playwright") is None
         or os.getenv("PLAYWRIGHT_SKIP", "0") == "1"
     ):
-        pytest.skip(
-            "Playwright browsers not installed; skipping browser integration test"
-        )
+        pytest.skip("Playwright browsers not installed; skipping browser integration test")
 
     agent = BrowserAgent()
     # Open browser in headless mode, navigate to about:blank
-    result = await agent.execute(
-        "open_browser", {"headless": True, "target_url": "about:blank"}
-    )
+    result = await agent.execute("open_browser", {"headless": True, "target_url": "about:blank"})
     assert result["status"] == "success"
 
     # Get page source

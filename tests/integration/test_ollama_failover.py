@@ -9,8 +9,10 @@ Tests:
 - Model listing
 """
 
-import pytest
 import os
+
+import pytest
+
 from agents.llm.ollama_client import OllamaClient
 
 
@@ -21,9 +23,7 @@ async def test_ollama_generate_success_on_primary():
     client = OllamaClient()
 
     result = await client.generate(
-        prompt="Hello, how are you?",
-        model="llama3.2:1b",
-        temperature=0.7
+        prompt="Hello, how are you?", model="llama3.2:1b", temperature=0.7
     )
 
     assert result["status"] == "success", f"Expected success, got: {result}"
@@ -54,9 +54,7 @@ async def test_ollama_failover_to_secondary_when_primary_down():
     client.metrics["endpoint_health"]["http://192.168.0.30:11434"] = False
 
     result = await client.generate(
-        prompt="Test failover",
-        model="llama3.2:1b",
-        max_retries=1  # Retry rapide
+        prompt="Test failover", model="llama3.2:1b", max_retries=1  # Retry rapide
     )
 
     # Si secondary (corertx) est configuré et up, devrait réussir
@@ -122,10 +120,7 @@ async def test_ollama_metrics_accuracy():
 
     # Faire 3 requêtes
     for i in range(3):
-        result = await client.generate(
-            prompt=f"Test request {i+1}",
-            model="llama3.2:1b"
-        )
+        result = await client.generate(prompt=f"Test request {i+1}", model="llama3.2:1b")
 
     metrics = client.get_metrics()
 
@@ -152,12 +147,14 @@ async def test_ollama_timeout_handling():
         prompt="Very long prompt that might timeout" * 100,
         model="llama3.2:1b",
         timeout=1,  # Timeout très court (1 seconde)
-        max_retries=1
+        max_retries=1,
     )
 
     # Devrait soit réussir rapidement, soit timeout
     if result["status"] == "error":
-        assert "unavailable" in result["error"].lower() or "timeout" in result.get("error", "").lower()
+        assert (
+            "unavailable" in result["error"].lower() or "timeout" in result.get("error", "").lower()
+        )
 
 
 @pytest.mark.integration
@@ -177,7 +174,7 @@ def test_ollama_get_metrics_format():
         "endpoint_health",
         "avg_latency_seconds",
         "latency_p50",
-        "latency_p95"
+        "latency_p95",
     ]
 
     for key in required_keys:
@@ -200,10 +197,7 @@ async def test_ollama_concurrent_requests():
     client.reset_metrics()
 
     # Lancer 5 requêtes en parallèle
-    tasks = [
-        client.generate(f"Concurrent test {i}", model="llama3.2:1b")
-        for i in range(5)
-    ]
+    tasks = [client.generate(f"Concurrent test {i}", model="llama3.2:1b") for i in range(5)]
 
     results = await asyncio.gather(*tasks)
 

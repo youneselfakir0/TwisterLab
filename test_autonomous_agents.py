@@ -42,8 +42,7 @@ class AutonomousAgentsTester:
             async with self.session.get(url, timeout=10) as response:
                 result["response"] = await response.json()
                 result["passed"] = (
-                    response.status == 200
-                    and result["response"].get("status") == "healthy"
+                    response.status == 200 and result["response"].get("status") == "healthy"
                 )
         except Exception as e:
             result["error"] = str(e)

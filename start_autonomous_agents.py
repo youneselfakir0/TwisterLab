@@ -13,9 +13,7 @@ import signal
 import sys
 
 # Add the project root to Python path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from agents.orchestrator.autonomous_orchestrator import (
     get_orchestrator,
@@ -110,9 +108,7 @@ async def run_with_api_integration():
     logger.info("✅ Autonomous agents integrated with API")
 
     # Configure uvicorn
-    config = uvicorn.Config(
-        app=app, host="0.0.0.0", port=8000, reload=False, log_level="info"
-    )
+    config = uvicorn.Config(app=app, host="0.0.0.0", port=8000, reload=False, log_level="info")
 
     server = uvicorn.Server(config)
 

@@ -6,10 +6,10 @@ Client for Model Context Protocol communication with Desktop Commander agents
 import asyncio
 import json
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
-import websockets
+from typing import Any, Dict, List, Optional
 
+import websockets
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)

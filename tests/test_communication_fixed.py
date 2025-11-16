@@ -1,12 +1,14 @@
 """Test de communication entre Maestro et agents workers - Version corrigée"""
 
-import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import sys
 
-from agents.real.real_maestro_agent import RealMaestroAgent
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from agents.real.real_classifier_agent import RealClassifierAgent
 from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
+from agents.real.real_maestro_agent import RealMaestroAgent
+
 
 def main():
     print("\n=== TwisterLab Agent Communication Test (FIXED) ===\n")
@@ -45,6 +47,7 @@ def main():
     except Exception as e:
         print(f"  FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
@@ -102,7 +105,7 @@ def main():
             ("LEAST_LOADED", LoadBalancingStrategy.LEAST_LOADED),
             ("ROUND_ROBIN", LoadBalancingStrategy.ROUND_ROBIN),
             ("PRIORITY_BASED", LoadBalancingStrategy.PRIORITY_BASED),
-            ("WEIGHTED", LoadBalancingStrategy.WEIGHTED)
+            ("WEIGHTED", LoadBalancingStrategy.WEIGHTED),
         ]
 
         for strategy_name, strategy in strategies:
@@ -121,7 +124,7 @@ def main():
         ticket_data = {
             "subject": "Test Ticket",
             "description": "Test de communication",
-            "priority": "medium"
+            "priority": "medium",
         }
 
         # Sélectionner instance classifier
@@ -144,15 +147,17 @@ def main():
     except Exception as e:
         print(f"  FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("RÉSULTAT FINAL: TOUS LES TESTS RÉUSSIS ✓")
     print("Maestro Orchestrator et Workers sont en communication")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

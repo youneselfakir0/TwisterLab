@@ -330,9 +330,7 @@ class MaestroOrchestratorAgent(BaseAgent):
 
                 try:
                     # Load balance agent selection
-                    agent_name = await self._select_agent_for_step(
-                        step_config, workflow_context
-                    )
+                    agent_name = await self._select_agent_for_step(step_config, workflow_context)
 
                     # Execute step with timeout
                     timeout = step_config.get("timeout", 60)
@@ -528,12 +526,8 @@ class MaestroOrchestratorAgent(BaseAgent):
         active_workflows = len(
             [w for w in self.active_workflows.values() if w["status"] == "running"]
         )
-        completed_workflows = len(
-            [w for w in self.workflow_history if w["status"] == "completed"]
-        )
-        failed_workflows = len(
-            [w for w in self.workflow_history if w["status"] == "failed"]
-        )
+        completed_workflows = len([w for w in self.workflow_history if w["status"] == "completed"])
+        failed_workflows = len([w for w in self.workflow_history if w["status"] == "failed"])
 
         return {
             "status": "success",
@@ -615,9 +609,7 @@ class MaestroOrchestratorAgent(BaseAgent):
                 issues_found.append("system_health_issues")
 
             unhealthy_agents = [
-                name
-                for name, status in agent_status.items()
-                if status.get("status") != "healthy"
+                name for name, status in agent_status.items() if status.get("status") != "healthy"
             ]
             if unhealthy_agents:
                 system_health = "critical" if system_health == "degraded" else "warning"
@@ -632,9 +624,7 @@ class MaestroOrchestratorAgent(BaseAgent):
                     "agent_status": agent_status,
                     "timestamp": datetime.now().isoformat(),
                 },
-                "recommendations": self._generate_recommendations(
-                    system_health, issues_found
-                ),
+                "recommendations": self._generate_recommendations(system_health, issues_found),
                 "timestamp": datetime.now().isoformat(),
             }
 
@@ -645,9 +635,7 @@ class MaestroOrchestratorAgent(BaseAgent):
                 "timestamp": datetime.now().isoformat(),
             }
 
-    def _generate_recommendations(
-        self, system_health: str, issues_found: List[str]
-    ) -> List[str]:
+    def _generate_recommendations(self, system_health: str, issues_found: List[str]) -> List[str]:
         """Generate recommendations based on system assessment."""
         recommendations = []
 
@@ -810,17 +798,13 @@ class MaestroOrchestratorAgent(BaseAgent):
         operation = context.get("operation")
         if operation == "execute_workflow":
             if "workflow_name" not in context:
-                raise ValueError(
-                    "workflow_name required for execute_workflow operation"
-                )
+                raise ValueError("workflow_name required for execute_workflow operation")
         elif operation == "load_balance":
             if "agent_type" not in context or "operation" not in context:
                 raise ValueError("agent_type and operation required for load_balance")
         elif operation == "get_workflow_status":
             if "workflow_id" not in context:
-                raise ValueError(
-                    "workflow_id required for get_workflow_status operation"
-                )
+                raise ValueError("workflow_id required for get_workflow_status operation")
         elif operation == "cancel_workflow":
             if "workflow_id" not in context:
                 raise ValueError("workflow_id required for cancel_workflow operation")

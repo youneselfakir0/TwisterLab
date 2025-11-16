@@ -8,10 +8,10 @@ Provides schema compatibility with:
 - OpenAI Assistants API
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
 import json
+from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 
 class TwisterAgent(ABC):
@@ -40,7 +40,7 @@ class TwisterAgent(ABC):
         tools: Optional[List[Dict[str, Any]]] = None,
         model: str = "llama-3.2",
         temperature: float = 0.7,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         self.name = name
         self.display_name = display_name
@@ -116,7 +116,9 @@ class TwisterAgent(ABC):
         return {
             "id": self.name,
             "object": "agent",
-            "created_at": int(datetime.fromisoformat(self.created_at.replace("Z", "+00:00")).timestamp()),
+            "created_at": int(
+                datetime.fromisoformat(self.created_at.replace("Z", "+00:00")).timestamp()
+            ),
             "name": self.display_name,
             "description": self.description,
             "model": self.model,
@@ -127,8 +129,8 @@ class TwisterAgent(ABC):
                 "role": self.role,
                 "temperature": self.temperature,
                 "framework": "twisterlab",
-                "version": "1.0.0"
-            }
+                "version": "1.0.0",
+            },
         }
 
     def _to_langchain_schema(self) -> Dict[str, Any]:
@@ -154,14 +156,11 @@ class TwisterAgent(ABC):
             "_note": "Full LangChain compatibility planned for v2.0",
             "name": self.name,
             "description": self.description,
-            "llm": {
-                "model_name": self.model,
-                "temperature": self.temperature
-            },
+            "llm": {"model_name": self.model, "temperature": self.temperature},
             "tools": [tool.get("function", {}).get("name", "unknown") for tool in self.tools],
             "agent_type": "zero-shot-react-description",
             "memory": None,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
     def _to_semantic_kernel_schema(self) -> Dict[str, Any]:
@@ -189,16 +188,12 @@ class TwisterAgent(ABC):
                 {
                     "name": tool.get("function", {}).get("name", "unknown"),
                     "description": tool.get("function", {}).get("description", ""),
-                    "parameters": tool.get("function", {}).get("parameters", {})
+                    "parameters": tool.get("function", {}).get("parameters", {}),
                 }
                 for tool in self.tools
             ],
-            "settings": {
-                "model": self.model,
-                "temperature": self.temperature,
-                "role": self.role
-            },
-            "metadata": self.metadata
+            "settings": {"model": self.model, "temperature": self.temperature, "role": self.role},
+            "metadata": self.metadata,
         }
 
     def _to_openai_assistant_schema(self) -> Dict[str, Any]:
@@ -227,7 +222,9 @@ class TwisterAgent(ABC):
             "_note": "Full OpenAI Assistants API compatibility planned for v2.0",
             "id": f"asst_{self.name}",
             "object": "assistant",
-            "created_at": int(datetime.fromisoformat(self.created_at.replace("Z", "+00:00")).timestamp()),
+            "created_at": int(
+                datetime.fromisoformat(self.created_at.replace("Z", "+00:00")).timestamp()
+            ),
             "name": self.display_name,
             "description": self.description,
             "model": self.model,
@@ -238,8 +235,8 @@ class TwisterAgent(ABC):
                 **self.metadata,
                 "role": self.role,
                 "temperature": self.temperature,
-                "framework": "twisterlab"
-            }
+                "framework": "twisterlab",
+            },
         }
 
     def _convert_tools_to_microsoft_format(self) -> List[Dict[str, Any]]:
@@ -260,18 +257,18 @@ class TwisterAgent(ABC):
 
         for tool in self.tools:
             if tool.get("type") == "function":
-                microsoft_tools.append({
-                    "type": "function",
-                    "function": {
-                        "name": tool["function"]["name"],
-                        "description": tool["function"].get("description", ""),
-                        "parameters": tool["function"].get("parameters", {
-                            "type": "object",
-                            "properties": {},
-                            "required": []
-                        })
+                microsoft_tools.append(
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": tool["function"]["name"],
+                            "description": tool["function"].get("description", ""),
+                            "parameters": tool["function"].get(
+                                "parameters", {"type": "object", "properties": {}, "required": []}
+                            ),
+                        },
                     }
-                })
+                )
 
         return microsoft_tools
 
@@ -298,7 +295,7 @@ class TwisterAgent(ABC):
         """
         schema = self.to_schema(format)
 
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(schema, f, indent=2, ensure_ascii=False)
 
     def __repr__(self) -> str:
@@ -330,16 +327,16 @@ class HelpdeskAgent(TwisterAgent):
                             "properties": {
                                 "username": {
                                     "type": "string",
-                                    "description": "Username to reset password for"
+                                    "description": "Username to reset password for",
                                 },
                                 "temporary_password": {
                                     "type": "string",
-                                    "description": "Temporary password to set"
-                                }
+                                    "description": "Temporary password to set",
+                                },
                             },
-                            "required": ["username"]
-                        }
-                    }
+                            "required": ["username"],
+                        },
+                    },
                 },
                 {
                     "type": "function",
@@ -351,20 +348,20 @@ class HelpdeskAgent(TwisterAgent):
                             "properties": {
                                 "device_id": {
                                     "type": "string",
-                                    "description": "Target device identifier"
+                                    "description": "Target device identifier",
                                 },
                                 "software_name": {
                                     "type": "string",
-                                    "description": "Name of software to install"
+                                    "description": "Name of software to install",
                                 },
                                 "version": {
                                     "type": "string",
-                                    "description": "Software version (optional)"
-                                }
+                                    "description": "Software version (optional)",
+                                },
                             },
-                            "required": ["device_id", "software_name"]
-                        }
-                    }
+                            "required": ["device_id", "software_name"],
+                        },
+                    },
                 },
                 {
                     "type": "function",
@@ -376,25 +373,21 @@ class HelpdeskAgent(TwisterAgent):
                             "properties": {
                                 "username": {
                                     "type": "string",
-                                    "description": "Username to grant access to"
+                                    "description": "Username to grant access to",
                                 },
                                 "resource": {
                                     "type": "string",
-                                    "description": "Resource or group name"
-                                }
+                                    "description": "Resource or group name",
+                                },
                             },
-                            "required": ["username", "resource"]
-                        }
-                    }
-                }
+                            "required": ["username", "resource"],
+                        },
+                    },
+                },
             ],
             model="llama-3.2",
             temperature=0.3,  # Low temperature for consistent IT operations
-            metadata={
-                "department": "IT",
-                "sla_target": "2 minutes",
-                "automation_rate": "60-70%"
-            }
+            metadata={"department": "IT", "sla_target": "2 minutes", "automation_rate": "60-70%"},
         )
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Any:
@@ -429,31 +422,21 @@ class ClassifierAgent(TwisterAgent):
                         "parameters": {
                             "type": "object",
                             "properties": {
-                                "ticket_id": {
-                                    "type": "string",
-                                    "description": "Ticket identifier"
-                                },
-                                "subject": {
-                                    "type": "string",
-                                    "description": "Ticket subject"
-                                },
+                                "ticket_id": {"type": "string", "description": "Ticket identifier"},
+                                "subject": {"type": "string", "description": "Ticket subject"},
                                 "description": {
                                     "type": "string",
-                                    "description": "Ticket description"
-                                }
+                                    "description": "Ticket description",
+                                },
                             },
-                            "required": ["ticket_id", "subject", "description"]
-                        }
-                    }
+                            "required": ["ticket_id", "subject", "description"],
+                        },
+                    },
                 }
             ],
             model="deepseek-r1",  # Using DeepSeek-R1 for classification
             temperature=0.2,  # Very low for consistent classification
-            metadata={
-                "department": "IT",
-                "accuracy_target": "95%",
-                "avg_time": "<5 seconds"
-            }
+            metadata={"department": "IT", "accuracy_target": "95%", "avg_time": "<5 seconds"},
         )
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Any:
@@ -487,20 +470,20 @@ class DesktopCommanderAgent(TwisterAgent):
                             "properties": {
                                 "device_id": {
                                     "type": "string",
-                                    "description": "Target device identifier"
+                                    "description": "Target device identifier",
                                 },
                                 "command": {
                                     "type": "string",
-                                    "description": "Command to execute (from whitelist only)"
+                                    "description": "Command to execute (from whitelist only)",
                                 },
                                 "timeout": {
                                     "type": "integer",
-                                    "description": "Command timeout in seconds (default: 300)"
-                                }
+                                    "description": "Command timeout in seconds (default: 300)",
+                                },
                             },
-                            "required": ["device_id", "command"]
-                        }
-                    }
+                            "required": ["device_id", "command"],
+                        },
+                    },
                 },
                 {
                     "type": "function",
@@ -512,20 +495,20 @@ class DesktopCommanderAgent(TwisterAgent):
                             "properties": {
                                 "device_id": {
                                     "type": "string",
-                                    "description": "Target device identifier"
+                                    "description": "Target device identifier",
                                 },
                                 "package_url": {
                                     "type": "string",
-                                    "description": "Package download URL"
+                                    "description": "Package download URL",
                                 },
                                 "install_args": {
                                     "type": "string",
-                                    "description": "Installation arguments"
-                                }
+                                    "description": "Installation arguments",
+                                },
                             },
-                            "required": ["device_id", "package_url"]
-                        }
-                    }
+                            "required": ["device_id", "package_url"],
+                        },
+                    },
                 },
                 {
                     "type": "function",
@@ -537,26 +520,26 @@ class DesktopCommanderAgent(TwisterAgent):
                             "properties": {
                                 "device_id": {
                                     "type": "string",
-                                    "description": "Target device identifier"
+                                    "description": "Target device identifier",
                                 },
                                 "info_type": {
                                     "type": "string",
                                     "enum": ["hardware", "software", "network", "all"],
-                                    "description": "Type of information to gather"
-                                }
+                                    "description": "Type of information to gather",
+                                },
                             },
-                            "required": ["device_id"]
-                        }
-                    }
-                }
+                            "required": ["device_id"],
+                        },
+                    },
+                },
             ],
             model="llama-3.2",
             temperature=0.1,  # Very low for precise command execution
             metadata={
                 "department": "IT",
                 "security_level": "zero-trust",
-                "max_concurrent_commands": 10
-            }
+                "max_concurrent_commands": 10,
+            },
         )
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Any:

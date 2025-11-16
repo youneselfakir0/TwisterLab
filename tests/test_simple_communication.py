@@ -1,4 +1,5 @@
 ﻿"""Simple test of agent communication without Rich"""
+
 import asyncio
 import sys
 from pathlib import Path
@@ -6,8 +7,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from agents.real.real_maestro_agent import RealMaestroAgent
 from agents.real.real_classifier_agent import RealClassifierAgent
+from agents.real.real_maestro_agent import RealMaestroAgent
+
 
 async def test_agents():
     print("\n=== TwisterLab Agent Communication Test ===\n")
@@ -90,6 +92,7 @@ async def test_agents():
     print("- Worker agents registered with Maestro")
     return True
 
+
 if __name__ == "__main__":
     try:
         success = asyncio.run(test_agents())
@@ -97,5 +100,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nFATAL ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

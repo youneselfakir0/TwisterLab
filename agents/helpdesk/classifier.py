@@ -4,8 +4,8 @@ Classifies incoming helpdesk tickets by category, priority, and complexity
 """
 
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 from ..base import TwisterAgent
 from ..database.config import get_db
@@ -52,24 +52,18 @@ class TicketClassifierAgent(TwisterAgent):
                         "parameters": {
                             "type": "object",
                             "properties": {
-                                "ticket_id": {
-                                    "type": "string",
-                                    "description": "Ticket identifier"
-                                },
-                                "subject": {
-                                    "type": "string",
-                                    "description": "Ticket subject"
-                                },
+                                "ticket_id": {"type": "string", "description": "Ticket identifier"},
+                                "subject": {"type": "string", "description": "Ticket subject"},
                                 "description": {
                                     "type": "string",
-                                    "description": "Ticket description"
-                                }
+                                    "description": "Ticket description",
+                                },
                             },
-                            "required": ["ticket_id", "subject", "description"]
-                        }
-                    }
+                            "required": ["ticket_id", "subject", "description"],
+                        },
+                    },
                 }
-            ]
+            ],
         )
 
         # Plus besoin de session persistante - on obtient des sessions à la demande
@@ -107,7 +101,7 @@ class TicketClassifierAgent(TwisterAgent):
                 "status": "success",
                 "ticket_id": ticket_id,
                 "classification": classification,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
         except Exception as e:
@@ -115,10 +109,12 @@ class TicketClassifierAgent(TwisterAgent):
             return {
                 "status": "error",
                 "error": str(e),
-                "ticket_id": context.get("ticket_id", "unknown") if context else "unknown"
+                "ticket_id": context.get("ticket_id", "unknown") if context else "unknown",
             }
 
-    async def _classify_ticket(self, ticket_id: str, subject: str, description: str) -> Dict[str, Any]:
+    async def _classify_ticket(
+        self, ticket_id: str, subject: str, description: str
+    ) -> Dict[str, Any]:
         """
         Logique de classification principale.
 
@@ -147,7 +143,9 @@ class TicketClassifierAgent(TwisterAgent):
             "priority": priority,
             "complexity": complexity,
             "confidence": confidence,
-            "routing_recommendation": self._get_routing_recommendation(category, priority, complexity, confidence)
+            "routing_recommendation": self._get_routing_recommendation(
+                category, priority, complexity, confidence
+            ),
         }
 
     async def _get_all_sops(self) -> list:
@@ -166,12 +164,37 @@ class TicketClassifierAgent(TwisterAgent):
         """Détermine la catégorie du ticket."""
         # Mots-clés par catégorie
         categories = {
-            "password": ["password", "mot de passe", "mdp", "login", "connexion", "authentification"],
-            "software": ["software", "logiciel", "installer", "installation", "programme", "application", "install", "office", "app"],
+            "password": [
+                "password",
+                "mot de passe",
+                "mdp",
+                "login",
+                "connexion",
+                "authentification",
+            ],
+            "software": [
+                "software",
+                "logiciel",
+                "installer",
+                "installation",
+                "programme",
+                "application",
+                "install",
+                "office",
+                "app",
+            ],
             "access": ["access", "accès", "permission", "droits", "autorisation", "partage"],
-            "hardware": ["hardware", "matériel", "ordinateur", "écran", "clavier", "souris", "imprimante"],
+            "hardware": [
+                "hardware",
+                "matériel",
+                "ordinateur",
+                "écran",
+                "clavier",
+                "souris",
+                "imprimante",
+            ],
             "network": ["network", "réseau", "internet", "wifi", "connexion", "vpn", "mail"],
-            "other": []
+            "other": [],
         }
 
         # Compter les correspondances
@@ -192,7 +215,14 @@ class TicketClassifierAgent(TwisterAgent):
     def _determine_priority(self, text: str, category: str) -> str:
         """Détermine la priorité du ticket."""
         # Mots-clés d'urgence
-        urgent_keywords = ["urgent", "urgence", "critique", "bloquant", "ne fonctionne pas", "cassé"]
+        urgent_keywords = [
+            "urgent",
+            "urgence",
+            "critique",
+            "bloquant",
+            "ne fonctionne pas",
+            "cassé",
+        ]
         high_keywords = ["important", "vite", "rapidement", "problème", "erreur"]
         medium_keywords = ["question", "aide", "comment", "besoin"]
 
@@ -233,7 +263,9 @@ class TicketClassifierAgent(TwisterAgent):
 
         return min(confidence, 1.0)
 
-    def _get_routing_recommendation(self, category: str, priority: str, complexity: str, confidence: float) -> str:
+    def _get_routing_recommendation(
+        self, category: str, priority: str, complexity: str, confidence: float
+    ) -> str:
         """Détermine la recommandation de routing."""
         if priority == "urgent":
             return "route_to_human_immediate"

@@ -1,0 +1,123 @@
+name: Rotate & Test (Staging)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment' 
+        required: true
+        default: 'staging'
+      apply:
+        description: 'Set to true to apply changes (otherwise dry-run)'
+        required: false
+        default: 'false'
+      canary:
+        required: false
+        description: 'Run canary mode (rotate only a single service)'
+        default: 'false'
+      canary_service:
+        required: false
+        description: 'Service name to target for canary rotation (e.g., twisterlab_api)'
+        default: ''
+      rotate_postgres:
+        required: false
+        description: 'Rotate Postgres secret'
+        default: 'true'
+      rotate_redis:
+        required: false
+        description: 'Rotate Redis secret'
+        default: 'true'
+      rotate_grafana:
+        required: false
+        description: 'Rotate Grafana admin secret'
+        default: 'true'
+      restart_grafana:
+        required: false
+        description: 'Restart Grafana to pick up new secret (use with care)'
+        default: 'false'
+      grafana_service_name:
+        required: false
+        description: 'Grafana service name (e.g. twisterlab_monitoring_grafana). If set, the workflow will pass it to the rotation script to force a restart of that service.'
+        default: ''
+
+jobs:
+  rotate_and_test:
+    name: Rotate & Test on Staging (SSH)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+
+      - name: Copy repo to staging host
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          port: ${{ secrets.STAGING_SSH_PORT }}
+          source: '.'
+          target: ${{ secrets.STAGING_SSH_DEPLOY_DIR }}
+
+      - name: Run rotate_and_test (on remote host)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          port: ${{ secrets.STAGING_SSH_PORT }}
+          script: |
+            cd ${{ secrets.STAGING_SSH_DEPLOY_DIR }}
+            # Install PowerShell if needed (Linux runners) and run script
+            if ! command -v pwsh >/dev/null 2>&1 ; then
+              echo 'PowerShell not installed; please ensure pwsh is available on the host' && exit 1
+            fi
+            # Build argument list safely on the remote shell
+            ARGS="-Environment ${{ github.event.inputs.environment }} -CanaryService '${{ github.event.inputs.canary_service }}'"
+            if [ "${{ github.event.inputs.apply }}" = "true" ]; then ARGS="$ARGS -Apply -Force"; fi
+            if [ "${{ github.event.inputs.canary }}" = "true" ]; then ARGS="$ARGS -Canary"; fi
+            if [ "${{ github.event.inputs.rotate_postgres }}" = "true" ]; then ARGS="$ARGS -RotatePostgres"; fi
+            if [ "${{ github.event.inputs.rotate_redis }}" = "true" ]; then ARGS="$ARGS -RotateRedis"; fi
+            if [ "${{ github.event.inputs.rotate_grafana }}" = "true" ]; then ARGS="$ARGS -RotateGrafana"; fi
+            if [ "${{ github.event.inputs.restart_grafana }}" = "true" ]; then ARGS="$ARGS -RestartGrafana"; fi
+            if [ "${{ github.event.inputs.grafana_service_name }}" != "" ]; then ARGS="$ARGS -GrafanaServiceName '${{ github.event.inputs.grafana_service_name }}'"; fi
+            # Ensure logs directory exists
+            mkdir -p logs
+            pwsh -NoLogo -NoProfile -File ./scripts/rotate_and_test.ps1 $ARGS
+
+      - name: Fetch Logs from Staging
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          port: ${{ secrets.STAGING_SSH_PORT }}
+          source: '${{ secrets.STAGING_SSH_DEPLOY_DIR }}/logs/rotate_*'
+          target: './logs'
+
+      - name: Upload logs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rotation-logs
+          path: logs/
+
+      - name: Create rotation issue with logs
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = 'logs';
+            let description = 'Rotation logs attached in artifacts. Staging run result summary:\n';
+            try {
+              const files = fs.readdirSync(path); 
+              description += files.join('\n');
+            } catch(e) { description += 'No logs found.' }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Staging rotation run - ${new Date().toISOString()}`,
+              body: description
+            })

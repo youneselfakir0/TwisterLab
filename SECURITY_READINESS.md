@@ -40,6 +40,30 @@ python scripts/sanitize_archives.py --apply --backup-dir sanitized_archives
 
 4. Review the sanitized PR in code review. Ensure that any recovered secrets are rotated prior to merge.
 
+After merge: rotate credentials workflow
+--------------------------------------
+1. Once the PR is approved, DO NOT MERGE until the following is done:
+	- Run the rotation process for any leaked secrets (rotate-postgres, rotate-grafana, rotate-redis, etc.)
+	- Ensure that services read new credentials from Docker Secrets or from a vault
+	- Update external systems with new secrets
+2. Merge the PR only after rotation is completed and systems have been updated.
+
+Branch protection & CI enforcement
+----------------------------------
+1. Ensure these workflows are protected in GitHub Settings → Branch Protection Rules so merges require passing checks:
+	- Lint/CI workflow (`ci.yml`)
+	- Secret scanning workflow (`secret-scan.yml`)
+2. Enforce code review: require at least one reviewer for PRs to `main`.
+3. For critical infra changes, require 2 reviewers and status checks for `security-audit` and `integration-tests`.
+Developer checklist (before pushing):
+
+- Run local linters and `pre-commit` hooks:
+	- python -m pip install pre-commit
+	- pre-commit install
+- Run `python scripts/ci_secret_scan.py` locally and fix issues.
+- If you are adding a secret for local development, use `secrets/` or local Docker secret file and avoid committing it.
+
+
 Secret rotation (if leaks found)
 -------------------------------
 If leaks are confirmed, rotate the affected secrets using the provided scripts.

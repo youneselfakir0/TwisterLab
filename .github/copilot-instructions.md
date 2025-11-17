@@ -21,7 +21,7 @@ When working with TwisterLab, AI assistants should:
 - Point out trade-offs and edge cases
 
 **Technology Stack** (only use these):
-- **Backend**: Python 3.12+, FastAPI, asyncio, asyncpg
+- **Backend**: Python 3.11+, FastAPI, asyncio, asyncpg
 - **Infrastructure**: Docker Swarm, PostgreSQL 16, Redis 7
 - **AI/LLM**: Ollama (llama3.2:1b), Open WebUI
 - **Monitoring**: Prometheus, Grafana
@@ -44,7 +44,7 @@ When working with TwisterLab, AI assistants should:
 
 ## Project Architecture
 
-### Core Agent System (7 Agents)
+### Core Agent System (8 Agents)
 
 All agents inherit from `TwisterAgent` (in `agents/base.py`) - a multi-framework base class supporting export to Microsoft, LangChain, Semantic Kernel, and OpenAI formats.
 
@@ -56,6 +56,7 @@ All agents inherit from `TwisterAgent` (in `agents/base.py`) - a multi-framework
 - `RealResolverAgent` - SOP execution for issue resolution
 - `RealDesktopCommanderAgent` - Remote system command execution
 - `RealMaestroAgent` - Workflow orchestration and load balancing
+- `BrowserAgent` - Web automation and scraping capabilities
 
 **Standard Agents** (in `agents/core/`, `agents/helpdesk/`, `agents/resolver/`, `agents/desktop_commander/`):
 - Abstract implementations following BaseAgent pattern
@@ -83,89 +84,93 @@ infrastructure/
 
 **Previous chaos**: 26+ docker-compose files, 18 Dockerfiles, 90+ PowerShell scripts → **Now**: 1 compose file, 2 configs, 1 deploy script
 
+**Key Files & Patterns**:
+
+**Architecture Examples**:
+- `agents/base.py` - TwisterAgent base class with multi-framework export
+- `agents/base/unified_agent.py` - **NEW**: Compatibility layer for legacy imports (UnifiedAgentBase, AgentStatus)
+- `agents/orchestrator/autonomous_orchestrator.py` - Agent lifecycle management
+- `infrastructure/docker/docker-compose.unified.yml` - Unified deployment config
+- `agents/mcp/mcp_router.py` - Tier-based communication isolation
+
+**Agent Implementation Patterns**:
+- `agents/real/BrowserAgent.py` - Direct UnifiedAgentBase inheritance (new pattern)
+- `agents/real/real_monitoring_agent.py` - Layered inheritance via support agents (existing pattern)
+- `agents/core/maestro_orchestrator_agent.py` - Workflow coordination example
+- `agents/mcp/mcp_server_continue.py` - MCP server for IDE integration
+- `agents/__init__.py` - Lazy loading system to avoid database imports at startup
+
+**Testing Patterns**:
+- `tests/integration/test_mcp_integration.py` - Cross-component integration tests
+- `tests/test_agents/test_maestro_orchestrator_agent.py` - Agent-specific unit tests
+
+**Deployment Automation**:
+- `infrastructure/scripts/deploy.ps1` - Unified deployment script
+- `.github/workflows/` - CI/CD pipelines with secret scanning
+
 ## MCP Communication Architecture
 
-**Current Status**: MCP Router exists in `agents/mcp/mcp_router.py` with tier-based isolation design, but MCP servers are not yet deployed.
+**Current Status**: MCP Router exists in `agents/mcp/mcp_router.py` with tier-based isolation design, and MCP server implementations are available in `agents/mcp/` (mcp_server.py, mcp_server_continue.py, etc.). Hybrid native + REST communication modes are supported.
 
-The MCP Router defines 4 isolation tiers for future implementation:
+The MCP Router defines 4 isolation tiers for secure inter-agent communication:
 - **Tier 1** (172.25.0.0/16): TwisterLab agent MCPs
 - **Tier 2** (172.26.0.0/16): Claude Desktop MCPs  
 - **Tier 3** (172.27.0.0/16): Docker system MCPs
 - **Tier 4** (172.28.0.0/16): Copilot MCPs
 
-**Current Agent Communication**: Agents currently communicate via direct Python calls in `AutonomousAgentOrchestrator` rather than through deployed MCP servers. The MCP Router provides the foundation for future secure, isolated inter-agent communication.
+**Current Agent Communication**: Agents currently communicate via direct Python calls in `AutonomousAgentOrchestrator` rather than through deployed MCP servers. The MCP Router provides the foundation for future secure, isolated inter-agent communication, with MCP servers available for IDE integration (Continue, Claude Desktop, Ollama).
 
 ## Agent Development Patterns
 
-### 1. TwisterAgent Base Class
+**Current Inheritance Hierarchy** (as of 2025-11-17):
+```
+UnifiedAgentBase (agents/base/unified_agent.py)
+├── TwisterAgent (agents/base.py)
+    └── Support Agents (agents/support/)
+        └── Real Agents (agents/real/) - Some inherit this way
+└── Real Agents (agents/real/) - Some inherit directly from UnifiedAgentBase
+```
 
-All agents MUST inherit from `TwisterAgent` in `agents/base.py`:
+### 1. Direct UnifiedAgentBase Pattern (Recommended for New Agents)
+
+For new production agents, inherit directly from `UnifiedAgentBase`:
 
 ```python
-from agents.base import TwisterAgent
-from typing import Dict, Any, Optional
+from agents.base.unified_agent import UnifiedAgentBase, AgentStatus
 
-class MyNewAgent(TwisterAgent):
+class MyNewAgent(UnifiedAgentBase):
     def __init__(self):
         super().__init__(
             name="my-new-agent",
             display_name="My New Agent",
             description="What this agent does",
-            role="assistant",
-            model="llama-3.2",          # or "gpt-4", etc.
-            temperature=0.7,
-            tools=[self._define_tools()],  # Max 5 tools per agent
-            metadata={"version": "1.0"}
+            version="1.0"
         )
-    
+        self.status = AgentStatus.INITIALIZING
+
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Any:
         """Execute agent task - MUST be implemented"""
-        # Your logic here
-        pass
-    
-    def _define_tools(self) -> list:
-        """Define agent tools in OpenAI function calling format"""
-        return [{
-            "type": "function",
-            "function": {
-                "name": "my_tool",
-                "description": "What it does",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "param1": {"type": "string", "description": "..."}
-                    },
-                    "required": ["param1"]
-                }
-            }
-        }]
+        try:
+            self.status = AgentStatus.RUNNING
+            result = await self._perform_work(task, context)
+            self.status = AgentStatus.READY
+            return result
+        except Exception as e:
+            self.status = AgentStatus.ERROR
+            raise
 ```
 
-### 2. Real Agent Pattern (Production)
+### 2. Layered Support Agent Pattern (For Existing Agents)
 
-For production-ready agents in `agents/real/`:
+Some real agents inherit from support agents that extend `TwisterAgent`:
 
 ```python
-class RealMyAgent:
-    """Real working agent with actual implementation"""
-    
+from agents.support.existing_agent import ExistingAgent
+
+class RealMyAgent(ExistingAgent):  # ExistingAgent inherits from TwisterAgent
     def __init__(self):
-        self.name = "RealMyAgent"
-        # No inheritance - direct implementation
-    
-    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute real operation"""
-        try:
-            result = await self._perform_actual_work(context)
-            return {
-                "status": "success",
-                "agent": self.name,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "data": result
-            }
-        except Exception as e:
-            logger.error(f"{self.name} failed: {e}")
-            return {"status": "error", "error": str(e)}
+        super().__init__()
+        # Additional real implementation details
 ```
 
 ### 3. Multi-Framework Export
@@ -235,7 +240,31 @@ docker stack deploy -c docker-compose.yml twisterlab
 **Production endpoint**: http://192.168.0.30:8000
 **Monitoring**: http://192.168.0.30:3000 (Grafana)
 
-### Agent Registration
+### CI/CD Workflows
+
+**GitHub Actions** (`.github/workflows/`):
+- **Secret Scanning**: Automated security checks using Gitleaks and custom scanner (`ci_secret_scan.py`)
+- **Code Quality**: Ruff linting, MyPy type checking, Black formatting
+- **Testing**: Pytest with coverage reporting
+- **Staging Deployment**: Automated deployment to staging environment with SSH validation
+
+**Key CI Commands**:
+```powershell
+# Run secret scanning locally
+python ci_secret_scan.py
+
+# Format code
+black agents/ tests/
+isort agents/ tests/
+
+# Type checking
+mypy agents/
+
+# Linting
+ruff check agents/
+```
+
+## Agent Registration
 
 **Understanding the Architecture**:
 - **`AutonomousAgentOrchestrator`** (`agents/orchestrator/autonomous_orchestrator.py`): Manages scheduled background tasks for autonomous agents (monitoring, backup, sync)
@@ -252,7 +281,33 @@ async def initialize_agents(self):
     self.agents = {
         "monitoring": MonitoringAgent(),
         "backup": BackupAgent(),
-## Testing Requirements
+        ## ... existing agents ...
+        "my_agent": RealMyAgent(),  # Add new agent here
+    }
+```
+
+### Agent Registry System
+
+**Current Registered Agents** (8 total):
+- `classifier` - RealClassifierAgent
+- `resolver` - RealResolverAgent  
+- `monitoring` - RealMonitoringAgent
+- `realbackupagent` - RealBackupAgent
+- `realsyncagent` - RealSyncAgent
+- `desktop-commander` - RealDesktopCommanderAgent
+- `realmaestroagent` - RealMaestroAgent
+- `browseragent` - BrowserAgent
+
+**Registry Access**:
+```python
+from agents.registry import agent_registry
+
+# List all registered agents
+agents = agent_registry.list_agents()
+
+# Get specific agent
+agent = agent_registry.get_agent("monitoring")
+```
 
 **Current Test Status**: 22 test files in `tests/` directory (as of 2025-11-11)
 
@@ -273,19 +328,20 @@ markers = [
 **Test structure**:
 ```
 tests/
+├── integration/                    # Cross-component tests
+│   ├── test_auth_api.py           # Authentication API tests
+│   ├── test_hybrid_auth_flow.py   # Hybrid auth flow tests
+│   ├── test_mcp_integration.py    # MCP integration tests
+│   └── test_ollama_failover.py    # LLM failover tests
 ├── test_agents/                    # Agent-specific tests
 │   ├── test_maestro_orchestrator_agent.py
 │   └── test_maestro_orchestrator_agent_simple.py
-├── integration/                    # Cross-component tests
-│   └── test_mcp_integration.py
 ├── unit/                           # Unit tests
 │   └── test_maestro.py
-├── test_monitoring_agent.py        # Individual agent tests
-├── test_backup_agent.py
-├── test_sync_agent.py
-├── test_resolver.py
-├── test_classifier_llm.py
-└── test_integration_real_agents.py # Full system tests
+├── test_*_agent.py                # Individual agent tests
+├── test_*_api.py                  # API endpoint tests
+├── test_*_integration*.py         # Full system integration tests
+└── test_*_llm.py                  # LLM integration tests
 ```
 
 **Coverage**: No recent coverage data available. Run `pytest tests/ -v --cov=agents --cov-report=html` to generate.
@@ -407,6 +463,9 @@ async def query_llm(self, prompt: str) -> str:
 import asyncpg
 
 async def query_database(self, query: str):
+    # Implementation here
+```
+
 ### Redis Cache
 ```python
 import aioredis
@@ -422,6 +481,41 @@ async def cache_data(self, key: str, value: Any):
         redis.close()
         await redis.wait_closed()
 ```
+
+## Development Workflow Patterns
+
+### Debugging Production Issues
+```powershell
+# Check agent registration status
+python -c "from agents.registry import agent_registry; print(list(agent_registry.list_agents().keys()))"
+
+# Force service restart
+ssh twister@192.168.0.30 "docker service update --force twisterlab_api"
+
+# View real-time logs
+ssh twister@192.168.0.30 "docker service logs twisterlab_api --tail 100 -f"
+```
+
+### Local Development Setup
+```powershell
+# Start staging environment
+.\infrastructure\scripts\deploy.ps1 -Environment staging
+
+# Run tests with coverage
+pytest tests/ -v --cov=agents --cov-report=html
+
+# Code quality checks
+ruff check agents/
+mypy agents/
+```
+
+### Agent Development Cycle
+1. **Create agent class** inheriting from `TwisterAgent` in `agents/base.py`
+2. **Implement async execute()** method with proper error handling
+3. **Add to orchestrator** in `autonomous_orchestrator.py`
+4. **Register in agent registry** for discovery
+5. **Add tests** in `tests/test_*_agent.py`
+6. **Update MCP server** if IDE integration needed
 
 ## Security & Credentials
 
@@ -492,5 +586,5 @@ ssh twister@192.168.0.30 "docker exec twisterlab_postgres.1.* psql -U twisterlab
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: 2025-11-11  
+**Last Updated**: 2025-11-17  
 **Production Status**: ✅ Operational (6/6 services running)

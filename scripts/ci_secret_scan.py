@@ -2,8 +2,21 @@
 """
 Simple CI secret scanner that fails when inline secrets are detected.
 
-It scans for common patterns used in this repo and returns a non-zero exit
-status when a potential hard-coded secret is identified.
+This file is intended to be used alongside an external secret scanner (for
+example, the gitleaks action), or as a fallback when the external action
+cannot be reliably executed in the runner environment (tag resolution or
+mirror problems). The scanner looks for common password patterns in YAML,
+env and PowerShell files and uses exclusion rules for secret-backed files
+and known patterns (e.g., *_FILE entries that point to Docker secrets).
+
+It returns a non-zero exit status when a potential hard-coded secret is
+identified and prints contextual lines to help triage the finding.
+
+Usage:
+    python scripts/ci_secret_scan.py
+
+In CI workflows, consider running the external action first and this script
+as a double-check to avoid false negatives.
 """
 from __future__ import annotations
 

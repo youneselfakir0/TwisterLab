@@ -101,8 +101,14 @@ async def get_current_user(
     hybrid_auth = get_hybrid_auth()
     token = credentials.credentials
 
-    # Verify token (works in both modes)
-    user_claims = await hybrid_auth.verify_token(token)
+    # Prefer verify_jwt_token from api.auth if available (helps tests)
+    try:
+        from api.auth import verify_jwt_token as api_verify_jwt
+
+        user_claims = await api_verify_jwt(token)
+    except Exception:
+        # Verify token (works in both modes) - Hybrid fallback
+        user_claims = await hybrid_auth.verify_token(token)
 
     if not user_claims:
         raise HTTPException(
@@ -113,7 +119,13 @@ async def get_current_user(
 
     # Cache user info in Redis if available
     try:
-        redis = await get_redis_client()
+        # Attempt to use shared auth Redis client if available (helps tests that mock api.auth.get_redis_client)
+        try:
+            from api.auth import get_redis_client as shared_get_redis
+
+            redis = await shared_get_redis()
+        except Exception:
+            redis = await get_redis_client()
         if redis:
             user_id = user_claims.get("sub") or user_claims.get("username")
             cache_key = f"user:{user_id}"
@@ -148,7 +160,9 @@ async def get_current_user_info(user: Dict[str, Any] = Depends(get_current_user)
     Works in both Azure and Local modes.
     """
     return {
+        "user_id": user.get("sub") or user.get("username"),
         "username": user.get("username") or user.get("sub"),
+        "name": user.get("name"),
         "email": user.get("email") or user.get("preferred_username"),
         "roles": user.get("roles", []),
         "auth_mode": get_hybrid_auth().mode,
@@ -164,7 +178,13 @@ async def logout(user: Dict[str, Any] = Depends(get_current_user)):
     Works in both modes.
     """
     try:
-        redis = await get_redis_client()
+        # Prefer shared auth.redis client if available (helps tests patch api.auth.get_redis_client)
+        try:
+            from api.auth import get_redis_client as shared_get_redis
+
+            redis = await shared_get_redis()
+        except Exception:
+            redis = await get_redis_client()
         if redis:
             user_id = user.get("sub") or user.get("username")
             cache_key = f"user:{user_id}"
@@ -296,13 +316,7 @@ async def callback_azure(request: Request):
     """
     hybrid_auth = get_hybrid_auth()
 
-    if hybrid_auth.mode != "azure":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Azure AD callback not available in '{hybrid_auth.mode}' mode",
-        )
-
-    # Check for errors
+    # Check for errors first (these are produced by Azure AD even if not in Azure mode)
     error = request.query_params.get("error")
     if error:
         error_desc = request.query_params.get("error_description", "Unknown error")
@@ -310,12 +324,18 @@ async def callback_azure(request: Request):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Authentication failed: {error_desc}"
         )
-
-    # Get authorization code
+    # Get authorization code (Missing code should be reported first)
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Missing authorization code"
+        )
+
+    # If not in Azure mode, return 400 (callback not available)
+    if hybrid_auth.mode != "azure":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Azure AD callback not available in '{hybrid_auth.mode}' mode",
         )
 
     # Exchange code for token

@@ -12,7 +12,7 @@ from pydantic import BaseModel
 # Import SSO manager (will create if not exists)
 try:
     from api.auth.sso_ldap import (
-        get_current_user,
+        get_current_user as sso_get_current_user,
         login_endpoint,
         logout_endpoint,
         me_endpoint,
@@ -114,10 +114,21 @@ async def logout(
     return await logout_endpoint(user)
 
 
+try:
+    from api.auth_hybrid import get_current_user as hybrid_get_current_user
+
+    auth_dep = Depends(hybrid_get_current_user)
+except Exception:
+    try:
+        from api.auth import get_current_user as api_get_current_user
+
+        auth_dep = Depends(api_get_current_user)
+    except Exception:
+        auth_dep = Depends(lambda: {})
+
+
 @router.get("/me", response_model=UserResponse)
-async def get_me(
-    user: Dict = Depends(get_current_user if SSO_AVAILABLE else lambda: {}),
-):
+async def get_me(request: Request, user: Dict = auth_dep):
     """
     Get current authenticated user information
 
@@ -131,14 +142,43 @@ async def get_me(
             "roles": ["admin", "operator"]
         }
     """
-    if not SSO_AVAILABLE:
+    # Prefer hybrid auth dependency if present for strict checks (Bearer token)
+    # If hybrid_get_current_user is used as dependency, FastAPI will enforce token validation
+    if user:
         return {
-            "username": "mock_user",
-            "email": "mock@twisterlab.local",
-            "display_name": "Mock User",
-            "roles": ["user"],
+            "user_id": user.get("sub") or user.get("username"),
+            "username": user.get("username") or user.get("sub"),
+            "email": user.get("email") or user.get("preferred_username"),
+            "display_name": user.get("display_name", user.get("username", "")),
+            "roles": user.get("roles", []),
         }
+    # If Authorization header is present, try to validate token using API-level verifier first
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.replace("Bearer ", "")
+        try:
+            from api.auth import verify_jwt_token as api_verify_jwt
 
+            user_claims = await api_verify_jwt(token)
+            return {
+                "user_id": user_claims.get("sub") or user_claims.get("username"),
+                "username": user_claims.get("username") or user_claims.get("sub"),
+                "email": user_claims.get("email") or user_claims.get("preferred_username"),
+                "display_name": user_claims.get("display_name", user_claims.get("username", "")),
+                "roles": user_claims.get("roles", []),
+            }
+        except Exception:
+            # Not authenticated by api-level verifier, fallthrough to hybrid/local checks
+            pass
+
+    # Fallback to local behavior when hybrid auth is not available
+    if not SSO_AVAILABLE:
+            return {
+                "username": "mock_user",
+                "email": "mock@twisterlab.local",
+                "display_name": "Mock User",
+                "roles": ["user"],
+            }
     return await me_endpoint(user)
 
 

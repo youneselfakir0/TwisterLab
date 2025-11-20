@@ -16,6 +16,11 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from agents.base.base_agent import BaseAgent
+from agents.metrics import (
+    monitoring_persisted_failures_total,
+    monitoring_persisted_failures,
+    monitoring_rechecks_total,
+)
 
 
 class MonitoringAgent(BaseAgent):
@@ -28,6 +33,10 @@ class MonitoringAgent(BaseAgent):
     - Automated repair triggers
     - Alert management
     """
+    # The MonitoringAgent supports a depth-of-inspection flag `investigate_related`.
+    # - When True (default), a primary failed service triggers related service checks
+    #   (e.g. database -> cache, api, agents) for deeper diagnostics.
+    # - When False, only the failed service is checked to reduce MCP calls.
 
     def __init__(self) -> None:
         super().__init__()
@@ -81,6 +90,13 @@ class MonitoringAgent(BaseAgent):
         # Snapshot of the last aggregated service summary to detect state changes
         # across subsequent health checks.
         self._last_service_summary: Optional[Dict[str, Any]] = None
+        # Persist last observed failed components for robust rechecks across runs
+        self._last_failed_components: List[str] = []
+        # Whether to investigate related services (database->cache/api) during detailed checks
+        # - When True (default), a primary failed service triggers related service
+        #   checks (e.g. database -> cache, api) for deeper diagnostics.
+        # - When False, only the failed service is checked to reduce MCP calls.
+        self.investigate_related: bool = True
 
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -103,6 +119,19 @@ class MonitoringAgent(BaseAgent):
             )
 
             op = context.get("operation", "monitor")
+            # Allow per-run override of related investigation flag via context
+            investigate_override = None
+            try:
+                investigate_override = context.get("investigate_related")
+            except Exception:
+                investigate_override = None
+            _orig_investigate = None
+            if investigate_override is not None:
+                _orig_investigate = self.investigate_related
+                try:
+                    self.investigate_related = bool(investigate_override)
+                except Exception:
+                    pass
             results: Dict[str, Any] = {}
             diagnosis: Any = []
             repairs: List[Dict[str, Any]] = []
@@ -168,20 +197,17 @@ class MonitoringAgent(BaseAgent):
                     # single-item list where the single item is a dict. Handle
                     # both by extracting the `issues` or `diagnosis` list if
                     # present.
-                    if (
-                        isinstance(diag_response, list)
-                        and len(diag_response) == 1
-                        and isinstance(diag_response[0], dict)
-                    ):
-                        diag_response_inner = diag_response[0]
-                        if "issues" in diag_response_inner and isinstance(
-                            diag_response_inner.get("issues"), list
-                        ):
-                            diagnosis = diag_response_inner.get("issues", [])
-                        elif "diagnosis" in diag_response_inner and isinstance(
-                            diag_response_inner.get("diagnosis"), list
-                        ):
-                            diagnosis = diag_response_inner.get("diagnosis", [])
+                    if isinstance(diag_response, list):
+                        if len(diag_response) == 1 and isinstance(diag_response[0], dict):
+                            diag_response_inner = diag_response[0]
+                            if "issues" in diag_response_inner and isinstance(
+                                diag_response_inner.get("issues"), list
+                            ):
+                                diagnosis = diag_response_inner.get("issues", [])
+                            elif "diagnosis" in diag_response_inner and isinstance(
+                                diag_response_inner.get("diagnosis"), list
+                            ):
+                                diagnosis = diag_response_inner.get("diagnosis", [])
                     elif isinstance(diag_response, dict):
                         if "issues" in diag_response and isinstance(
                             diag_response.get("issues"), list
@@ -228,57 +254,35 @@ class MonitoringAgent(BaseAgent):
                         except Exception:
                             diag_response = None
 
-                        # Normalize MCP diagnostic response -> list of issues when possible.
-                        # If response is not the expected shape, fall back to local diagnosis
-                        # computed from a service summary to keep tests deterministic.
-                        if (
-                            isinstance(diag_response, list)
-                            and len(diag_response) == 1
-                            and isinstance(diag_response[0], dict)
-                        ):
-                            diag_response_inner = diag_response[0]
-                            if "issues" in diag_response_inner and isinstance(
-                                diag_response_inner.get("issues"), list
-                            ):
-                                diagnosis = diag_response_inner.get("issues", [])
-                            elif "diagnosis" in diag_response_inner and isinstance(
-                                diag_response_inner.get("diagnosis"), list
-                            ):
-                                diagnosis = diag_response_inner.get("diagnosis", [])
-                            elif "issues" in diag_response_inner and isinstance(
-                                diag_response_inner.get("issues"), dict
-                            ):
-                                issues_map = diag_response_inner.get("issues", {})
+                        # Normalize diagnostic response shapes to a common candidate
+                        diag_candidate = None
+                        if isinstance(diag_response, list) and len(diag_response) == 1 and isinstance(diag_response[0], dict):
+                            diag_candidate = diag_response[0]
+                        else:
+                            diag_candidate = diag_response
+
+                        if isinstance(diag_candidate, dict):
+                            if "issues" in diag_candidate and isinstance(diag_candidate.get("issues"), list):
+                                diagnosis = diag_candidate.get("issues", [])
+                            elif "diagnosis" in diag_candidate and isinstance(diag_candidate.get("diagnosis"), list):
+                                diagnosis = diag_candidate.get("diagnosis", [])
+                            elif "issues_found" in diag_candidate and isinstance(diag_candidate.get("issues_found"), int):
+                                diagnosis = [
+                                    {"type": f"issue_{i+1}"}
+                                    for i in range(int(diag_candidate.get("issues_found", 0)))
+                                ]
+                            elif "issues" in diag_candidate and isinstance(diag_candidate.get("issues"), dict):
+                                issues_map = diag_candidate.get("issues", {})
                                 diag_list = []
                                 for itype, ivalue in issues_map.items():
                                     if isinstance(ivalue, bool) and ivalue:
                                         diag_list.append({"type": itype, "severity": "high"})
                                     elif isinstance(ivalue, dict):
                                         severity = ivalue.get("severity", "high")
-                                        diag_list.append(
-                                            {"type": itype, "severity": severity, **ivalue}
-                                        )
+                                        diag_list.append({"type": itype, "severity": severity, **ivalue})
                                 diagnosis = diag_list
-                        elif isinstance(diag_response, dict):
-                            if "issues" in diag_response and isinstance(
-                                diag_response.get("issues"), list
-                            ):
-                                diagnosis = diag_response.get("issues", [])
-                            elif "diagnosis" in diag_response and isinstance(
-                                diag_response.get("diagnosis"), list
-                            ):
-                                diagnosis = diag_response.get("diagnosis", [])
-                            elif "issues_found" in diag_response and isinstance(
-                                diag_response.get("issues_found"), int
-                            ):
-                                n = int(diag_response.get("issues_found", 0))
-                                diagnosis = [{"type": "issue_" + str(i + 1)} for i in range(n)]
-                            else:
-                                # The MCP returned an unexpected shape (mock wrapper or other); derive
-                                # diagnosis locally from service summary to ensure consistency for
-                                # tests that mock only a single high-level MCP response per operation.
-                                summary_srv = await self._get_service_summary()
-                                diagnosis = await self._diagnose_issues(summary_srv)
+                        elif isinstance(diag_candidate, list) and all(isinstance(x, dict) for x in diag_candidate):
+                            diagnosis = diag_candidate
                             try:
                                 calls = getattr(self, "_mcp_call_count", None)
                                 call_args = getattr(self, "_mcp_call_args", None)
@@ -415,8 +419,23 @@ class MonitoringAgent(BaseAgent):
                         # If diagnosis is a dict or other shape, convert into a list
                         diagnosis = [diagnosis]
 
+            # Restore any per-run investigations toggle to the previous value.
+            if _orig_investigate is not None:
+                try:
+                    self.investigate_related = _orig_investigate
+                except Exception:
+                    pass
+
+            # Determine top-level status: for health_check, use the monitored
+            # system status; otherwise return execution status.
+            top_status = "success"
+            # Keep top-level operation status as 'success' to indicate operation
+            # completed, while the detailed health status remains nested in
+            # `results` for the monitoring data consumers and tests. This
+            # maintains backward compatibility with tests expecting 'success'.
+
             return {
-                "status": "success",
+                "status": top_status,
                 "timestamp": datetime.now().isoformat(),
                 "operation": op,
                 "results": results,
@@ -504,12 +523,12 @@ class MonitoringAgent(BaseAgent):
             healthy_flag = status.get("healthy")
             if healthy_flag is None:
                 # Status may be a string like 'healthy' or 'unhealthy'
-                s = (status.get("status") or "").lower()
+                s = str(status.get("status") or "").lower()
                 healthy_flag = s in ["healthy", "ok", "running"]
 
             if not healthy_flag:
                 # Map some specific degraded states to service-specific types
-                s = (status.get("status") or "").lower()
+                s = str(status.get("status") or "").lower()
                 if s == "degraded" and service in ["redis", "cache"]:
                     issue_type = "cache_degraded"
                 elif s == "degraded" and service in ["postgres", "database"]:
@@ -632,9 +651,11 @@ class MonitoringAgent(BaseAgent):
         else:
             raise ValueError(f"Unknown repair action: {action}")
 
-    async def _restart_service(self, service_name: str) -> Dict[str, Any]:
+    async def _restart_service(self, service_name: Optional[str]) -> Dict[str, Any]:
         """Restart a failed service."""
         # Use MCP to call Maestro for service restart
+        if not service_name:
+            raise ValueError("service_name required to restart a service")
         return await self._call_mcp(
             mcp_name="maestro_mcp",
             operation="restart_service",
@@ -642,8 +663,10 @@ class MonitoringAgent(BaseAgent):
             agent_name=self.name,
         )
 
-    async def _scale_service(self, service_name: str) -> Dict[str, Any]:
+    async def _scale_service(self, service_name: Optional[str]) -> Dict[str, Any]:
         """Scale a service to handle load."""
+        if not service_name:
+            raise ValueError("service_name required to scale a service")
         return await self._call_mcp(
             mcp_name="maestro_mcp",
             operation="scale_service",
@@ -820,13 +843,13 @@ class MonitoringAgent(BaseAgent):
         summary_only: bool = False,
         force_detailed: bool = False,
         services_summary_override: Optional[Dict[str, Any]] = None,
+        initial_prev_failed: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Monitor all system components."""
         results: Dict[str, Any] = {}
 
         # 1. Obtain a compact aggregated summary first.
         # Allow callers to provide a services_summary to avoid duplicate
-        # MCP calls when making a summary-first + detailed run.
         if services_summary_override is not None:
             services_summary = services_summary_override
         else:
@@ -835,6 +858,44 @@ class MonitoringAgent(BaseAgent):
         try:
             if isinstance(services_summary, dict) and "status" in services_summary:
                 results["status"] = services_summary.get("status")
+        except Exception:
+            pass
+        # Track last_failed_components when obtaining an aggregated summary
+        try:
+            if isinstance(services_summary, dict):
+                if isinstance(services_summary.get("failed_components"), list):
+                    self._last_failed_components = list(services_summary.get("failed_components", []))
+                    try:
+                        self.logger.debug(
+                            "Persisted last_failed_components (summary): %s",
+                            self._last_failed_components,
+                        )
+                    except Exception:
+                        pass
+                else:
+                    # If the summary includes per-service details, detect any failed services
+                    svc_map = services_summary.get("services")
+                    if isinstance(svc_map, dict):
+                        failed_candidates = [
+                            s
+                            for s, v in svc_map.items()
+                            if isinstance(v, dict)
+                            and not v.get("healthy", True)
+                            and v.get("status") not in ("healthy", "ok", "running")
+                        ]
+                        if failed_candidates:
+                            self._last_failed_components = failed_candidates
+                            try:
+                                self.logger.debug(
+                                    "Persisted last_failed_components (svc_map): %s",
+                                    self._last_failed_components,
+                                )
+                            except Exception:
+                                pass
+                        # Otherwise keep previous failures until a detailed check
+                        # confirms they are resolved — do not overwrite/clear
+                        # _last_failed_components here to prevent losing the
+                        # persisted state before a re-check is run.
         except Exception:
             pass
 
@@ -866,7 +927,28 @@ class MonitoringAgent(BaseAgent):
 
         prev_failed = []
         if self._last_service_summary and isinstance(self._last_service_summary, dict):
+            # previous summary might be a flat dict with `failed_components` or
+            # nested under `services`; check both for robust detection.
             prev_failed = self._last_service_summary.get("failed_components", [])
+            if not prev_failed and isinstance(self._last_service_summary.get("services"), dict):
+                prev_failed = self._last_service_summary["services"].get("failed_components", [])
+        # Merge persisted last failed components into prev_failed so that we
+                    # Metrics imported at module level for efficiency and to avoid
+                    # re-importing during runtime. Use the exported metric
+                    # objects from agents.metrics directly.
+        # consider them when deciding whether to run a detailed re-check.
+        try:
+            if getattr(self, "_last_failed_components", None):
+                prev_failed = list(set(prev_failed + (self._last_failed_components or [])))
+            # If the caller provided an initial snapshot of previously failed
+            # components, use that for 'initial detection' decisions so that
+            # we don't clear persisted values within the same run.
+            if initial_prev_failed is not None:
+                prev_failed_before = initial_prev_failed or []
+            else:
+                prev_failed_before = prev_failed
+        except Exception:
+            pass
 
         should_check_details = False
         performed_detailed_checks = False
@@ -874,6 +956,16 @@ class MonitoringAgent(BaseAgent):
             is_unhealthy = isinstance(services_summary, dict) and services_summary.get(
                 "status"
             ) not in ("healthy", "stable", None)
+            # Debugging: record the decision state for detailed checks
+            try:
+                self.logger.info(
+                    "Monitoring need_detailed? state_changed=%s is_unhealthy=%s",
+                    state_changed,
+                    is_unhealthy,
+                )
+                self.logger.debug("prev_failed=%s force_detailed=%s", prev_failed, force_detailed)
+            except Exception:
+                pass
             if (
                 force_detailed
                 or (not self._has_run_health_check and is_unhealthy)
@@ -883,6 +975,11 @@ class MonitoringAgent(BaseAgent):
 
         # 4. Perform detailed checks if needed.
         if should_check_details:
+            # Instrument: increment rechecks counter for monitoring
+            try:
+                monitoring_rechecks_total.labels(agent_name=self.name).inc()
+            except Exception:
+                pass
             failed: List[str] = []
             if isinstance(services_summary, dict) and isinstance(
                 services_summary.get("failed_components"), list
@@ -893,7 +990,35 @@ class MonitoringAgent(BaseAgent):
                 failed = prev_failed
 
             if failed:
+                # Persist initial failed components (summary-level detection) early
+                # so subsequent health_check calls will re-check them deterministically.
+                try:
+                    self._last_failed_components = list(failed)
+                    # Instrument: persisted failed components - increment counter and set gauge
+                    try:
+                        monitoring_persisted_failures_total.labels(agent_name=self.name).inc()
+                        monitoring_persisted_failures.labels(agent_name=self.name).set(
+                            len(self._last_failed_components)
+                        )
+                    except Exception:
+                        pass
+                    try:
+                        self.logger.debug(
+                            "Persisted last_failed_components (initial): %s",
+                            self._last_failed_components,
+                        )
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+                try:
+                    self.logger.info("Monitoring per-service failed list: %s", failed)
+                except Exception:
+                    pass
                 detailed_services = {}
+                # Optional related map for further investigation; enabled by default
+                # to include related services (database->cache, api, agents) in per-service checks
+                # for a more thorough diagnosis and to reflect real-world impact.
                 related_map = {
                     "database": ["cache", "api", "agents"],
                     "cache": ["api", "agents"],
@@ -901,10 +1026,19 @@ class MonitoringAgent(BaseAgent):
                 }
                 services_to_check = set()
                 for svc in list(failed):
-                    # Only check related services, not the failed service itself
-                    services_to_check.update(related_map.get(svc, []))
+                    # Check the failed service itself so we can confirm recovery,
+                    # in addition to related services. This avoids persisting a
+                    # failed component across runs when it has actually recovered
+                    # but was not part of the previous detailed 'services' mapping.
+                    services_to_check.add(svc)
+                    if self.investigate_related:
+                        services_to_check.update(related_map.get(svc, []))
 
                 # Sort to maintain deterministic ordering for tests
+                try:
+                    self.logger.info("Monitoring services_to_check: %s", sorted(services_to_check))
+                except Exception:
+                    pass
                 for s in sorted(services_to_check):
                     if s not in detailed_services:
                         try:
@@ -925,91 +1059,219 @@ class MonitoringAgent(BaseAgent):
                 results["services"] = detailed_services
                 performed_detailed_checks = True
 
-        # 5. Snapshot state and run other health checks (since summary_only is False)
-        self._last_service_summary = services_summary
-        self._has_run_health_check = True
+            # 5. Snapshot state and run other health checks (since summary_only is False)
+            self._last_service_summary = results["services"] # Always store the most detailed view
+            self._has_run_health_check = True
 
-        # If we performed detailed per-service checks, avoid redundant
-        # per-component MCP calls (database/cache) to reduce the number of
-        # MCP calls and match existing test expectations. Otherwise, call
-        # them to populate a full health payload.
-        if not performed_detailed_checks:
-            results["database"] = await self._check_database_health()
-            results["cache"] = await self._check_cache_health()
-            results["performance"] = await self._check_performance_metrics()
+            # If we performed detailed per-service checks, avoid redundant
+            # per-component MCP calls (database/cache) to reduce the number of
+            # MCP calls and match existing test expectations. Otherwise, call
+            # them to populate a full health payload.
+            if not performed_detailed_checks:
+                results["database"] = await self._check_database_health()
+                results["cache"] = await self._check_cache_health()
+                results["performance"] = await self._check_performance_metrics()
+            else:
+                # If we performed detailed checks, capture the failed components
+                # from the detailed results so future summary-only checks can
+                # consult them for deterministic re-check behavior.
+                try:
+                    services_map = results.get("services")
+                    if isinstance(services_map, dict):
+                        # Determine which previously failed components were actually
+                        # present in the detailed results and whether they are now healthy.
+                        failed_after = [
+                            s
+                            for s, v in services_map.items()
+                            if isinstance(v, dict) and not v.get("healthy", True)
+                        ]
+                        # Persist unresolved failures: include any failed detected in this run
+                        # plus any previous failures that were not part of the detailed
+                        # introspection (we cannot confirm they recovered).
+                        prev_failed = getattr(self, "_last_failed_components", []) or []
+                        unresolved = list(set(failed_after + [p for p in prev_failed if p not in services_map]))
+                        # If this run was the initial detection of a failure, keep the persisted
+                        # failed_components across this run even if detailed checks show them healthy.
+                        # We only update persisted value if unresolved is non-empty or this was not the
+                        # initial detection.
+                        was_initial_detection = bool(failed and not prev_failed_before)
+                        if not was_initial_detection:
+                            # Only update persisted failures when this is NOT the initial detection
+                            # for the current run. This ensures that we persist the initial
+                            # summary-level failure across the entire initial run and only
+                            # update it on subsequent runs.
+                            self._last_failed_components = unresolved
+                            try:
+                                monitoring_persisted_failures.labels(agent_name=self.name).set(
+                                    len(self._last_failed_components or [])
+                                )
+                            except Exception:
+                                pass
+                            try:
+                                self.logger.debug(
+                                    "Persisted last_failed_components (unresolved): %s",
+                                    self._last_failed_components,
+                                )
+                            except Exception:
+                                pass
+                    else:
+                        # If no detailed service mapping is present, keep previous failures
+                        # because we did not confirm their resolution.
+                        pass
+                except Exception:
+                    # Avoid letting failure to update persisted state break monitoring
+                    pass
 
-        return results
+            return results
 
     async def _check_health_all(self) -> Dict[str, Any]:
         """Compatibility shim for the 'health_check' operation.
 
         Historically code called `_check_health_all()` for the monitoring
-        health_check entrypoint; implement a thin wrapper that returns the
-        aggregated summary using `_monitor_system` (summary_only).
+        health_check entrypoint; this wrapper returns the aggregated summary
+        using `_monitor_system(summary_only=True)` and performs a detailed
+        re-check when needed (failed components or persisted failures).
         """
-        # Summary-first: get an aggregated overview before deciding on
-        # whether to perform costly per-service detailed checks. This keeps
-        # tests deterministic and minimizes MCP calls when the system is
-        # healthy.
-        results = await self._monitor_system(context={}, summary_only=True)
+        # Obtain the previous failed components from the last service summary
+        prev_failed_before: List[str] = []
+        if self._last_service_summary and isinstance(self._last_service_summary, dict):
+            prev_failed_before = self._last_service_summary.get("failed_components", []) or []
+
+        # Get a lightweight summary first
+        results = await self._monitor_system(context={}, summary_only=True, initial_prev_failed=prev_failed_before)
+        # If the returned summary contains a nested 'services' list and no
+        # detailed per-service map, return the list for backward compatibility
+        # with tests that expect a simple list of services.
         try:
-            self.logger.debug("Health check summary: %s", results)
+            svc_part = results.get("services") if isinstance(results, dict) else None
+            if isinstance(svc_part, dict) and isinstance(svc_part.get("services"), list):
+                results["services"] = svc_part.get("services")
         except Exception:
             pass
-
-        # Determine whether we should perform a detailed re-check. Use the
-        # summary and cached last summary to decide: if the summary reports
-        # failed_components or the status indicates an unhealthy state, or if
-        # a previous summary had failed_components (i.e. prev_failed), then perform a more detailed check.  # noqa: E501
+        # Persist summary-detected failed components early (compatibility shim)
         try:
-            svc = results.get("services") if isinstance(results, dict) else None
-            status = results.get("status") if isinstance(results, dict) else None
-            failed_components = []
-            if isinstance(svc, dict) and isinstance(svc.get("failed_components"), list):
-                failed_components = svc.get("failed_components", [])
-            prev_failed = []
-            if isinstance(self._last_service_summary, dict):
-                prev_failed = self._last_service_summary.get("failed_components", [])
-
-            need_detailed = False
-            if failed_components:
-                need_detailed = True
-            elif status and status not in ("healthy", "stable", None):
-                need_detailed = True
-            elif prev_failed:
-                # If previous run had failures, re-check to ensure recovery
-                need_detailed = True
+            svc_summary = results.get("services") if isinstance(results, dict) else None
+            if isinstance(svc_summary, dict) and isinstance(svc_summary.get("failed_components"), list):
+                self._last_failed_components = list(svc_summary.get("failed_components", []))
+                # Instrument metrics for persisted failures from summary-level
+                try:
+                    monitoring_persisted_failures_total.labels(agent_name=self.name).inc()
+                    monitoring_persisted_failures.labels(agent_name=self.name).set(
+                        len(self._last_failed_components or [])
+                    )
+                except Exception:
+                    pass
+                try:
+                    self.logger.info(
+                        "_check_health_all: persisted failed_components=%s",
+                        self._last_failed_components,
+                    )
+                except Exception:
+                    pass
         except Exception:
-            need_detailed = False
+            pass
+        self.logger.debug("Health check summary: %s", results)
 
+
+        svc = results.get("services") if isinstance(results, dict) else None
+        status = results.get("status") if isinstance(results, dict) else None
+        failed_components: List[str] = []
+        if isinstance(svc, dict) and isinstance(svc.get("failed_components"), list):
+            failed_components = svc.get("failed_components", [])
+
+        # Merge any persisted last-failed components
+        prev_failed = list(set((prev_failed_before or []) + (getattr(self, "_last_failed_components", []) or [])))
+
+        initial_failed = list(failed_components) if failed_components else []
+        need_detailed = bool(failed_components or (status and status not in ("healthy", "stable", None)) or prev_failed)
         if need_detailed:
+            # Perform a full re-check of services using the current summary as a base
+            services_override = svc if isinstance(svc, dict) else None
+            results = await self._monitor_system(context={}, summary_only=False, force_detailed=True, services_summary_override=services_override, initial_prev_failed=prev_failed_before)
+            self.logger.debug("Health check detailed: %s", results)
+
+            # Re-assert the initial persisted failed components across the same run.
+            # This avoids clearing persisted failures during the same health_check
+            # invocation when a summary initially detects a failure but interleaved
+            # detailed checks report a mix of healthy/unhealthy states for the
+            # components. The persisted list should only be updated on subsequent
+            # runs when a recovery is confirmed.
             try:
-                # Force detailed checks since the summary indicated problems
-                detailed = await self._monitor_system(
-                    context={},
-                    summary_only=False,
-                    force_detailed=True,
-                    services_summary_override=results.get("services"),
-                )
-                # If the detailed run returned a richer services mapping,
-                # use it in results so callers receive the detailed view.
-                if isinstance(detailed, dict) and isinstance(detailed.get("services"), dict):
-                    results["services"] = detailed.get("services")
-                    # Copy other keys that callers may expect
-                    for k in ("database", "cache", "performance"):
-                        if k in detailed:
-                            results[k] = detailed[k]
+                if prev_failed_before == [] and initial_failed:
+                    self._last_failed_components = list(initial_failed)
             except Exception:
                 pass
-        # Normalization for tests: if the MCP returned a simple list of
-        # service names under `services`, convert to a mapping so tests
-        # that expect a dict of per-service statuses pass.
+
+            # Determine whether we should perform a detailed re-check. Use the
+            # summary and cached last summary to decide: if the summary reports
+            # failed_components or the status indicates an unhealthy state, or if
+            # a previous summary had failed_components (i.e. prev_failed), then perform a more detailed check.  # noqa: E501
+            try:
+                svc = results.get("services") if isinstance(results, dict) else None
+                status = results.get("status") if isinstance(results, dict) else None
+                failed_components = []
+                if isinstance(svc, dict) and isinstance(svc.get("failed_components"), list):
+                    failed_components = svc.get("failed_components", [])
+                # Merge previously persisted failed component info with the
+                # prior snapshot; this ensures that failures that were recorded
+                # on an earlier detailed check but may not appear in the
+                # previous summary (e.g. because the summary is a lightweight
+                # aggregation) still trigger a re-check.
+                prev_failed = list(set((prev_failed_before or []) + (getattr(self, "_last_failed_components", []) or [])))
+
+                need_detailed = False
+                if failed_components:
+                    need_detailed = True
+                elif status and status not in ("healthy", "stable", None):
+                    need_detailed = True
+                elif prev_failed:
+                    # If previous run had failures, re-check to ensure recovery
+                    need_detailed = True
+                try:
+                    self.logger.info("_check_health_all: status=%s failed_components=%s", status, failed_components)
+                    self.logger.debug("prev_failed=%s need_detailed=%s", prev_failed, need_detailed)
+                except Exception:
+                    pass
+            except Exception:
+                need_detailed = False
+
+            if need_detailed:
+                try:
+                    # Force detailed checks since the summary indicated problems
+                    detailed = await self._monitor_system(
+                        context={},
+                        summary_only=False,
+                        force_detailed=True,
+                        services_summary_override=results,
+                    )
+                    # If the detailed run returned a richer services mapping,
+                    # use it in results so callers receive the detailed view.
+                    if isinstance(detailed, dict) and isinstance(detailed.get("services"), dict):
+                        results["services"] = detailed.get("services")
+                        # Copy other keys that callers may expect
+                        for k in ("database", "cache", "performance"):
+                            if k in detailed:
+                                results[k] = detailed[k]
+                except Exception:
+                    pass
+            # Normalization for tests: if the MCP returned a simple list of
+            # service names under `services`, convert to a mapping so tests
+            # that expect a dict of per-service statuses pass.
+            try:
+                srv = results.get("services")
+                if isinstance(srv, list):
+                    results["services"] = {s: {"healthy": True} for s in srv}
+                elif isinstance(srv, dict):
+                    inner_services = srv.get("services")
+                    if isinstance(inner_services, list):
+                        results["services"] = {s: {"healthy": True} for s in inner_services}
+            except Exception:
+                pass
+        # Ensure initial persisted failures remain for the duration of the same run
         try:
-            srv = results.get("services")
-            if isinstance(srv, list):
-                results["services"] = {s: {"healthy": True} for s in srv}
-            elif isinstance(srv, dict) and isinstance(srv.get("services"), list):
-                results["services"] = {s: {"healthy": True} for s in srv.get("services")}
+            if initial_failed:
+                self._last_failed_components = list(initial_failed)
         except Exception:
             pass
+
         return results

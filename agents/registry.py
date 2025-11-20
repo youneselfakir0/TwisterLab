@@ -37,7 +37,7 @@ class AgentRegistry:
         backup = RealBackupAgent()
         sync = RealSyncAgent()
         desktop_commander = RealDesktopCommanderAgent()
-        maestro = RealMaestroAgent()
+        maestro = RealMaestroAgent(agent_registry=self)
         browser = BrowserAgent()  # Nouvelle instanciation
 
         self._agents = {
@@ -54,7 +54,40 @@ class AgentRegistry:
 
     def get_agent(self, name: str) -> UnifiedAgentBase:
         """Récupère une instance d'agent par son nom."""
-        return self._agents.get(name.lower())
+        # Support multiple naming conventions for agent lookup to be forgiving
+        if not name:
+            return None
+        key = name.lower()
+
+        # Direct match
+        agent = self._agents.get(key)
+        if agent:
+            return agent
+
+        # Normalize common variations: remove hyphens, underscores, and 'agent' suffix
+        normalized = key.replace("-", "").replace("_", "")
+        if normalized.endswith("agent"):
+            normalized = normalized[: -len("agent")]
+
+        # Try normalized direct match
+        agent = self._agents.get(normalized)
+        if agent:
+            return agent
+
+        # Also try matching against each registered agent's name attribute
+        for registered_key, registered_agent in self._agents.items():
+            reg_name = (registered_agent.name or registered_key).lower()
+            reg_norm = reg_name.replace("-", "").replace("_", "")
+            if key == reg_name or key == reg_norm or normalized == reg_name or normalized == reg_norm:
+                return registered_agent
+
+        # Last resort: substring match (e.g., 'monitor' matching 'monitoring')
+        for registered_agent in self._agents.values():
+            rn = (registered_agent.name or "").lower()
+            if key in rn or rn in key:
+                return registered_agent
+
+        return None
 
     def list_agents(self) -> Dict[str, Dict]:
         """Retourne le statut réel et les métadonnées de tous les agents."""

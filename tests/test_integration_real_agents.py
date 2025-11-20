@@ -9,13 +9,15 @@ from datetime import datetime
 
 import aiohttp
 
-EDGESERVER = "192.168.0.30"
+import os
+
+EDGESERVER = os.getenv("EDGESERVER", "192.168.0.30")
 API_URL = f"http://{EDGESERVER}:8000"
 
 
 async def test_agent(session, agent_name, operation, params=None):
     """Test a specific agent operation."""
-    url = f"{API_URL}/agents/{agent_name}/execute"
+    url = f"{API_URL}/api/v1/autonomous/agents/{agent_name}/execute"
 
     payload = {"operation": operation}
     if params:

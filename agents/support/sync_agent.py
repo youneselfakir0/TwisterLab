@@ -16,7 +16,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from agents.base import TwisterAgent
+from agents.base import TwisterAgent, accepts_context_or_task
 
 # Configure logging
 logging.basicConfig(
@@ -176,7 +176,8 @@ class SyncAgent(TwisterAgent):
                 return False
         return True
 
-    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    @accepts_context_or_task
+    async def execute(self, task_or_context, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Execute sync operation.
 
@@ -188,6 +189,12 @@ class SyncAgent(TwisterAgent):
             Sync result with status and details
         """
         try:
+            # Normalize inputs for both calling conventions
+            if context is None and isinstance(task_or_context, dict):
+                context = task_or_context
+                task = context.get("operation", "sync_all")
+            else:
+                task = task_or_context
             start_time = datetime.now(timezone.utc)
             logger.info(f"SyncAgent executing: {task}")
 

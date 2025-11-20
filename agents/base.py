@@ -41,7 +41,7 @@ class TwisterAgent(ABC):
         model: str = "llama-3.2",
         temperature: float = 0.7,
         metadata: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> None:
         self.name = name
         self.display_name = display_name
         self.description = description
@@ -130,6 +130,33 @@ class TwisterAgent(ABC):
                 "temperature": self.temperature,
                 "framework": "twisterlab",
                 "version": "1.0.0",
+            },
+        }
+
+    # Default capability and health helpers for all agents
+    def get_capabilities(self) -> Dict[str, Any]:
+        """Return a dictionary describing the agent's capabilities.
+
+        By default returns the list of available tools and model metadata.
+        Agents can override to provide richer capability info.
+        """
+        return {
+            "name": self.name,
+            "display_name": self.display_name,
+            "tools": [tool.get("function", {}).get("name", "unknown") for tool in self.tools],
+            "model": self.model,
+        }
+
+    async def get_health_status(self) -> Dict[str, Any]:
+        """Return a minimal health status for the agent.
+
+        Subclasses should override with more detailed checks.
+        """
+        return {
+            "agent": self.name,
+            "status": "healthy",
+            "checks": {
+                "tools_available": len(self.tools),
             },
         }
 
@@ -239,6 +266,17 @@ class TwisterAgent(ABC):
             },
         }
 
+    def get_capabilities_list(self) -> List[str]:
+        """Return agent capabilities as a list of names for compatibility with BaseAgent API.
+
+        This method returns the 'capabilities' attribute if present (expected to be a list of
+        strings), otherwise it falls back to a list of tool function names derived from
+        registered tools.
+        """
+        if getattr(self, "capabilities", None) is not None:
+            return getattr(self, "capabilities", [])
+        return [tool.get("function", {}).get("name", "unknown") for tool in self.tools]
+
     def _convert_tools_to_microsoft_format(self) -> List[Dict[str, Any]]:
         """
         Convert TwisterLab tools to Microsoft Agent Framework format.
@@ -305,16 +343,19 @@ class TwisterAgent(ABC):
 class HelpdeskAgent(TwisterAgent):
     """IT Helpdesk Agent for TwisterLab v1.0."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             name="helpdesk-resolver",
             display_name="IT Helpdesk Resolver",
-            description="Resolves common IT helpdesk tickets automatically (password resets, software installs, access requests)",
+            description=(
+                "Resolves common IT helpdesk tickets automatically "
+                "(password resets, software installs, access requests)"
+            ),
             role="helpdesk",
             instructions=(
                 "You are an IT Helpdesk Agent specializing in resolving common IT support tickets. "
-                "You can automatically handle password resets, software installations, access requests, "
-                "and basic troubleshooting. For complex issues, escalate to human agents."
+                "You can automatically handle password resets, software installations, access "
+                "requests, and basic troubleshooting. For complex issues, escalate to human agents."
             ),
             tools=[
                 {
@@ -395,153 +436,161 @@ class HelpdeskAgent(TwisterAgent):
         # Implementation would go here
         return {"status": "success", "task": task}
 
+    class TicketClassifierAgent(TwisterAgent):
+        """Ticket Classifier Agent for TwisterLab."""
 
-class ClassifierAgent(TwisterAgent):
-    """Ticket Classifier Agent for TwisterLab v1.0."""
-
-    def __init__(self):
-        super().__init__(
-            name="classifier",
-            display_name="Ticket Classifier",
-            description="Classifies incoming helpdesk tickets by category, priority, and complexity",
-            role="classifier",
-            instructions=(
-                "You are a Ticket Classifier Agent. Analyze incoming helpdesk tickets and classify them by:\n"
-                "1. Category (password, software, access, hardware, network, other)\n"
-                "2. Priority (low, medium, high, urgent)\n"
-                "3. Complexity (simple, moderate, complex)\n"
-                "4. Confidence score (0.0-1.0)\n\n"
-                "Provide structured output for routing decisions."
-            ),
-            tools=[
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "classify_ticket",
-                        "description": "Classify a helpdesk ticket",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "ticket_id": {"type": "string", "description": "Ticket identifier"},
-                                "subject": {"type": "string", "description": "Ticket subject"},
-                                "description": {
-                                    "type": "string",
-                                    "description": "Ticket description",
+        def __init__(self) -> None:
+            super().__init__(
+                name="classifier",
+                display_name="Ticket Classifier",
+                description=(
+                    "Classifies incoming helpdesk tickets by category, "
+                    "priority, and complexity"
+                ),
+                role="classifier",
+                instructions=(
+                    "You are a Ticket Classifier Agent.\n"
+                    "Analyze incoming helpdesk tickets and classify them by:\n"
+                    "1. Category (password, software, access, hardware, network, other)\n"
+                    "2. Priority (low, medium, high, urgent)\n"
+                    "3. Complexity (simple, moderate, complex)\n"
+                    "4. Confidence score (0.0-1.0)\n\n"
+                    "Provide structured output for routing decisions."
+                ),
+                tools=[
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "classify_ticket",
+                            "description": "Classify a helpdesk ticket",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "ticket_id": {
+                                        "type": "string",
+                                        "description": "Ticket identifier",
+                                    },
+                                    "subject": {"type": "string", "description": "Ticket subject"},
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Ticket description",
+                                    },
                                 },
+                                "required": ["ticket_id", "subject", "description"],
                             },
-                            "required": ["ticket_id", "subject", "description"],
+                        },
+                    }
+                ],
+                model="deepseek-r1",  # Using DeepSeek-R1 for classification
+                temperature=0.2,  # Very low for consistent classification
+                metadata={"department": "IT", "accuracy_target": "95%", "avg_time": "<5 seconds"},
+            )
+
+        async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Any:
+            """Execute classification task."""
+            return {"status": "success", "task": task}
+
+    class DesktopCommanderAgent(TwisterAgent):
+        """Desktop Commander Agent for TwisterLab."""
+
+        def __init__(self) -> None:
+            super().__init__(
+                name="desktop-commander",
+                display_name="Desktop Commander",
+                description=(
+                    "Distributed agent system for remote desktop management "
+                    "and command execution"
+                ),
+                role="desktop-commander",
+                instructions=(
+                    "You are a Desktop Commander Agent managing remote desktop clients. "
+                    "You can execute commands, deploy software, gather system information, and "
+                    "perform remote diagnostics on registered client machines. All operations are "
+                    "logged and secured with zero-trust architecture."
+                ),
+                tools=[
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "execute_command",
+                            "description": "Execute command on remote desktop client",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "device_id": {
+                                        "type": "string",
+                                        "description": "Target device identifier",
+                                    },
+                                    "command": {
+                                        "type": "string",
+                                        "description": "Command to execute (from whitelist only)",
+                                    },
+                                    "timeout": {
+                                        "type": "integer",
+                                        "description": "Command timeout in seconds (default: 300)",
+                                    },
+                                },
+                                "required": ["device_id", "command"],
+                            },
                         },
                     },
-                }
-            ],
-            model="deepseek-r1",  # Using DeepSeek-R1 for classification
-            temperature=0.2,  # Very low for consistent classification
-            metadata={"department": "IT", "accuracy_target": "95%", "avg_time": "<5 seconds"},
-        )
-
-    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Any:
-        """Execute classification task."""
-        return {"status": "success", "task": task}
-
-
-class DesktopCommanderAgent(TwisterAgent):
-    """Desktop Commander Agent for TwisterLab v1.0."""
-
-    def __init__(self):
-        super().__init__(
-            name="desktop-commander",
-            display_name="Desktop Commander",
-            description="Distributed agent system for remote desktop management and command execution",
-            role="desktop-commander",
-            instructions=(
-                "You are a Desktop Commander Agent managing remote desktop clients. "
-                "You can execute commands, deploy software, gather system information, and perform "
-                "remote diagnostics on registered client machines. All operations are logged and "
-                "secured with zero-trust architecture."
-            ),
-            tools=[
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "execute_command",
-                        "description": "Execute command on remote desktop client",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "device_id": {
-                                    "type": "string",
-                                    "description": "Target device identifier",
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "deploy_package",
+                            "description": "Deploy software package to remote device",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "device_id": {
+                                        "type": "string",
+                                        "description": "Target device identifier",
+                                    },
+                                    "package_url": {
+                                        "type": "string",
+                                        "description": "Package download URL",
+                                    },
+                                    "install_args": {
+                                        "type": "string",
+                                        "description": "Installation arguments",
+                                    },
                                 },
-                                "command": {
-                                    "type": "string",
-                                    "description": "Command to execute (from whitelist only)",
-                                },
-                                "timeout": {
-                                    "type": "integer",
-                                    "description": "Command timeout in seconds (default: 300)",
-                                },
+                                "required": ["device_id", "package_url"],
                             },
-                            "required": ["device_id", "command"],
                         },
                     },
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_system_info",
+                            "description": "Gather system information from remote device",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "device_id": {
+                                        "type": "string",
+                                        "description": "Target device identifier",
+                                    },
+                                    "info_type": {
+                                        "type": "string",
+                                        "enum": ["hardware", "software", "network", "all"],
+                                        "description": "Type of information to gather",
+                                    },
+                                },
+                                "required": ["device_id"],
+                            },
+                        },
+                    },
+                ],
+                model="llama-3.2",
+                temperature=0.1,  # Very low for precise command execution
+                metadata={
+                    "department": "IT",
+                    "security_level": "zero-trust",
+                    "max_concurrent_commands": 10,
                 },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "deploy_package",
-                        "description": "Deploy software package to remote device",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "device_id": {
-                                    "type": "string",
-                                    "description": "Target device identifier",
-                                },
-                                "package_url": {
-                                    "type": "string",
-                                    "description": "Package download URL",
-                                },
-                                "install_args": {
-                                    "type": "string",
-                                    "description": "Installation arguments",
-                                },
-                            },
-                            "required": ["device_id", "package_url"],
-                        },
-                    },
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "get_system_info",
-                        "description": "Gather system information from remote device",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "device_id": {
-                                    "type": "string",
-                                    "description": "Target device identifier",
-                                },
-                                "info_type": {
-                                    "type": "string",
-                                    "enum": ["hardware", "software", "network", "all"],
-                                    "description": "Type of information to gather",
-                                },
-                            },
-                            "required": ["device_id"],
-                        },
-                    },
-                },
-            ],
-            model="llama-3.2",
-            temperature=0.1,  # Very low for precise command execution
-            metadata={
-                "department": "IT",
-                "security_level": "zero-trust",
-                "max_concurrent_commands": 10,
-            },
-        )
+            )
 
-    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Any:
-        """Execute desktop commander task."""
-        return {"status": "success", "task": task}
+        async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Any:
+            """Execute desktop commander task."""
+            return {"status": "success", "task": task}

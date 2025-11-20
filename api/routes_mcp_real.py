@@ -259,6 +259,7 @@ class ExecuteCommandRequest(BaseModel):
 
 
 @router.post("/classify_ticket", response_model=MCPResponse)
+@router.post("/twisterlab_mcp_classify_ticket", response_model=MCPResponse)
 async def classify_ticket(
     request: ClassifyTicketRequest, session: Optional[AsyncSession] = Depends(get_db_session)
 ) -> MCPResponse:
@@ -422,6 +423,7 @@ async def classify_ticket(
 
 
 @router.post("/resolve_ticket", response_model=MCPResponse)
+@router.post("/twisterlab_mcp_resolve_ticket", response_model=MCPResponse)
 async def resolve_ticket(request: ResolveTicketRequest) -> MCPResponse:
     """
     Resolve a ticket using RealResolverAgent (executes SOPs).
@@ -696,6 +698,7 @@ async def create_backup(request: CreateBackupRequest) -> MCPResponse:
 
 
 @router.post("/sync_cache_db", response_model=MCPResponse)
+@router.post("/twisterlab_mcp_sync_cache", response_model=MCPResponse)
 async def sync_cache_db(request: SyncCacheDBRequest) -> MCPResponse:
     """
     Synchronize Redis cache with PostgreSQL database using RealSyncAgent.

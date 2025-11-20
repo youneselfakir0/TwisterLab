@@ -1,6 +1,7 @@
 """
 TwisterLab - Real Working Maestro Orchestrator Agent (v2 - Unified)
-Orchestrates and coordinates all other agents, aligned with the UnifiedAgentBase.
+Orchestrates and coordinates all other agents, aligned with
+the UnifiedAgentBase.
 """
 
 import asyncio
@@ -9,7 +10,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from agents.base.unified_agent import AgentStatus, UnifiedAgentBase
-from agents.registry import agent_registry  # Import the global agent registry
 
 logger = logging.getLogger(__name__)
 
@@ -19,14 +19,23 @@ class RealMaestroAgent(UnifiedAgentBase):
     Real maestro orchestrator that coordinates ACTUAL multi-agent workflows. Inherits from UnifiedAgentBase.
     """
 
-    def __init__(self):
+    def __init__(self, agent_registry=None):
         super().__init__(
             name="RealMaestroAgent",
             version="2.0",
             description="Orchestrates and coordinates multi-agent workflows for IT automation.",
         )
-        self.agent_registry = agent_registry  # Get reference to the global registry
+        # Accept an optional agent_registry reference to avoid circular import
+        # issues when the registry instantiates the Maestro itself.
+        if agent_registry is None:
+            from agents.registry import agent_registry as _registry
+
+            self.agent_registry = _registry
+        else:
+            self.agent_registry = agent_registry
         self.agent_stats = {}  # To track stats of agents managed by Maestro
+        # Provide a convenience alias expected by some tests
+        self.agents = {name: inst for name, inst in self.agent_registry._agents.items()}
 
         # Initialize stats for all known agents in the registry
         for agent_name in self.agent_registry.list_agents().keys():
@@ -39,6 +48,22 @@ class RealMaestroAgent(UnifiedAgentBase):
         logger.info(
             f"✅ {self.name} initialized with access to {len(self.agent_registry.list_agents())} agents."
         )
+
+    def _find_agent(self, base_name: str):
+        """Try to find an agent in the registry by base name or common variants.
+
+        Searches by exact key, then falls back to any agent whose name contains the base_name.
+        """
+        # Try exact lookup (case-insensitive)
+        agent = self.agent_registry.get_agent(base_name.lower())
+        if agent:
+            return agent
+
+        # Fallback: search registered agents global names
+        for name, instance in self.agent_registry._agents.items():
+            if base_name.lower() in name or base_name.lower() in instance.name.lower():
+                return instance
+        return None
 
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -55,19 +80,24 @@ class RealMaestroAgent(UnifiedAgentBase):
         operation = context.get("operation", "orchestrate_workflow")
         logger.info(f"🎭 {self.name} executing: {operation}")
 
-        if operation == "orchestrate_workflow":
-            ticket = context.get("ticket", {})
-            return await self._orchestrate_workflow(ticket)
-        elif operation == "coordinate_agents":
-            agents_to_run = context.get("agents", [])
-            return await self._coordinate_agents(agents_to_run)
-        elif operation == "health_check_all":
-            return await self._health_check_all()
-        elif operation == "load_balance":
-            tasks = context.get("tasks", [])
-            return await self._load_balance(tasks)
-        else:
-            raise ValueError(f"Unknown operation for {self.name}: {operation}")
+        try:
+            if operation == "orchestrate_workflow":
+                ticket = context.get("ticket", {})
+                return await self._orchestrate_workflow(ticket)
+            elif operation == "coordinate_agents":
+                agents_to_run = context.get("agents", [])
+                return await self._coordinate_agents(agents_to_run)
+            elif operation == "health_check_all":
+                return await self._health_check_all()
+            elif operation == "load_balance":
+                tasks = context.get("tasks", [])
+                return await self._load_balance(tasks)
+            else:
+                # Return error payload so callers can handle gracefully
+                return {"status": "error", "error": f"Unknown operation for {self.name}: {operation}", "operation": operation}
+        except Exception as e:
+            logger.error(f"Unexpected error in {self.name}.execute: {e}")
+            return {"status": "error", "error": str(e), "operation": operation}
 
     async def _orchestrate_workflow(self, ticket: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -81,7 +111,7 @@ class RealMaestroAgent(UnifiedAgentBase):
         try:
             # Step 1: Classify ticket
             logger.info("Step 1: Classifying ticket...")
-            classifier_agent = self.agent_registry.get_agent("classifieragent")
+            classifier_agent = self._find_agent("classifier")
             if not classifier_agent:
                 raise ValueError("ClassifierAgent not found in registry.")
             classify_result = await classifier_agent.run(
@@ -98,12 +128,16 @@ class RealMaestroAgent(UnifiedAgentBase):
                 }
             )
 
-            category = classify_result["result"]["classification"]["category"]
-            priority = classify_result["result"]["classification"]["priority"]
+            if "result" in classify_result and "classification" in classify_result["result"]:
+                classification_data = classify_result["result"]["classification"]
+            else:
+                classification_data = classify_result.get("classification", {})
+            category = classification_data.get("category")
+            priority = classification_data.get("priority")
 
             # Step 2: Resolve ticket
             logger.info("Step 2: Resolving ticket...")
-            resolver_agent = self.agent_registry.get_agent("resolveragent")
+            resolver_agent = self._find_agent("resolver")
             if not resolver_agent:
                 raise ValueError("ResolverAgent not found in registry.")
             resolve_result = await resolver_agent.run(
@@ -126,7 +160,7 @@ class RealMaestroAgent(UnifiedAgentBase):
             # Step 3: Verify with monitoring (if critical)
             if priority == "critical":
                 logger.info("Step 3: Verifying resolution...")
-                monitoring_agent = self.agent_registry.get_agent("realmonitoringagent")
+                monitoring_agent = self._find_agent("monitoring")
                 if not monitoring_agent:
                     raise ValueError("RealMonitoringAgent not found in registry.")
                 monitor_result = await monitoring_agent.run(context={"operation": "health_check"})
@@ -144,7 +178,7 @@ class RealMaestroAgent(UnifiedAgentBase):
             # Step 4: Create backup (if needed)
             if category in ["database", "security"]:
                 logger.info("Step 4: Creating backup...")
-                backup_agent = self.agent_registry.get_agent("realbackupagent")
+                backup_agent = self._find_agent("backup")
                 if not backup_agent:
                     raise ValueError("RealBackupAgent not found in registry.")
                 backup_result = await backup_agent.run(context={"operation": "create_backup"})
@@ -184,6 +218,7 @@ class RealMaestroAgent(UnifiedAgentBase):
                     "steps": workflow_steps,
                 },
                 "outcome": "resolved",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -258,6 +293,7 @@ class RealMaestroAgent(UnifiedAgentBase):
             "total_agents": len(health_results),
             "healthy_agents": healthy_count,
             "agents": health_results,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     async def _load_balance(self, tasks: List[Dict[str, Any]]) -> Dict[str, Any]:

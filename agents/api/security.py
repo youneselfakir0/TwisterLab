@@ -131,6 +131,11 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
         )
 
 
+def get_current_user(token_data: TokenData = Depends(verify_token)) -> str:
+    """Return the current user identifier from a valid token."""
+    return token_data.sub
+
+
 def require_role(required_role: str):
     """Dependency to require a specific role"""
 

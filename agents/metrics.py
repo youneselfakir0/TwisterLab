@@ -1,83 +1,180 @@
 """
-Prometheus Metrics for TwisterLab LLM Agents
-Exposes performance metrics for monitoring and alerting
+Prometheus metrics for TwisterLab.
+
+This module defines a small set of metrics and a defensive helper
+that avoids tests failing due to duplicate registration across
+repeated imports during test runs.
 """
 
 import logging
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Any
 
 from prometheus_client import Counter, Gauge, Histogram, Info
 
 logger = logging.getLogger(__name__)
 
-# ============================================================================
-# GENERAL AGENT METRICS (for all autonomous agents)
-# ============================================================================
 
-agent_requests_total = Counter(
-    "agent_requests_total",
-    "Total number of agent execution requests",
-    ["agent_name", "status"],  # status: success, failed
+def _create_metric(metric_cls, *args, **kwargs):
+    try:
+        return metric_cls(*args, **kwargs)
+    except ValueError:
+        class Noop:
+            def labels(self, *a, **kw):
+                return self
+
+            def inc(self, *a, **kw):
+                return None
+
+            def dec(self, *a, **kw):
+                return None
+
+            def observe(self, *a, **kw):
+                return None
+
+        return Noop()
+
+
+# General
+agent_requests_total = _create_metric(
+    Counter, "agent_requests_total", "Total number of agent execution requests", ["agent_name", "status"]
 )
 
-agent_execution_time_seconds = Histogram(
+agent_execution_time_seconds = _create_metric(
+    Histogram, "agent_execution_time_seconds", "Agent execution time in seconds", ["agent_name"],
+    buckets=[0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0]
+)
+
+tickets_processed_total = _create_metric(Counter, "tickets_processed_total", "Total tickets processed by agents", ["agent_name", "status"])
+"""Prometheus metrics for TwisterLab.
+
+This module centralizes metric definitions and provides a safe helper
+to create metrics that tolerates duplicate registration attempts (e.g.
+during repeated test collection/imports) by returning a no-op fallback
+object when a duplicate timeseries is attempted to be registered.
+
+Note: This is intentionally defensive — in production you should register
+metrics once at app startup (and not during test imports), but for the
+tests in CI this reduces failures caused by re-imports across test sessions.
+"""
+
+import logging
+from contextlib import contextmanager
+from datetime import datetime
+from typing import Any
+
+from prometheus_client import Counter, Gauge, Histogram, Info
+
+logger = logging.getLogger(__name__)
+
+
+def _create_metric(metric_cls, *args, **kwargs):
+    """Create a metric or return a no-op fallback if duplicate registration occurs.
+
+    The no-op fallback implements labels().inc(), labels().dec() and labels().observe()
+    and is intentionally minimal so it will not raise or change program flow.
+    """
+    try:
+        return metric_cls(*args, **kwargs)
+    except ValueError:
+        class _NoopMetric:
+            def labels(self, *a, **kw):
+                return self
+
+            def inc(self, *a, **kw):
+                return None
+
+            def dec(self, *a, **kw):
+                return None
+
+            def observe(self, *a, **kw):
+                return None
+
+        return _NoopMetric()
+
+
+# -------------------------------
+# Generic agent metrics
+# -------------------------------
+agent_requests_total = _create_metric(
+    Counter,
+    "agent_requests_total",
+    "Total number of agent execution requests",
+    ["agent_name", "status"],
+)
+
+agent_execution_time_seconds = _create_metric(
+    Histogram,
     "agent_execution_time_seconds",
     "Agent execution time in seconds",
     ["agent_name"],
     buckets=[0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0],
 )
 
-tickets_processed_total = Counter(
+tickets_processed_total = _create_metric(
+    Counter,
     "tickets_processed_total",
     "Total tickets processed by agents",
-    ["agent_name", "status"],  # status: success, failed
+    ["agent_name", "status"],
 )
 
-tickets_failed_total = Counter(
+tickets_failed_total = _create_metric(
+    Counter,
     "tickets_failed_total",
     "Total tickets that failed processing",
     ["agent_name", "reason"],
 )
 
-agents_active = Gauge("agents_active", "Number of currently active agents", ["agent_name"])
+agents_active = _create_metric(
+    Gauge,
+    "agents_active",
+    "Number of currently active agents",
+    ["agent_name"],
+)
 
-# ============================================================================
-# OLLAMA LLM METRICS
-# ============================================================================
 
-ollama_requests_total = Counter(
+# -------------------------------
+# Ollama LLM metrics
+# -------------------------------
+ollama_requests_total = _create_metric(
+    Counter,
     "ollama_requests_total",
     "Total number of requests to Ollama API",
     ["source", "agent_type", "model"],
 )
 
-ollama_request_duration_seconds = Histogram(
+ollama_request_duration_seconds = _create_metric(
+    Histogram,
     "ollama_request_duration_seconds",
     "Duration of Ollama API requests in seconds",
     ["source", "agent_type", "model"],
     buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0],
 )
 
-ollama_failover_total = Counter(
+ollama_failover_total = _create_metric(
+    Counter,
     "ollama_failover_total",
     "Number of times Ollama failed over to backup server",
     ["agent_type", "reason"],
 )
 
-ollama_tokens_generated_total = Counter(
+ollama_tokens_generated_total = _create_metric(
+    Counter,
     "ollama_tokens_generated_total",
     "Total number of tokens generated by Ollama",
     ["source", "agent_type", "model"],
 )
 
-ollama_errors_total = Counter(
+ollama_errors_total = _create_metric(
+    Counter,
     "ollama_errors_total",
     "Total number of Ollama API errors",
     ["source", "agent_type", "error_type"],
 )
 
-ollama_source_active = Gauge(
+ollama_source_active = _create_metric(
+    Gauge,
     "ollama_source_active",
     "Currently active Ollama server (1=active, 0=inactive)",
     ["source"],
@@ -92,202 +189,141 @@ def track_agent_execution(agent_name: str):
 
     try:
         yield
-        # Success
         agent_requests_total.labels(agent_name=agent_name, status="success").inc()
     except Exception:
-        # Failure
         agent_requests_total.labels(agent_name=agent_name, status="failed").inc()
         raise
     finally:
-        # Always record duration and decrement active count
         duration = (datetime.now() - start_time).total_seconds()
         agent_execution_time_seconds.labels(agent_name=agent_name).observe(duration)
         agents_active.labels(agent_name=agent_name).dec()
 
 
-# ============================================================================
-# CLASSIFIER AGENT METRICS
-# ============================================================================
-
-classifier_llm_duration = Histogram(
+# -------------------------------
+# Classifier metrics
+# -------------------------------
+classifier_llm_duration = _create_metric(
+    Histogram,
     "classifier_llm_duration_seconds",
     "Time spent in LLM classification",
     buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
 )
 
-classifier_keyword_duration = Histogram(
+classifier_keyword_duration = _create_metric(
+    Histogram,
     "classifier_keyword_duration_seconds",
     "Time spent in keyword classification (fallback)",
     buckets=[0.001, 0.005, 0.01, 0.05, 0.1],
 )
 
-classifier_llm_success = Counter(
-    "classifier_llm_success_total", "Number of successful LLM classifications"
-)
+classifier_llm_success = _create_metric(Counter, "classifier_llm_success_total", "Number of successful LLM classifications")
 
-classifier_keyword_fallback = Counter(
-    "classifier_keyword_fallback_total", "Number of times keyword fallback was used"
-)
+classifier_keyword_fallback = _create_metric(Counter, "classifier_keyword_fallback_total", "Number of times keyword fallback was used")
 
-classifier_llm_error = Counter(
-    "classifier_llm_error_total", "Number of LLM classification errors", ["error_type"]
-)
+classifier_llm_error = _create_metric(Counter, "classifier_llm_error_total", "Number of LLM classification errors", ["error_type"])
 
-classifier_confidence = Gauge(
-    "classifier_confidence", "Classification confidence score", ["category"]
-)
+classifier_confidence = _create_metric(Gauge, "classifier_confidence", "Classification confidence score", ["category"])
 
-classifier_category_count = Counter(
-    "classifier_category_total",
-    "Number of tickets classified per category",
-    ["category"],
-)
+classifier_category_count = _create_metric(Counter, "classifier_category_total", "Number of tickets classified per category", ["category"])
 
-classifier_llm_tokens = Counter(
-    "classifier_llm_tokens_total", "Total tokens generated by ClassifierAgent"
-)
-
-# ============================================================================
-# RESOLVER AGENT METRICS
-# ============================================================================
-
-resolver_llm_duration = Histogram(
-    "resolver_llm_duration_seconds",
-    "Time spent generating SOPs with LLM",
-    buckets=[1.0, 5.0, 10.0, 15.0, 30.0, 60.0],
-)
-
-resolver_static_duration = Histogram(
-    "resolver_static_duration_seconds",
-    "Time spent selecting static SOPs (fallback)",
-    buckets=[0.01, 0.05, 0.1, 0.5, 1.0],
-)
-
-resolver_llm_success = Counter(
-    "resolver_llm_success_total", "Number of successful LLM SOP generations"
-)
-
-resolver_static_fallback = Counter(
-    "resolver_static_fallback_total", "Number of times static SOP fallback was used"
-)
-
-resolver_llm_error = Counter(
-    "resolver_llm_error_total", "Number of LLM SOP generation errors", ["error_type"]
-)
-
-resolver_sop_steps = Gauge(
-    "resolver_sop_steps_count", "Number of steps in generated SOP", ["sop_type"]
-)
-
-resolver_llm_tokens = Counter(
-    "resolver_llm_tokens_total", "Total tokens generated by ResolverAgent"
-)
-
-resolver_sop_quality = Histogram(
-    "resolver_sop_step_length_chars",
-    "Average character length of SOP steps",
-    buckets=[20, 40, 60, 80, 100, 150, 200],
-)
-
-# ============================================================================
-# DESKTOP COMMANDER AGENT METRICS
-# ============================================================================
-
-commander_llm_duration = Histogram(
-    "commander_llm_duration_seconds",
-    "Time spent in LLM command validation",
-    buckets=[0.5, 1.0, 2.0, 5.0, 10.0],
-)
-
-commander_whitelist_duration = Histogram(
-    "commander_whitelist_duration_seconds",
-    "Time spent in whitelist validation",
-    buckets=[0.0001, 0.001, 0.01, 0.1],
-)
-
-commander_llm_validated = Counter(
-    "commander_llm_validated_total",
-    "Number of commands validated by LLM",
-    ["result"],  # safe, unsafe
-)
-
-commander_whitelist_blocked = Counter(
-    "commander_whitelist_blocked_total", "Number of commands blocked by whitelist"
-)
-
-commander_llm_error = Counter(
-    "commander_llm_error_total", "Number of LLM validation errors", ["error_type"]
-)
-
-commander_llm_tokens = Counter(
-    "commander_llm_tokens_total", "Total tokens generated by DesktopCommanderAgent"
-)
-
-commander_command_executed = Counter(
-    "commander_command_executed_total", "Number of commands executed", ["command"]
-)
-
-# ============================================================================
-# OLLAMA/GPU METRICS
-# ============================================================================
-
-ollama_health = Gauge("ollama_health_status", "Ollama service health (1=up, 0=down)")
-
-gpu_utilization = Gauge("nvidia_gpu_utilization", "GPU utilization percentage", ["gpu"])
-
-gpu_memory_used = Gauge("nvidia_gpu_memory_used_bytes", "GPU memory used in bytes", ["gpu"])
-
-gpu_memory_total = Gauge("nvidia_gpu_memory_total_bytes", "GPU total memory in bytes", ["gpu"])
-
-gpu_temperature = Gauge("nvidia_gpu_temperature_celsius", "GPU temperature in Celsius", ["gpu"])
-
-# ============================================================================
-# OLLAMA LLM METRICS (High Availability & Failover)
-# ============================================================================
-# Metrics already defined above - using existing definitions
-
-# ============================================================================
-# END-TO-END METRICS
-# ============================================================================
-
-ticket_processing_duration = Histogram(
-    "ticket_processing_duration_seconds",
-    "Total time to process ticket (all agents)",
-    buckets=[1.0, 5.0, 10.0, 15.0, 30.0, 60.0, 120.0],
-)
-
-ticket_success = Counter("ticket_success_total", "Number of successfully processed tickets")
-
-ticket_failure = Counter(
-    "ticket_failure_total", "Number of failed ticket processing", ["failure_reason"]
-)
-
-# ============================================================================
-# LLM MODEL INFO
-# ============================================================================
-
-llm_model_info = Info("llm_model_info", "Information about LLM models in use")
-
-# Initialize model info
-llm_model_info.info(
-    {
-        "classifier_model": "llama3.2:1b",
-        "resolver_model": "llama3.2:1b",
-        "commander_model": "llama3.2:1b",
-        "ollama_version": "0.1.0",
-        "gpu": "NVIDIA GeForce GTX 1050",
-        "vram_gb": "2",
-    }
-)
+classifier_llm_tokens = _create_metric(Counter, "classifier_llm_tokens_total", "Total tokens generated by ClassifierAgent")
 
 
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
+# -------------------------------
+# Resolver metrics
+# -------------------------------
+resolver_llm_duration = _create_metric(Histogram, "resolver_llm_duration_seconds", "Time spent generating SOPs with LLM", buckets=[1.0, 5.0, 10.0, 15.0, 30.0, 60.0])
+
+resolver_static_duration = _create_metric(Histogram, "resolver_static_duration_seconds", "Time spent selecting static SOPs (fallback)", buckets=[0.01, 0.05, 0.1, 0.5, 1.0])
+
+resolver_llm_success = _create_metric(Counter, "resolver_llm_success_total", "Number of successful LLM SOP generations")
 
 
+# -------------------------------
+# Backup agent metrics
+# -------------------------------
+backup_success_total = _create_metric(Counter, "backup_success_total", "Number of successful backups", ["backup_type"])
+
+backup_failure_total = _create_metric(Counter, "backup_failure_total", "Number of failed backups", ["backup_type", "error_type"])
+
+backup_duration_seconds = _create_metric(Histogram, "backup_duration_seconds", "Time spent creating backups in seconds", ["backup_type"], buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0])
+
+backup_size_bytes = _create_metric(Histogram, "backup_size_bytes", "Backup size in bytes", ["backup_type"], buckets=[1024, 10_240, 102_400, 1_048_576, 10_485_760, 104_857_600])
+backup_retention_runs_total = _create_metric(Counter, "backup_retention_runs_total", "Number of retention worker runs")
+backup_retention_removed_total = _create_metric(Counter, "backup_retention_removed_total", "Total backups removed by retention")
+
+resolver_static_fallback = _create_metric(Counter, "resolver_static_fallback_total", "Number of times static SOP fallback was used")
+
+resolver_llm_error = _create_metric(Counter, "resolver_llm_error_total", "Number of LLM SOP generation errors", ["error_type"])
+
+resolver_sop_steps = _create_metric(Gauge, "resolver_sop_steps_count", "Number of steps in generated SOP", ["sop_type"])
+
+resolver_llm_tokens = _create_metric(Counter, "resolver_llm_tokens_total", "Total tokens generated by ResolverAgent")
+
+resolver_sop_quality = _create_metric(Histogram, "resolver_sop_step_length_chars", "Average character length of SOP steps", buckets=[20, 40, 60, 80, 100, 150, 200])
+
+
+# -------------------------------
+# Desktop Commander metrics
+# -------------------------------
+commander_llm_duration = _create_metric(Histogram, "commander_llm_duration_seconds", "Time spent in LLM command validation", buckets=[0.5, 1.0, 2.0, 5.0, 10.0])
+
+commander_whitelist_duration = _create_metric(Histogram, "commander_whitelist_duration_seconds", "Time spent in whitelist validation", buckets=[0.0001, 0.001, 0.01, 0.1])
+
+commander_llm_validated = _create_metric(Counter, "commander_llm_validated_total", "Number of commands validated by LLM", ["result"])  # safe, unsafe
+
+commander_whitelist_blocked = _create_metric(Counter, "commander_whitelist_blocked_total", "Number of commands blocked by whitelist")
+
+commander_llm_error = _create_metric(Counter, "commander_llm_error_total", "Number of LLM validation errors", ["error_type"])
+
+commander_llm_tokens = _create_metric(Counter, "commander_llm_tokens_total", "Total tokens generated by DesktopCommanderAgent")
+
+commander_command_executed = _create_metric(Counter, "commander_command_executed_total", "Number of commands executed", ["command"])
+
+
+# -------------------------------
+# GPU & health metrics
+# -------------------------------
+ollama_health = _create_metric(Gauge, "ollama_health_status", "Ollama service health (1=up, 0=down)")
+
+gpu_utilization = _create_metric(Gauge, "nvidia_gpu_utilization", "GPU utilization percentage", ["gpu"])
+gpu_memory_used = _create_metric(Gauge, "nvidia_gpu_memory_used_bytes", "GPU memory used in bytes", ["gpu"])
+gpu_memory_total = _create_metric(Gauge, "nvidia_gpu_memory_total_bytes", "GPU total memory in bytes", ["gpu"])
+gpu_temperature = _create_metric(Gauge, "nvidia_gpu_temperature_celsius", "GPU temperature in Celsius", ["gpu"])
+
+
+# -------------------------------
+# End-to-end / ticket metrics
+# -------------------------------
+ticket_processing_duration = _create_metric(Histogram, "ticket_processing_duration_seconds", "Total time to process ticket (all agents)", buckets=[1.0, 5.0, 10.0, 15.0, 30.0, 60.0, 120.0])
+
+ticket_success = _create_metric(Counter, "ticket_success_total", "Number of successfully processed tickets")
+
+ticket_failure = _create_metric(Counter, "ticket_failure_total", "Number of failed ticket processing", ["failure_reason"])
+
+
+# -------------------------------
+# LLM model info
+# -------------------------------
+llm_model_info = _create_metric(Info, "llm_model_info", "Information about LLM models in use")
+if hasattr(llm_model_info, "info"):
+    try:
+        llm_model_info.info({
+            "classifier_model": "llama3.2:1b",
+            "resolver_model": "llama3.2:1b",
+            "commander_model": "llama3.2:1b",
+            "ollama_version": "0.1.0",
+            "gpu": "NVIDIA GeForce GTX 1050",
+            "vram_gb": "2",
+        })
+    except Exception:
+        pass
+
+
+# -------------------------------
+# Helper functions
+# -------------------------------
 def record_classifier_llm(duration: float, category: str, confidence: float, tokens: int):
-    """Record ClassifierAgent LLM metrics."""
     classifier_llm_duration.observe(duration)
     classifier_llm_success.inc()
     classifier_confidence.labels(category=category).set(confidence)
@@ -296,7 +332,6 @@ def record_classifier_llm(duration: float, category: str, confidence: float, tok
 
 
 def record_classifier_fallback(duration: float, category: str, confidence: float):
-    """Record ClassifierAgent keyword fallback metrics."""
     classifier_keyword_duration.observe(duration)
     classifier_keyword_fallback.inc()
     classifier_confidence.labels(category=category).set(confidence)
@@ -304,7 +339,6 @@ def record_classifier_fallback(duration: float, category: str, confidence: float
 
 
 def record_resolver_llm(duration: float, steps_count: int, tokens: int, avg_step_length: float):
-    """Record ResolverAgent LLM metrics."""
     resolver_llm_duration.observe(duration)
     resolver_llm_success.inc()
     resolver_sop_steps.labels(sop_type="llm").set(steps_count)
@@ -313,14 +347,12 @@ def record_resolver_llm(duration: float, steps_count: int, tokens: int, avg_step
 
 
 def record_resolver_fallback(duration: float, steps_count: int, sop_name: str):
-    """Record ResolverAgent static fallback metrics."""
     resolver_static_duration.observe(duration)
     resolver_static_fallback.inc()
     resolver_sop_steps.labels(sop_type="static").set(steps_count)
 
 
 def record_commander_llm(duration: float, is_safe: bool, tokens: int):
-    """Record DesktopCommanderAgent LLM metrics."""
     commander_llm_duration.observe(duration)
     result = "safe" if is_safe else "unsafe"
     commander_llm_validated.labels(result=result).inc()
@@ -328,7 +360,6 @@ def record_commander_llm(duration: float, is_safe: bool, tokens: int):
 
 
 def record_commander_whitelist(duration: float, allowed: bool, command: str):
-    """Record DesktopCommanderAgent whitelist metrics."""
     commander_whitelist_duration.observe(duration)
     if not allowed:
         commander_whitelist_blocked.inc()
@@ -336,10 +367,7 @@ def record_commander_whitelist(duration: float, allowed: bool, command: str):
         commander_command_executed.labels(command=command).inc()
 
 
-def record_gpu_stats(
-    gpu_id: str, utilization: float, memory_used: int, memory_total: int, temp: float
-):
-    """Record GPU statistics."""
+def record_gpu_stats(gpu_id: str, utilization: float, memory_used: int, memory_total: int, temp: float):
     gpu_utilization.labels(gpu=gpu_id).set(utilization)
     gpu_memory_used.labels(gpu=gpu_id).set(memory_used)
     gpu_memory_total.labels(gpu=gpu_id).set(memory_total)
@@ -347,12 +375,10 @@ def record_gpu_stats(
 
 
 def record_ollama_health(is_up: bool):
-    """Record Ollama service health."""
     ollama_health.set(1 if is_up else 0)
 
 
 def record_ticket_processing(duration: float, success: bool, failure_reason: str = None):
-    """Record end-to-end ticket processing."""
     ticket_processing_duration.observe(duration)
     if success:
         ticket_success.inc()
@@ -360,16 +386,40 @@ def record_ticket_processing(duration: float, success: bool, failure_reason: str
         ticket_failure.labels(failure_reason=failure_reason or "unknown").inc()
 
 
-# Export all metrics for easy import
+# -------------------------------
+# Monitoring agent metrics
+# -------------------------------
+monitoring_persisted_failures_total = _create_metric(
+    Counter,
+    "twisterlab_monitoring_persisted_failures_total",
+    "Number of times the monitor persisted failed components",
+    ["agent_name"],
+)
+
+monitoring_persisted_failures = _create_metric(
+    Gauge,
+    "twisterlab_monitoring_persisted_failures",
+    "Number of persisted failed components",
+    ["agent_name"],
+)
+
+monitoring_rechecks_total = _create_metric(
+    Counter,
+    "twisterlab_monitoring_rechecks_total",
+    "Number of detailed rechecks run by the monitoring agent",
+    ["agent_name"],
+)
+
+
 __all__ = [
-    # General Agent Metrics
+    # Generic
     "agent_requests_total",
     "agent_execution_time_seconds",
     "tickets_processed_total",
     "tickets_failed_total",
     "agents_active",
     "track_agent_execution",
-    # Ollama LLM Metrics
+    # Ollama
     "ollama_requests_total",
     "ollama_request_duration_seconds",
     "ollama_failover_total",
@@ -408,7 +458,7 @@ __all__ = [
     "gpu_memory_used",
     "gpu_memory_total",
     "gpu_temperature",
-    # End-to-end
+    # Tickets
     "ticket_processing_duration",
     "ticket_success",
     "ticket_failure",
@@ -422,4 +472,7 @@ __all__ = [
     "record_gpu_stats",
     "record_ollama_health",
     "record_ticket_processing",
+    # Model info
+    "llm_model_info",
 ]
+agents_active = _create_metric(Gauge, "agents_active", "Number of currently active agents", ["agent_name"])

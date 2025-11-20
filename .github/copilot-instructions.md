@@ -66,7 +66,7 @@ All agents inherit from `TwisterAgent` (in `agents/base.py`) - a multi-framework
 
 **Current Deployment** (Docker Swarm on edgeserver.twisterlab.local):
 - FastAPI (port 8000) - Main API
-- PostgreSQL 16 (port 5432) - Primary database  
+- PostgreSQL 16 (port 5432) - Primary database
 - Redis 7 (port 6379) - Cache + state management
 - Ollama (port 11434) - Local LLM inference (llama3.2:1b)
 - Open WebUI (port 8083) - Chat interface
@@ -114,7 +114,7 @@ infrastructure/
 
 The MCP Router defines 4 isolation tiers for secure inter-agent communication:
 - **Tier 1** (172.25.0.0/16): TwisterLab agent MCPs
-- **Tier 2** (172.26.0.0/16): Claude Desktop MCPs  
+- **Tier 2** (172.26.0.0/16): Claude Desktop MCPs
 - **Tier 3** (172.27.0.0/16): Docker system MCPs
 - **Tier 4** (172.28.0.0/16): Copilot MCPs
 
@@ -290,7 +290,7 @@ async def initialize_agents(self):
 
 **Current Registered Agents** (8 total):
 - `classifier` - RealClassifierAgent
-- `resolver` - RealResolverAgent  
+- `resolver` - RealResolverAgent
 - `monitoring` - RealMonitoringAgent
 - `realbackupagent` - RealBackupAgent
 - `realsyncagent` - RealSyncAgent
@@ -319,7 +319,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = [
     "unit: Unit tests",
-    "integration: Integration tests", 
+    "integration: Integration tests",
     "slow: Slow running tests",
     "azure: Tests requiring Azure resources"
 ]
@@ -585,6 +585,6 @@ ssh twister@192.168.0.30 "docker exec twisterlab_postgres.1.* psql -U twisterlab
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2025-11-17  
+**Version**: 1.0.0
+**Last Updated**: 2025-11-17
 **Production Status**: ✅ Operational (6/6 services running)

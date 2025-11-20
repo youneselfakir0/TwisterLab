@@ -70,7 +70,8 @@ class AutonomousAgentOrchestrator:
         # Create REAL agent instances (deployed 2025-11-11)
         self.agents = {
             "monitoring": RealMonitoringAgent(),
-            "backup": RealBackupAgent(),
+            # Start retention on init with short interval for test environments
+            "backup": RealBackupAgent(start_on_init=True, retention_interval_seconds=1),
             "sync": RealSyncAgent(),
             "classifier": RealClassifierAgent(),
             "resolver": RealResolverAgent(),
@@ -88,6 +89,15 @@ class AutonomousAgentOrchestrator:
             }
 
         logger.info(f"✓ Initialized {len(self.agents)} REAL autonomous agents")
+        # Ensure backup retention starts if agent supports it
+        backup_agent = self.agents.get("backup")
+        if backup_agent and hasattr(backup_agent, "start_scheduled_retention"):
+            try:
+                # Try to start with a short interval for tests
+                await backup_agent.start_scheduled_retention(1)
+            except Exception:
+                # Not critical; just log
+                logger.debug("Backup retention start deferred or failed at init")
 
     async def start_orchestration(self) -> None:
         """Start the agent orchestration system."""

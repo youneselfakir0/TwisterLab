@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from agents.base import TwisterAgent
+from agents.base import TwisterAgent, accepts_context_or_task
 
 # Configure logging
 logging.basicConfig(
@@ -174,7 +174,8 @@ class BackupAgent(TwisterAgent):
             },
         ]
 
-    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    @accepts_context_or_task
+    async def execute(self, task_or_context, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Execute backup operation.
 
@@ -186,6 +187,13 @@ class BackupAgent(TwisterAgent):
             Operation result
         """
         try:
+            # Normalize inputs for both calling conventions
+            if context is None and isinstance(task_or_context, dict):
+                context = task_or_context
+                task = context.get("operation", "create_backup")
+            else:
+                task = task_or_context
+
             logger.info(f"BackupAgent executing: {task}")
 
             context = context or {}

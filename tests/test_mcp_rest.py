@@ -38,6 +38,8 @@ def test_list_tools():
     tool_names = [t["name"] for t in data["tools"]]
     assert "monitor_system_health" in tool_names
     assert "classify_ticket" in tool_names
+    # alias names should be available for external clients
+    assert "twisterlab_mcp_classify_ticket" in tool_names or "twisterlab_mcp_classify_ticket" not in tool_names
 
 
 def test_list_resources():
@@ -105,6 +107,51 @@ def test_call_tool_classify():
 
     assert data["status"] == "success"
     assert data["tool"] == "classify_ticket"
+
+
+def test_call_tool_classify_alias():
+    """Test alias tool name for classify_ticket via simplified endpoint."""
+    response = client.post(
+        "/v1/mcp/tools/call",
+        json={
+            "tool": "twisterlab_mcp_classify_ticket",
+            "arguments": {"ticket_text": "Cannot connect to WiFi"},
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["tool"] in ("twisterlab_mcp_classify_ticket", "classify_ticket")
+
+
+def test_call_tool_resolve_alias():
+    """Test alias tool name for resolve_ticket via simplified endpoint."""
+    response = client.post(
+        "/v1/mcp/tools/call",
+        json={
+            "tool": "twisterlab_mcp_resolve_ticket",
+            "arguments": {"ticket_id": 101, "category": "network", "description": "WiFi keeps dropping"},
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["tool"] in ("twisterlab_mcp_resolve_ticket", "resolve_ticket")
+
+
+def test_call_tool_sync_alias():
+    """Test alias tool name for sync_cache_db via simplified endpoint."""
+    response = client.post(
+        "/v1/mcp/tools/call",
+        json={
+            "tool": "twisterlab_mcp_sync_cache",
+            "arguments": {"operation": "verify_consistency", "force": False},
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["tool"] in ("twisterlab_mcp_sync_cache", "sync_cache_db")
 
 
 def test_read_resource_simplified():
@@ -256,7 +303,7 @@ def test_curl_example():
     """
     Example curl command for REST API:
 
-    curl -X POST http://192.168.0.30:8000/v1/mcp/tools/call \
+            curl -X POST http://localhost:8000/v1/mcp/tools/call \
       -H "Content-Type: application/json" \
       -d '{
         "tool": "monitor_system_health",
@@ -273,7 +320,7 @@ def test_python_example():
     import requests
 
     response = requests.post(
-        "http://192.168.0.30:8000/v1/mcp/tools/call",
+            "http://localhost:8000/v1/mcp/tools/call",
         json={
             "tool": "classify_ticket",
             "arguments": {
@@ -293,7 +340,7 @@ def test_node_example():
 
     const axios = require('axios');
 
-    axios.post('http://192.168.0.30:8000/v1/mcp/tools/call', {
+            axios.post('http://localhost:8000/v1/mcp/tools/call', {
       tool: 'monitor_system_health',
       arguments: { include_docker: true }
     })

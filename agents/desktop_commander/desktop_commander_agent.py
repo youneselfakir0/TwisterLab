@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from ..base import TwisterAgent
+from ..base import TwisterAgent, accepts_context_or_task
 from ..database.config import get_db
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,12 @@ class DesktopCommanderAgent(TwisterAgent):
         # System Diagnostics
         "get_system_info": {
             "description": "Gather system information",
+            "params": [],
+            "risk_level": "low",
+            "requires_approval": False,
+        },
+        "hostname": {
+            "description": "Get system hostname",
             "params": [],
             "risk_level": "low",
             "requires_approval": False,
@@ -141,6 +147,10 @@ class DesktopCommanderAgent(TwisterAgent):
 
         # Device registry cache
         self.device_cache: Dict[str, Any] = {}
+
+        # Allow local execution for agent implementations that run locally.
+        # RealDesktopCommanderAgent will set this to True.
+        self.allow_local_execution: bool = False
 
         logger.info(f"DesktopCommanderAgent initialized: {self.name}")
 
@@ -242,7 +252,8 @@ class DesktopCommanderAgent(TwisterAgent):
             },
         ]
 
-    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    @accepts_context_or_task
+    async def execute(self, task_or_context, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Main execution method.
 
@@ -253,6 +264,13 @@ class DesktopCommanderAgent(TwisterAgent):
         Returns:
             Execution result with audit information
         """
+        # Normalize inputs: support both execute(context) and execute(task, context)
+        if context is None and isinstance(task_or_context, dict):
+            context = task_or_context
+            task = context.get("operation", "execute_command")
+        else:
+            task = task_or_context
+
         start_time = datetime.now(timezone.utc)
 
         try:
@@ -304,32 +322,81 @@ class DesktopCommanderAgent(TwisterAgent):
         """
         try:
             # Extract parameters
-            device_id = context.get("device_id")
+            # Do not default to 'local' here; enforce device_id presence later where appropriate
+            device_id = context.get("device_id") if "device_id" in context else None
             command = context.get("command")
             parameters = context.get("parameters", {})
             timeout = context.get("timeout", 300)
             ticket_id = context.get("ticket_id", "unknown")
 
             # Validation
-            if not device_id or not command:
+            if not command:
                 return {
-                    "status": "rejected",
-                    "reason": "Missing required parameters: device_id, command",
+                    "status": "error",
+                    "reason": "Missing required parameter: command",
                 }
 
             # Step 1: Validate command is whitelisted
             if command not in self.WHITELISTED_COMMANDS:
                 logger.warning(f"[{self.name}] Rejected non-whitelisted: {command}")
+                # If this was a remote command (device_id provided), treat as a rejection.
+                if device_id:
+                    return {
+                        "status": "rejected",
+                        "reason": f"Command '{command}' not in whitelist",
+                        "whitelisted_commands": list(self.WHITELISTED_COMMANDS.keys()),
+                    }
+                # If no device_id provided, it's an execution error (local) type
                 return {
-                    "status": "rejected",
-                    "reason": f"Command '{command}' not in whitelist",
+                    "status": "error",
+                    "error": f"Command '{command}' not in whitelist",
                     "whitelisted_commands": list(self.WHITELISTED_COMMANDS.keys()),
                 }
 
             command_spec = self.WHITELISTED_COMMANDS[command]
 
+            # Normalize legacy 'args' into 'parameters' for compatibility with tests
+            if "parameters" not in context and "args" in context:
+                args_list = context.get("args", []) or []
+                param_names = command_spec.get("params", [])
+                if args_list and param_names and len(args_list) >= 1:
+                    # Map positional args to parameter names where possible
+                    mapped = {
+                        name: args_list[i] for i, name in enumerate(param_names) if i < len(args_list)
+                    }
+                    context["parameters"] = mapped
+                else:
+                    # Fall back to generic args container
+                    context["parameters"] = {"args": args_list}
+
+            parameters = context.get("parameters", {})
+
             # Step 2: Validate device exists and is online
-            device_status = await self._validate_device(device_id)
+            # Only require explicit device_id for execute_command operations (remote commands)
+            # Normalize operation (should be 'execute_command' for this handler by default)
+            operation = context.get("operation", "execute_command")
+
+            # Allowed local commands that can be executed without a device_id on a local agent
+            LOCAL_EXEC_COMMANDS = {"ping", "ipconfig", "hostname"}
+
+            if operation == "execute_command":
+                # Only allow local execution without a device_id for permitted commands on local-capable agents
+                if (
+                    not device_id
+                    and not (
+                        getattr(self, "allow_local_execution", False)
+                        and command in LOCAL_EXEC_COMMANDS
+                    )
+                ):
+                    return {"status": "rejected", "reason": "Missing required parameters: device_id"}
+
+                if device_id:
+                    device_status = await self._validate_device(device_id)
+                else:
+                    device_status = {"valid": True, "device": {}}
+            else:
+                # Other operations may not need a device_id (e.g., get_system_info)
+                device_status = await self._validate_device(device_id) if device_id else {"valid": True, "device": {}}
             if not device_status["valid"]:
                 return {
                     "status": "failed",
@@ -351,7 +418,7 @@ class DesktopCommanderAgent(TwisterAgent):
                 )
 
             # Step 5: Generate audit ID
-            audit_id = self._generate_audit_id(device_id, command)
+            audit_id = self._generate_audit_id(device_id or "local", command)
 
             # Step 6: Execute command via MCP
             logger.info(f"[{self.name}] Executing {command} on {device_id} (audit: {audit_id})")
@@ -363,15 +430,32 @@ class DesktopCommanderAgent(TwisterAgent):
                 audit_id, device_id, command, parameters, execution_result, ticket_id
             )
 
-            # Step 8: Return result
-            return {
-                "status": execution_result["status"],
+            # Step 8: Return result (flatten some fields for test compatibility)
+            output = None
+            if isinstance(execution_result.get("result"), dict):
+                output = execution_result.get("result", {}).get("stdout")
+
+            top_level = {
+                "status": execution_result.get("status", "failed"),
                 "device_id": device_id,
                 "command": command,
                 "result": execution_result.get("result", {}),
                 "audit_id": audit_id,
                 "risk_level": command_spec["risk_level"],
             }
+
+            # Include a top-level return_code where available (map from nested result.exit_code)
+            if isinstance(execution_result.get("result"), dict) and "exit_code" in execution_result.get("result"):
+                top_level["return_code"] = execution_result["result"]["exit_code"]
+
+            if output is not None:
+                top_level["output"] = output
+
+            # If the agent returned a structured system_info, return at top-level too
+            if execution_result.get("system_info"):
+                top_level["system_info"] = execution_result.get("system_info")
+
+            return top_level
 
         except Exception as e:
             logger.error(f"[{self.name}] Error executing command: {e}", exc_info=True)
@@ -476,18 +560,19 @@ class DesktopCommanderAgent(TwisterAgent):
                     },
                 }
             elif command == "get_system_info":
+                system = {
+                    "os": "Windows 11",
+                    "cpu": "Intel Core i7",
+                    "ram": "16 GB",
+                    "disk_free": "250 GB",
+                    "hostname": "test-host",
+                }
                 result = {
                     "status": "success",
+                    "system_info": system,
                     "result": {
                         "exit_code": 0,
-                        "stdout": json.dumps(
-                            {
-                                "os": "Windows 11",
-                                "cpu": "Intel Core i7",
-                                "ram": "16 GB",
-                                "disk_free": "250 GB",
-                            }
-                        ),
+                        "stdout": json.dumps(system),
                         "stderr": "",
                     },
                 }

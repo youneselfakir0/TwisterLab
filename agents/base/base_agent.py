@@ -25,7 +25,7 @@ try:
 except ImportError:
     # Fallback for development/testing
     class MCPRouter:
-        async def route_to_mcp(self, *args, **kwargs):
+        async def route_to_mcp(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
             return {"status": "mock_response"}
 
 
@@ -223,6 +223,28 @@ class BaseAgent(ABC):
         except Exception:
             pass
 
+        # Optional: increment Prometheus metric if available. This is a best-effort
+        # integration that won't fail tests if prometheus_client isn't installed.
+        try:
+            if getattr(self, "_prometheus_counter", None) is None:
+                try:
+                    from prometheus_client import Counter
+
+                    self._prometheus_counter = Counter(
+                        "twisterlab_mcp_calls_total",
+                        "Total MCP calls per agent",
+                        ["agent", "operation"],
+                    )
+                except Exception:
+                    self._prometheus_counter = None
+            if self._prometheus_counter is not None:
+                try:
+                    self._prometheus_counter.labels(agent=self.name, operation=operation).inc()
+                except Exception:
+                    # Metric collection should never break agent execution
+                    pass
+        except Exception:
+            pass
         # Perform the call using the existing router property
         return await self.mcp_router.route_to_mcp(
             agent_name=agent_name, mcp_name=mcp_name, operation=operation, params=params

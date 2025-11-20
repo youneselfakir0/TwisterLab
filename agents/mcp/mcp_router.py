@@ -46,6 +46,7 @@ class MCPRouter:
                     "Desktop-CommanderAgent",
                     "MaestroOrchestratorAgent",
                     "ClassifierAgent",
+                    "MCP-Client",
                 ],
             },
             "tier_2": {
@@ -71,17 +72,17 @@ class MCPRouter:
             "monitoring_mcp": {
                 "endpoint": "http://172.25.0.11:9001",
                 "tier": "tier_1",
-                "allowed_agents": ["MonitoringAgent", "MaestroOrchestratorAgent"],
+                "allowed_agents": ["MonitoringAgent", "MaestroOrchestratorAgent", "MCP-Client"],
             },
             "sync_mcp": {
                 "endpoint": "http://172.25.0.12:9002",
                 "tier": "tier_1",
-                "allowed_agents": ["BackupAgent", "SyncAgent", "MonitoringAgent"],
+                "allowed_agents": ["BackupAgent", "SyncAgent", "MonitoringAgent", "MCP-Client"],
             },
             "backup_mcp": {
                 "endpoint": "http://172.25.0.13:9003",
                 "tier": "tier_1",
-                "allowed_agents": ["BackupAgent"],
+                "allowed_agents": ["BackupAgent", "MCP-Client"],
             },
             "maestro_mcp": {
                 "endpoint": "http://172.25.0.14:9004",

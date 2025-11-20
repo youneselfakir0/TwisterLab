@@ -14,6 +14,8 @@ import shutil
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import json
+import os
 
 import pytest
 
@@ -220,6 +222,101 @@ class TestBackupAgent:
 
         assert result["total_backups"] == 3
         assert backup_agent.backup_stats["successful_backups"] == 3
+
+    @pytest.mark.asyncio
+    async def test_unique_backup_ids(self, backup_agent):
+        """Create many backups in quick succession and assert unique ids are generated."""
+        n = 20
+        results = []
+        for _ in range(n):
+            r = await backup_agent.execute(
+                "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
+            )
+            results.append(r)
+
+        ids = [r["backup_id"] for r in results]
+        assert len(set(ids)) == n
+        # list backups should reflect total
+        listing = await backup_agent.execute("List backups", {"operation": "list_backups"})
+        assert listing["total_backups"] >= n
+
+    @pytest.mark.asyncio
+    async def test_atomic_metadata_write(self, backup_agent):
+        """Ensure metadata file is written atomically and no .json.tmp files are left behind."""
+        result = await backup_agent.execute(
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
+        )
+        backup_id = result["backup_id"]
+        # no tmp files
+        tmp_files = list(Path(backup_agent.backup_dir).rglob("*.json.tmp"))
+        assert len(tmp_files) == 0
+        metadata_file = Path(backup_agent.backup_dir) / BackupType.FULL / f"{backup_id}.json"
+        assert metadata_file.exists()
+        metadata = json.loads(metadata_file.read_text())
+        assert metadata.get("checksum") is not None
+
+    @pytest.mark.asyncio
+    async def test_manifest_written(self, backup_agent):
+        """Manifest should contain entry after backup creation"""
+        result = await backup_agent.execute(
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
+        )
+        bid = result["backup_id"]
+        manifest_path = Path(backup_agent.backup_dir) / "manifest.json"
+        assert manifest_path.exists()
+        manifest = json.loads(manifest_path.read_text())
+        assert bid in manifest
+
+    @pytest.mark.asyncio
+    async def test_apply_retention_deletes_old_backups(self, backup_agent):
+        """Older backups should be removed by apply_retention"""
+        result = await backup_agent.execute(
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
+        )
+        bid = result["backup_id"]
+        archive = backup_agent.backup_dir / BackupType.FULL / f"{bid}.tar.gz"
+        # Set the file modification time to 10 days ago
+        old_time = (datetime.now(timezone.utc) - timedelta(days=10)).timestamp()
+        os.utime(archive, (old_time, old_time))
+        # configure retention policy to 7 days
+        backup_agent.backup_stats["retention_policy"] = {"full": 7}
+        res = await backup_agent.execute("Apply retention", {"operation": "apply_retention"})
+        assert res["status"] == "success"
+        # archive should be removed
+        assert not archive.exists()
+
+    @pytest.mark.asyncio
+    async def test_scheduled_retention_worker(self, backup_agent):
+        """Start retention worker and ensure it removes old backups"""
+        result = await backup_agent.execute(
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
+        )
+        bid = result["backup_id"]
+        archive = backup_agent.backup_dir / BackupType.FULL / f"{bid}.tar.gz"
+        # make it old
+        old_time = (datetime.now(timezone.utc) - timedelta(days=10)).timestamp()
+        os.utime(archive, (old_time, old_time))
+        # set retention policy low and start worker
+        backup_agent.backup_stats["retention_policy"] = {"full": 0}
+        started = await backup_agent.start_scheduled_retention(interval_seconds=0.1)
+        assert started
+        # wait for the worker to run a couple cycles
+        await asyncio.sleep(0.5)
+        # Should be removed by now
+        assert not archive.exists()
+        # stop worker
+        await backup_agent.stop_scheduled_retention()
+
+    @pytest.mark.asyncio
+    async def test_start_on_init_env_var(self, monkeypatch, tmp_path):
+        """Agent should auto-start retention worker if env var is set and event loop is running."""
+        monkeypatch.setenv("TWISTERLAB_START_RETENTION", "true")
+        monkeypatch.setenv("TWISTERLAB_RETENTION_INTERVAL", "1")
+        agent = RealBackupAgent(backup_dir=str(tmp_path))
+        # the agent should schedule worker on init because event loop is running
+        await asyncio.sleep(0.2)
+        assert agent.is_retention_running()
+        await agent.stop_scheduled_retention()
 
     def test_get_backup_stats(self, backup_agent):
         """Test getting backup statistics"""

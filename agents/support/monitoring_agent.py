@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 import psutil  # type: ignore
 
-from agents.base import TwisterAgent
+from agents.base import TwisterAgent, accepts_context_or_task
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,8 @@ class MonitoringAgent(TwisterAgent):
             "backup",
         ]
 
-    async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    @accepts_context_or_task
+    async def execute(self, task_or_context, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute monitoring operations.
 
@@ -99,23 +100,45 @@ class MonitoringAgent(TwisterAgent):
             Dict with operation results
         """
         try:
+            # Normalize inputs for both calling conventions
+            if context is None and isinstance(task_or_context, dict):
+                context = task_or_context
             operation = context.get("operation")
 
             if operation == "collect_metrics":
-                return await self._collect_metrics()
+                res = await self._collect_metrics()
+                res.setdefault("operation", operation)
+                res.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+                return res
 
             elif operation == "get_metrics":
                 metric_name = context.get("metric_name")
-                return await self._get_metrics(metric_name)
+                res = await self._get_metrics(metric_name)
+                res.setdefault("operation", operation)
+                res.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+                return res
 
-            elif operation == "check_health":
-                return await self._check_health()
+            elif operation in ("check_health", "health_check"):
+                # Support both check_health (core) and health_check (legacy/real agent)
+                if hasattr(self, "_health_check"):
+                    res = await self._health_check({})
+                else:
+                    res = await self._check_health()
+                res.setdefault("operation", operation)
+                res.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+                return res
 
             elif operation == "get_alerts":
-                return await self._get_alerts()
+                res = await self._get_alerts()
+                res.setdefault("operation", operation)
+                res.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+                return res
 
             elif operation == "export_prometheus":
-                return await self._export_prometheus()
+                res = await self._export_prometheus()
+                res.setdefault("operation", operation)
+                res.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+                return res
 
             else:
                 return {"status": "error", "error": f"Unknown operation: {operation}"}
@@ -374,10 +397,32 @@ class MonitoringAgent(TwisterAgent):
                     "total_metrics": len(self.metrics),
                     "metrics": list(self.metrics.keys()),
                 }
-
         except Exception as e:
             logger.error(f"Error getting metrics: {e}")
             return {"status": "error", "error": str(e)}
+
+    async def get_health_status(self) -> Dict[str, Any]:
+        """
+        Return a concise health status for the MonitoringAgent.
+
+        This method is used by orchestrators and other agents that request
+        per-agent health, so it returns a stable structure including the last
+        collected metrics summary, any outstanding alerts, and a timestamp.
+        """
+        timestamp = datetime.now(timezone.utc).isoformat()
+        # Provide the latest summary metrics (latest point or default 0)
+        latest = {}
+        for k, v in self.metrics.items():
+            if v:
+                latest[k] = v[-1]["value"]
+        return {
+            "status": "success",
+            "healthy": True if not self.alerts else False,
+            "last_check": timestamp,
+            "alerts_count": len(self.alerts),
+            "latest_metrics": latest,
+            "timestamp": timestamp,
+        }
 
     async def _check_health(self) -> Dict[str, Any]:
         """Check health of all services"""

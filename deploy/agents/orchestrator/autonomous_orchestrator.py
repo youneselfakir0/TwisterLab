@@ -74,7 +74,7 @@ class AutonomousAgentOrchestrator:
         # Create REAL agent instances (not mocks!)
         self.agents = {
             "monitoring": RealMonitoringAgent(),
-            "backup": RealBackupAgent(),
+            "backup": RealBackupAgent(start_on_init=True, retention_interval_seconds=3600),
             "sync": RealSyncAgent(),
             "classifier": RealClassifierAgent(),
             "resolver": RealResolverAgent(),

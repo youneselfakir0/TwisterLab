@@ -238,6 +238,37 @@ All scripts include comprehensive error handling:
 - Graceful failure recovery
 - Service rollback on critical errors
 - JSON reports for all operations
+
+## Retention Worker & Backup Agent Management
+
+The `RealBackupAgent` includes a background retention worker to automatically remove expired backups using a configurable retention policy. The worker can be controlled via env vars and API endpoints.
+
+Environment variables:
+- `TWISTERLAB_START_RETENTION` (bool): if true, the `RealBackupAgent` retention worker is started at agent/orchestrator initialization.
+- `TWISTERLAB_RETENTION_INTERVAL` (int seconds): interval in seconds between retention runs (default: 3600).
+
+Management API endpoints (admin-only):
+- `GET /api/v1/autonomous/agents/{agent_name}/management/status`: returns agent status plus `retention_running` flag and manifest count.
+- `POST /api/v1/autonomous/agents/{agent_name}/management/retention/start`: payload {"interval_seconds": 3600} to start worker.
+- `POST /api/v1/autonomous/agents/{agent_name}/management/retention/stop`: stop the worker gracefully.
+- `POST /api/v1/autonomous/agents/{agent_name}/management/retention/apply`: trigger a one-off retention application.
+- `GET /api/v1/autonomous/agents/{agent_name}/management/backups`: list existing backups.
+- `POST /api/v1/autonomous/agents/{agent_name}/management/backups/verify`: payload {"backup_id": "..."} to verify backup integrity.
+- `POST /api/v1/autonomous/agents/{agent_name}/management/backups/restore`: payload {"backup_id": "..."} to restore a backup.
+
+Prometheus metrics to monitor retention operations:
+- `backup_retention_runs_total`: number of retention worker runs.
+- `backup_retention_removed_total`: total number of backups removed by retention.
+
+Example curl command to start the retention worker (admin user):
+
+```powershell
+curl -X POST \
+  http://localhost:8000/api/v1/autonomous/agents/RealBackupAgent/management/retention/start \
+  -H "Content-Type: application/json" \
+  -d '{"interval_seconds": 3600}'
+```
+
 - Exit codes for automation integration
 
 ## Security Considerations

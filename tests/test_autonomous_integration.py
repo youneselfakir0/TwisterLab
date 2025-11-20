@@ -71,6 +71,22 @@ async def test_full_autonomous_orchestration():
 
 
 @pytest.mark.asyncio
+async def test_orchestrator_starts_backup_retention():
+    """Ensure orchestrator initializes backup agent with retention worker started."""
+    orchestrator = AutonomousAgentOrchestrator()
+    await orchestrator.initialize_agents()
+    backup_agent = orchestrator.agents.get("backup")
+    assert backup_agent is not None
+    # The orchestrator sets start_on_init True for RealBackupAgent; as it's initialized within an event loop, worker should run
+    assert hasattr(backup_agent, "is_retention_running")
+    # Wait briefly for worker to start
+    await asyncio.sleep(0.1)
+    assert backup_agent.is_retention_running()
+    # Stop worker to clean up
+    await backup_agent.stop_scheduled_retention()
+
+
+@pytest.mark.asyncio
 async def test_orchestrator_initialization():
     """Test orchestrator initialization"""
     orchestrator = AutonomousAgentOrchestrator()

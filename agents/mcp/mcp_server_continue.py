@@ -1,6 +1,6 @@
 """
 MCP Server for Continue IDE integration
-Synchronous version (no asyncio) for Windows compatibility
+Updated to use Unified MCP Server for comprehensive agent access
 
 Usage:
     python agents/mcp/mcp_server_continue.py
@@ -14,10 +14,13 @@ import logging
 import os
 import sys
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+import asyncio
+from typing import Any, Dict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from agents.mcp.unified_mcp_server import UnifiedMCPServer
 
 # Configure logging to stderr (stdout is for JSON-RPC)
 logging.basicConfig(
@@ -29,29 +32,21 @@ logger = logging.getLogger(__name__)
 
 
 class MCPServerContinue:
-    """MCP Server for Continue IDE - stdio transport (sync version)"""
-
+    """MCP Server for Continue IDE - using Unified MCP Server"""
     def __init__(self):
-        """Initialize MCP server with mock agents (sync)"""
-        # Use mock agents since Real agents are async
-        self.agents = {
-            "classifier": "RealClassifierAgent",
-            "resolver": "RealResolverAgent",
-            "monitoring": "RealMonitoringAgent",
-            "backup": "RealBackupAgent",
-            "sync": "RealSyncAgent",
-        }
-        self.protocol_version = "2024-11-05"
-        self.server_info = {
-            "name": "twisterlab-mcp-continue",
-            "version": "1.0.0",
-            "description": "TwisterLab MCP Server for Continue IDE",
-        }
-        logger.info(
-            f"Initialized MCP server: {self.server_info['name']} v{self.server_info['version']}"
-        )
+        """Initialize MCP server with unified capabilities"""
+        self.unified_server = UnifiedMCPServer()
 
-    def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        # Override server info for Continue IDE
+        self.unified_server.server_info = {
+            "name": "twisterlab-mcp-continue",
+            "version": "2.0.0",
+            "description": "TwisterLab Unified MCP Server for Continue IDE",
+        }
+
+        # Create convenient aliases so the class exposes expected attributes
+        # Use sensible defaults if UnifiedMCPServer doesn't define them
+    async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """
         Handle JSON-RPC 2.0 request
 
@@ -71,21 +66,24 @@ class MCPServerContinue:
             if method == "initialize":
                 return self._handle_initialize(request_id, params)
             elif method == "tools/list":
-                return self._handle_tools_list(request_id)
+                return await self._handle_tools_list(request_id)
             elif method == "tools/call":
-                return self._handle_tools_call(request_id, params)
+                return await self._handle_tools_call(request_id, params)
             elif method == "resources/list":
-                return self._handle_resources_list(request_id)
+                return await self._handle_resources_list(request_id)
             elif method == "resources/read":
-                return self._handle_resources_read(request_id, params)
+                return await self._handle_resources_read(request_id, params)
             elif method == "prompts/list":
-                return self._handle_prompts_list(request_id)
+                return await self._handle_prompts_list(request_id)
             elif method == "prompts/get":
-                return self._handle_prompts_get(request_id, params)
+                return await self._handle_prompts_get(request_id, params)
             else:
                 logger.warning(f"Unknown method: {method}")
                 return self._error_response(request_id, -32601, f"Method not found: {method}")
 
+        except Exception as e:
+            logger.error(f"Error handling {method}: {e}", exc_info=True)
+            return self._error_response(request_id, -32603, str(e))
         except Exception as e:
             logger.error(f"Error handling {method}: {e}", exc_info=True)
             return self._error_response(request_id, -32603, str(e))
@@ -127,6 +125,17 @@ class MCPServerContinue:
                 },
             },
             {
+                "name": "twisterlab_mcp_classify_ticket",
+                "description": "(alias) Classify IT helpdesk ticket into category (network, hardware, software, account, email)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "ticket_text": {"type": "string", "description": "Full text of the ticket to classify"},
+                    },
+                    "required": ["ticket_text"],
+                },
+            },
+            {
                 "name": "resolve_ticket",
                 "description": "Get resolution steps for a ticket based on category and SOP database",
                 "inputSchema": {
@@ -142,6 +151,19 @@ class MCPServerContinue:
                             "type": "string",
                             "description": "Detailed ticket description",
                         },
+                    },
+                    "required": ["ticket_id", "category", "description"],
+                },
+            },
+            {
+                "name": "twisterlab_mcp_resolve_ticket",
+                "description": "(alias) Get resolution steps for a ticket based on category and SOP database",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "ticket_id": {"type": "string", "description": "Unique ticket ID"},
+                        "category": {"type": "string", "enum": ["network", "hardware", "software", "account", "email"]},
+                        "description": {"type": "string", "description": "Detailed ticket description"},
                     },
                     "required": ["ticket_id", "category", "description"],
                 },
@@ -188,6 +210,20 @@ class MCPServerContinue:
                     },
                 },
             },
+            {
+                "name": "twisterlab_mcp_sync_cache",
+                "description": "(alias) Synchronize Redis cache with PostgreSQL database",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "direction": {
+                            "type": "string",
+                            "enum": ["cache_to_db", "db_to_cache", "bidirectional"],
+                            "description": "Sync direction",
+                        }
+                    },
+                },
+            },
         ]
 
         logger.info(f"Listing {len(tools)} tools")
@@ -202,12 +238,12 @@ class MCPServerContinue:
 
         try:
             # Route to appropriate agent
-            if tool_name == "classify_ticket":
+            if tool_name == "classify_ticket" or tool_name == "twisterlab_mcp_classify_ticket":
                 result = await self.agents["classifier"].execute(
                     {"ticket_text": arguments.get("ticket_text", "")}
                 )
 
-            elif tool_name == "resolve_ticket":
+            elif tool_name == "resolve_ticket" or tool_name == "twisterlab_mcp_resolve_ticket":
                 result = await self.agents["resolver"].execute(
                     {
                         "ticket_id": arguments.get("ticket_id", ""),
@@ -226,7 +262,7 @@ class MCPServerContinue:
                     {"backup_type": arguments.get("backup_type", "full")}
                 )
 
-            elif tool_name == "sync_cache_db":
+            elif tool_name == "sync_cache_db" or tool_name == "twisterlab_mcp_sync_cache":
                 result = await self.agents["sync"].execute(
                     {"direction": arguments.get("direction", "bidirectional")}
                 )

@@ -8,7 +8,7 @@ import hashlib
 import json
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List
 
 from .twisterlang_decoder import TwisterLangDecoder
 from .twisterlang_encoder import TwisterLangEncoder
@@ -87,6 +87,8 @@ class TwisterLangSync:
         if local_meta["checksum"] == remote_metadata.get("checksum"):
             return {
                 "action": "sync",
+                "status": "ok",
+                "needs_sync": False,
                 "reason": "vocabularies_are_identical",
                 "details": {"checksum": local_meta["checksum"]},
             }
@@ -97,6 +99,8 @@ class TwisterLangSync:
         if local_time > remote_time:
             return {
                 "action": "push",
+                "status": "push",
+                "needs_sync": True,
                 "reason": "local_is_newer",
                 "details": {
                     "local_time": local_time,
@@ -107,6 +111,8 @@ class TwisterLangSync:
         elif remote_time > local_time:
             return {
                 "action": "pull",
+                "status": "pull",
+                "needs_sync": True,
                 "reason": "remote_is_newer",
                 "details": {
                     "local_time": local_time,
@@ -119,6 +125,8 @@ class TwisterLangSync:
             if local_meta["vocab_size"] > remote_metadata.get("vocab_size", 0):
                 return {
                     "action": "push",
+                    "status": "push",
+                    "needs_sync": True,
                     "reason": "local_has_more_entries",
                     "details": {
                         "local_size": local_meta["vocab_size"],
@@ -128,6 +136,8 @@ class TwisterLangSync:
             else:
                 return {
                     "action": "pull",
+                    "status": "pull",
+                    "needs_sync": True,
                     "reason": "remote_has_more_entries_or_conflict_resolution",
                     "details": {
                         "local_size": local_meta["vocab_size"],

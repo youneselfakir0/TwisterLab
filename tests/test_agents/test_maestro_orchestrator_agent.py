@@ -18,52 +18,7 @@ def maestro_agent():
     """Fixture for MaestroOrchestratorAgent instance."""
     return MaestroOrchestratorAgent()
 
-
-@pytest.mark.asyncio
-async def test_maestro_initialization(maestro_agent):
-    """Test agent initializes correctly."""
-    assert maestro_agent.name == "MaestroOrchestratorAgent"
-    assert maestro_agent.priority == 1
-    assert "workflow_orchestration" in maestro_agent.capabilities
-    assert "load_balancing" in maestro_agent.capabilities
-    assert isinstance(maestro_agent.registered_agents, dict)
-    assert isinstance(maestro_agent.workflow_templates, dict)
-
-
-@pytest.mark.asyncio
-async def test_unknown_operation(maestro_agent):
-    """Test handling of unknown operations."""
-    context = {"operation": "unknown_operation"}
-
-    with pytest.raises(ValueError, match="Unknown orchestration operation"):
-        await maestro_agent.execute(context)
-
-
-@pytest.mark.asyncio
-async def test_missing_required_fields(maestro_agent):
-    """Test validation of required context fields."""
-    context = {}  # Missing operation
-
-    with pytest.raises(ValueError, match="Missing required field: operation"):
-        await maestro_agent.execute(context)
-
-
-@pytest.mark.asyncio
-async def test_unknown_workflow_template(maestro_agent):
-    """Test handling of unknown workflow templates."""
-    context = {"operation": "execute_workflow", "workflow_name": "unknown_workflow"}
-
-    with pytest.raises(ValueError, match="Unknown workflow template"):
-        await maestro_agent.execute(context)
-
-
-import pytest
-
-
-@pytest.fixture
-def maestro_agent():
-    """Fixture for MaestroOrchestratorAgent instance."""
-    return MaestroOrchestratorAgent()
+# Duplicate tests removed above to keep file tidy
 
 
 @pytest.fixture
@@ -179,12 +134,12 @@ async def test_load_balancing(maestro_agent):
     """Test load balancing functionality."""
     # Register agents first
     with (
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.TicketClassifierAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.ResolverAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.DesktopCommanderAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.SyncAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.BackupAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.MonitoringAgent"),
+        patch("agents.core.maestro_orchestrator_agent.TicketClassifierAgent"),
+        patch("agents.core.maestro_orchestrator_agent.ResolverAgent"),
+        patch("agents.core.maestro_orchestrator_agent.DesktopCommanderAgent"),
+        patch("agents.core.maestro_orchestrator_agent.SyncAgent"),
+        patch("agents.core.maestro_orchestrator_agent.BackupAgent"),
+        patch("agents.core.maestro_orchestrator_agent.MonitoringAgent"),
     ):
         await maestro_agent.execute({"operation": "register_agents"})
 
@@ -207,12 +162,12 @@ async def test_performance_monitoring(maestro_agent):
     """Test performance monitoring functionality."""
     # Register agents first
     with (
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.TicketClassifierAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.ResolverAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.DesktopCommanderAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.SyncAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.BackupAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.MonitoringAgent"),
+        patch("agents.core.maestro_orchestrator_agent.TicketClassifierAgent"),
+        patch("agents.core.maestro_orchestrator_agent.ResolverAgent"),
+        patch("agents.core.maestro_orchestrator_agent.DesktopCommanderAgent"),
+        patch("agents.core.maestro_orchestrator_agent.SyncAgent"),
+        patch("agents.core.maestro_orchestrator_agent.BackupAgent"),
+        patch("agents.core.maestro_orchestrator_agent.MonitoringAgent"),
     ):
         await maestro_agent.execute({"operation": "register_agents"})
 
@@ -234,12 +189,12 @@ async def test_workflow_failure_handling(maestro_agent):
     """Test workflow continues despite individual step failures."""
     # Register agents
     with (
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.TicketClassifierAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.ResolverAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.DesktopCommanderAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.SyncAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.BackupAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.MonitoringAgent"),
+        patch("agents.core.maestro_orchestrator_agent.TicketClassifierAgent"),
+        patch("agents.core.maestro_orchestrator_agent.ResolverAgent"),
+        patch("agents.core.maestro_orchestrator_agent.DesktopCommanderAgent"),
+        patch("agents.core.maestro_orchestrator_agent.SyncAgent"),
+        patch("agents.core.maestro_orchestrator_agent.BackupAgent"),
+        patch("agents.core.maestro_orchestrator_agent.MonitoringAgent"),
     ):
         await maestro_agent.execute({"operation": "register_agents"})
 
@@ -300,12 +255,12 @@ async def test_workflow_status_tracking(maestro_agent):
     """Test workflow status tracking and history."""
     # Register agents
     with (
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.TicketClassifierAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.ResolverAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.DesktopCommanderAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.SyncAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.BackupAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.MonitoringAgent"),
+        patch("agents.core.maestro_orchestrator_agent.TicketClassifierAgent"),
+        patch("agents.core.maestro_orchestrator_agent.ResolverAgent"),
+        patch("agents.core.maestro_orchestrator_agent.DesktopCommanderAgent"),
+        patch("agents.core.maestro_orchestrator_agent.SyncAgent"),
+        patch("agents.core.maestro_orchestrator_agent.BackupAgent"),
+        patch("agents.core.maestro_orchestrator_agent.MonitoringAgent"),
     ):
         await maestro_agent.execute({"operation": "register_agents"})
 
@@ -342,12 +297,12 @@ async def test_workflow_cancellation(maestro_agent):
     """Test workflow cancellation functionality."""
     # Register agents
     with (
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.TicketClassifierAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.ResolverAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.DesktopCommanderAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.SyncAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.BackupAgent"),
-        pytest.mock.patch("agents.core.maestro_orchestrator_agent.MonitoringAgent"),
+        patch("agents.core.maestro_orchestrator_agent.TicketClassifierAgent"),
+        patch("agents.core.maestro_orchestrator_agent.ResolverAgent"),
+        patch("agents.core.maestro_orchestrator_agent.DesktopCommanderAgent"),
+        patch("agents.core.maestro_orchestrator_agent.SyncAgent"),
+        patch("agents.core.maestro_orchestrator_agent.BackupAgent"),
+        patch("agents.core.maestro_orchestrator_agent.MonitoringAgent"),
     ):
         await maestro_agent.execute({"operation": "register_agents"})
 

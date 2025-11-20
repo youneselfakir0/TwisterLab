@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target environment' 
+        description: 'Target environment'
         required: true
         default: 'staging'
       apply:
@@ -118,7 +118,7 @@ jobs:
             const path = 'logs';
             let description = 'Rotation logs attached in artifacts. Staging run result summary:\n';
             try {
-              const files = fs.readdirSync(path); 
+              const files = fs.readdirSync(path);
               description += files.join('\n');
             } catch(e) { description += 'No logs found.' }
             await github.rest.issues.create({

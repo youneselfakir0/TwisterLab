@@ -70,7 +70,9 @@ class AutonomousAgentOrchestrator:
         # Create REAL agent instances (deployed 2025-11-11)
         self.agents = {
             "monitoring": RealMonitoringAgent(),
-            "backup": RealBackupAgent(),
+            # Start retention worker on init for backup agent, so tests and staging systems
+            # see the worker running immediately when started in an event loop.
+            "backup": RealBackupAgent(start_on_init=True),
             "sync": RealSyncAgent(),
             "classifier": RealClassifierAgent(),
             "resolver": RealResolverAgent(),
@@ -148,11 +150,35 @@ class AutonomousAgentOrchestrator:
         logger.info(f"🚀 Executing {operation} on {agent_name}")
 
         try:
-            # Execute in thread pool to avoid blocking
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                self.executor, lambda: asyncio.run(agent.execute(context))
-            )
+            # Most agents are async and should be awaited directly. This ensures
+            # tasks created by the agent are attached to the same event loop
+            # as the orchestrator, avoiding cross-loop issues (e.g. cancelling
+            # tasks created in a different loop).
+            if asyncio.iscoroutinefunction(getattr(agent, "execute", None)):
+                result = await agent.execute(context)
+            else:
+                # If an agent implements a synchronous execute (legacy), run it
+                # in a thread to avoid blocking the orchestrator loop.
+                # The agent.execute may itself return a coroutine. To make this
+                # robust we run it inside the worker thread and drive any
+                # coroutine to completion on a temporary event loop.
+                def _run_in_thread():
+                    try:
+                        ret = agent.execute(context)
+                        if asyncio.iscoroutine(ret):
+                            loop = asyncio.new_event_loop()
+                            try:
+                                asyncio.set_event_loop(loop)
+                                return loop.run_until_complete(ret)
+                            finally:
+                                asyncio.set_event_loop(None)
+                                loop.close()
+                        return ret
+                    except Exception:
+                        raise
+
+                loop = asyncio.get_event_loop()
+                result = await loop.run_in_executor(self.executor, _run_in_thread)
 
             # Update health status
             self.agent_health[agent_name]["status"] = "healthy"

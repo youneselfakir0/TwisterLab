@@ -71,6 +71,25 @@ def test_whitelist_structure(commander_agent):
         assert cmd_spec["risk_level"] in ["low", "medium", "high"]
 
 
+    @pytest.mark.asyncio
+    async def test_local_execution_flag():
+        """Test allow_local_execution toggles local execution without device_id"""
+        from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
+
+        agent = RealDesktopCommanderAgent()
+
+        # When allow_local_execution is True (default), ping without device_id should succeed
+        context = {"operation": "execute_command", "command": "ping", "args": ["127.0.0.1"]}
+        result = await agent.execute(context)
+        assert result["status"] == "success"
+        assert "output" in result
+
+        # When disabled, ping without device_id should be rejected
+        agent.allow_local_execution = False
+        result2 = await agent.execute(context)
+        assert result2["status"] == "rejected"
+
+
 # ============================================================================
 # COMMAND WHITELISTING TESTS
 # ============================================================================

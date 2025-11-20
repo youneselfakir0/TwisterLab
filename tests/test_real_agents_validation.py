@@ -15,7 +15,7 @@ from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
 from agents.real.real_maestro_agent import RealMaestroAgent
 from agents.real.real_monitoring_agent import RealMonitoringAgent
 from agents.real.real_resolver_agent import RealResolverAgent
-from agents.real.real_sync_agent import RealSyncAgent
+from agents.support.sync_agent import SyncAgent as RealSyncAgent
 
 
 @pytest.mark.asyncio

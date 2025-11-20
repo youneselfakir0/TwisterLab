@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from agents.base.unified_agent import AgentStatus, UnifiedAgentBase
+from agents.base.base_agent import accepts_context_or_task
 
 if TYPE_CHECKING:
     from playwright.async_api import Browser, Page, Playwright
@@ -154,7 +155,8 @@ class BrowserAgent(UnifiedAgentBase):
             },
         ]
 
-    async def execute(self, context: Dict[str, Any]) -> Any:
+    @accepts_context_or_task
+    async def execute(self, task_or_context, context: Dict[str, Any]) -> Any:
         """
         Executes a browser automation task.
         This method is called by the parent 'run' method, which handles status and error management.
@@ -166,16 +168,26 @@ class BrowserAgent(UnifiedAgentBase):
         Returns:
             A dictionary containing the result of the task.
         """
-        task = context.get("task")
+        # Support both forms: execute(task, context) and execute(context)
+        if isinstance(task_or_context, str):
+            task = task_or_context
+            params = context or {}
+        elif isinstance(task_or_context, dict):
+            params = task_or_context
+            task = params.get("task")
+        else:
+            params = context or {}
+            task = params.get("task")
+
         if not task:
-            raise ValueError("Task is required in the context for BrowserAgent.")
+            raise ValueError("Task is required for BrowserAgent.")
 
         logger.info(f"🌐 {self.name} executing task: {task}")
 
         try:
             if task == "open_browser":
-                self.headless = context.get("headless", self.headless)
-                self.target_url = context.get("target_url", self.target_url)
+                self.headless = params.get("headless", self.headless)
+                self.target_url = params.get("target_url", self.target_url)
                 try:
                     from playwright.async_api import async_playwright
                 except ImportError:
@@ -191,22 +203,22 @@ class BrowserAgent(UnifiedAgentBase):
                 )
                 return {"status": "success", "message": "Browser opened successfully"}
             elif task == "navigate_to_url":
-                url = context.get("url")
+                url = params.get("url")
                 if not url:
                     raise ValueError("URL is required for navigate_to_url.")
                 await self.page.goto(url)
                 self._add_to_audit_log("navigate_to_url", {"url": url})
                 return {"status": "success", "message": "Navigated to URL successfully"}
             elif task == "click_element":
-                selector = context.get("selector")
+                selector = params.get("selector")
                 if not selector:
                     raise ValueError("Selector is required for click_element.")
                 await self.page.click(selector)
                 self._add_to_audit_log("click_element", {"selector": selector})
                 return {"status": "success", "message": "Clicked element successfully"}
             elif task == "fill_form_field":
-                selector = context.get("selector")
-                value = context.get("value")
+                selector = params.get("selector")
+                value = params.get("value")
                 if not selector or not value:
                     raise ValueError("Selector and value are required for fill_form_field.")
                 await self.page.fill(selector, value)

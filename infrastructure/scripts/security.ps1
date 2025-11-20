@@ -182,22 +182,22 @@ function Update-ComposeFile {
             Pattern = 'DATA_SOURCE_NAME=postgresql://twisterlab:[^@\s]+@postgres:5432/twisterlab_prod\?sslmode=disable'
             Replacement = 'DATA_SOURCE_NAME__FILE=/run/secrets/postgres_exporter_password'
         },
-        @{ 
+        @{
             # Convert inline POSTGRES_PASSWORD in env forms to file-based secret ref
             Pattern = 'POSTGRES_PASSWORD=[^\s]+'
             Replacement = 'POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password'
         },
-        @{ 
+        @{
             # Convert YAML env style POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} to file-ref
             Pattern = 'POSTGRES_PASSWORD:\s*\$\{?[^\}\s]+\}?'
             Replacement = 'POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password'
         },
-        @{ 
+        @{
             # Replace inline DATABASE_URL that includes a password with a URL without password (env form)
             Pattern = 'DATABASE_URL=postgresql://twisterlab:[^@\s]+@postgres:5432/twisterlab(_prod)?'
             Replacement = 'DATABASE_URL=postgresql://twisterlab@postgres:5432/twisterlab$1'
         },
-        @{ 
+        @{
             # Replace YAML-style DATABASE_URL mapping that references POSTGRES_PASSWORD var
             Pattern = 'DATABASE_URL:\s*postgresql:\/\/\$\{?POSTGRES_USER[^}]*\}:\$\{?POSTGRES_PASSWORD[^}]*\}@[\w\-.:]+:\d+\/${POSTGRES_DB:-twisterlab_prod}'
             Replacement = 'DATABASE_URL: postgresql://${POSTGRES_USER:-twisterlab}@postgres:5432/${POSTGRES_DB:-twisterlab_prod}`nDATABASE_URL__FILE: /run/secrets/postgres_password'

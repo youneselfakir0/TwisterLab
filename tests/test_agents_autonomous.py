@@ -385,7 +385,8 @@ class TestSyncAgent:
             assert result["status"] == "success"
             assert result["operation"] == "reconciliation"
             assert result["result"]["reconciliation_needed"] == True
-            assert len(result["result"]["reconciled_items"]) == 1
+            # reconciled_items is an integer count of reconciled items
+            assert result["result"]["reconciled_items"] == 1
 
     @pytest.mark.asyncio
     async def test_execute_performance_check_with_bottlenecks(self, agent):

@@ -1,12 +1,12 @@
 {
   "version": "1.1",
-  "last_updated": 1763282200,
+  "last_updated": 1763625086,
   "vocabulary": {
     "test_entry": {
       "code": "TEST_001",
       "category": "test",
       "priority": "low",
-      "first_seen": 1763282200
+      "first_seen": 1763625086
     },
     "this_is_a_longer_test_message_for_compression_testing": {
       "code": "TIA",

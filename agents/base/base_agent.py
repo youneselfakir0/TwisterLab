@@ -25,7 +25,7 @@ try:
 except ImportError:
     # Fallback for development/testing
     class MCPRouter:
-        async def route_to_mcp(self, *args, **kwargs):
+        async def route_to_mcp(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
             return {"status": "mock_response"}
 
 
@@ -63,7 +63,10 @@ class BaseAgent(ABC):
         self.capabilities: List[str] = []
 
         # MCP communication (isolated per agent)
-        self.mcp_router = MCPRouter()
+        # Lazy initialize MCPRouter so test suite can patch MCPRouter class
+        # after agent instances are created (tests patch MCPRouter class at
+        # import time and expect agents to pick it up on first use).
+        self._mcp_router = None
 
         # Logging setup
         self.logger = logging.getLogger(f"agent.{self.name}")
@@ -79,6 +82,9 @@ class BaseAgent(ABC):
         self.is_healthy = True
         self.last_health_check = datetime.now()
         self.health_status_details = {}
+        # MCP call tracing: count and args for debugging/test validation
+        self._mcp_call_count = 0
+        self._mcp_call_args = []
 
     @abstractmethod
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -179,6 +185,192 @@ class BaseAgent(ABC):
         else:
             return data
 
+    def get_capabilities(self) -> List[str]:
+        """
+        Return the agent capabilities; default belongs to BaseAgent and
+        can be overridden by subclasses.
+        """
+        return getattr(self, "capabilities", [])
+
+    async def _call_mcp(
+        self, mcp_name: str, operation: str, params: Dict[str, Any] = None, agent_name: str = None
+    ) -> Dict[str, Any]:
+        """Proxy to route_to_mcp that collects call tracing and supports tests.
+
+        Args:
+            mcp_name: MCP name to call
+            operation: operation
+            params: parameters dict
+            agent_name: override agent name (default self.name)
+        Returns:
+            The MCP response
+        """
+        if params is None:
+            params = {}
+        if agent_name is None:
+            agent_name = self.name
+
+        # Record call args for debugging
+        try:
+            self._mcp_call_count += 1
+            self._mcp_call_args.append(
+                {
+                    "mcp_name": mcp_name,
+                    "operation": operation,
+                    "params": params,
+                }
+            )
+        except Exception:
+            pass
+
+        # Optional: increment Prometheus metric if available. This is a best-effort
+        # integration that won't fail tests if prometheus_client isn't installed.
+        try:
+            if getattr(self, "_prometheus_counter", None) is None:
+                try:
+                    from prometheus_client import Counter
+
+                    self._prometheus_counter = Counter(
+                        "twisterlab_mcp_calls_total",
+                        "Total MCP calls per agent",
+                        ["agent", "operation"],
+                    )
+                except Exception:
+                    self._prometheus_counter = None
+            if self._prometheus_counter is not None:
+                try:
+                    self._prometheus_counter.labels(agent=self.name, operation=operation).inc()
+                except Exception:
+                    # Metric collection should never break agent execution
+                    pass
+        except Exception:
+            pass
+        # Perform the call using the existing router property
+        return await self.mcp_router.route_to_mcp(
+            agent_name=agent_name, mcp_name=mcp_name, operation=operation, params=params
+        )
+
+    @property
+    def mcp_router(self):
+        """Lazily instantiate the MCPRouter on first access.
+
+        This allows tests that patch the MCPRouter class to replace router
+        behavior at test time even if agent instances were created earlier.
+        """
+        if getattr(self, "_mcp_router", None) is None:
+            # Import MCPRouter dynamically to respect patches made directly
+            # to the MCPRouter symbol in 'agents.mcp.mcp_router' during tests.
+            from importlib import import_module
+
+            mcp_mod = import_module("agents.mcp.mcp_router")
+            RouterClass = getattr(mcp_mod, "MCPRouter")
+            # Instantiate using the (possibly patched) RouterClass
+            try:
+                self.logger.debug("Instantiating MCPRouter with class: %s", RouterClass)
+            except Exception:
+                pass
+            self._mcp_router = RouterClass()
+            try:
+                self.logger.debug("MCPRouter instance created: %s", type(self._mcp_router))
+            except Exception:
+                pass
+        return self._mcp_router
+
+    @mcp_router.setter
+    def mcp_router(self, value):
+        self._mcp_router = value
+
+    @mcp_router.deleter
+    def mcp_router(self):
+        """Delete the cached MCPRouter instance on the agent.
+
+        This supports tests that patch `agent.mcp_router` at instance-level
+        and expect `delattr(agent, 'mcp_router')` to restore the original
+        state. Clearing `_mcp_router` allows the property to lazily
+        re-instantiate the router on next access.
+        """
+        self._mcp_router = None
+
+    async def get_health_status(self) -> Dict[str, Any]:
+        """
+        Get a default health status response. Subclasses may override to provide
+        more detailed health information.
+        """
+        return {
+            "status": "healthy" if getattr(self, "is_healthy", True) else "unhealthy",
+            "uptime": 0,
+            "details": getattr(self, "health_status_details", {}),
+        }
+
+    def reset_mcp_trace(self) -> None:
+        """Reset MCP call tracing counters for tests.
+
+        This is useful for unit/integration tests which want to assert
+        the number of MCP calls performed by an agent during an operation.
+        """
+        try:
+            self._mcp_call_count = 0
+            self._mcp_call_args = []
+        except Exception:
+            pass
+
+    def get_mcp_call_count(self) -> int:
+        """Return how many MCP calls this agent made since the last
+        reset (or since initialization).
+        """
+        return getattr(self, "_mcp_call_count", 0)
+
+    def _validate_context(self, context: Dict[str, Any]) -> None:
+        """
+        Validate operation context.
+
+        Default implementation ensures the context is a mapping. Subclasses
+        may override for stricter validation.
+        """
+        if not isinstance(context, dict):
+            raise ValueError("Context must be a dictionary")
+
+
+def accepts_context_or_task(func):
+    """
+    Decorator to normalize execute() calls so they accept either:
+      - execute(context: Dict)
+      - execute(task: str, context: Dict)
+    It inspects the underlying function signature and dispatches accordingly.
+    """
+    import inspect
+
+    sig = inspect.signature(func)
+    params = list(sig.parameters.keys())
+
+    async def wrapper(self, *args, **kwargs):
+        # If called as execute(context)
+        if len(args) == 1 and isinstance(args[0], dict) and not kwargs:
+            context = args[0]
+            if "context" in params and len(params) == 2:
+                return await func(self, context)
+            # else expect (task, context)
+            task = context.get("operation", "execute")
+            return await func(self, task, context)
+
+        # If called as execute(task, context)
+        if len(args) >= 2:
+            return await func(self, *args, **kwargs)
+
+        # If called with kwargs only
+        context = kwargs.get("context") or kwargs.get("task")
+        if isinstance(context, dict) and "context" in params and len(params) == 2:
+            return await func(self, context)
+        # Try to build task/context
+        task = kwargs.get("task") or (
+            context.get("operation") if isinstance(context, dict) else "execute"
+        )
+        return await func(self, task, context)
+
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
+
     @asynccontextmanager
     async def operation_context(self, operation_name: str):
         """
@@ -258,9 +450,7 @@ class BaseAgent(ABC):
             "details": self.health_status_details,
         }
 
-    async def update_health_status(
-        self, healthy: bool, details: Dict[str, Any] = None
-    ) -> None:
+    async def update_health_status(self, healthy: bool, details: Dict[str, Any] = None) -> None:
         """
         Update agent health status.
 
@@ -272,9 +462,7 @@ class BaseAgent(ABC):
         if details:
             self.health_status_details.update(details)
 
-        await self.audit_log(
-            "health_status_update", {"healthy": healthy, "details": details}
-        )
+        await self.audit_log("health_status_update", {"healthy": healthy, "details": details})
 
     def get_capabilities(self) -> List[str]:
         """

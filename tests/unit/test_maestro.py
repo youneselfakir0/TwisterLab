@@ -1,7 +1,9 @@
 """
 Tests unitaires pour RealMaestroAgent
 """
+
 import pytest
+
 from agents.real.real_maestro_agent import RealMaestroAgent
 
 
@@ -26,13 +28,10 @@ async def test_maestro_orchestrate_workflow(maestro):
         "id": 123,
         "description": "WiFi connection keeps dropping",
         "title": "WiFi issues",
-        "timestamp": "2025-11-13T12:00:00Z"
+        "timestamp": "2025-11-13T12:00:00Z",
     }
 
-    context = {
-        "operation": "orchestrate_workflow",
-        "ticket": ticket
-    }
+    context = {"operation": "orchestrate_workflow", "ticket": ticket}
 
     result = await maestro.execute(context)
 
@@ -51,9 +50,7 @@ async def test_maestro_orchestrate_workflow(maestro):
 @pytest.mark.asyncio
 async def test_maestro_health_check_all(maestro):
     """Test la vérification de santé de tous les agents"""
-    context = {
-        "operation": "health_check_all"
-    }
+    context = {"operation": "health_check_all"}
 
     result = await maestro.execute(context)
 
@@ -69,9 +66,7 @@ async def test_maestro_health_check_all(maestro):
 @pytest.mark.asyncio
 async def test_maestro_unknown_operation(maestro):
     """Test qu'une opération inconnue lève une ValueError"""
-    context = {
-        "operation": "unknown_operation"
-    }
+    context = {"operation": "unknown_operation"}
 
     result = await maestro.execute(context)
 
@@ -85,11 +80,7 @@ async def test_maestro_load_balance(maestro):
     tasks = [
         {"id": 1, "type": "classification", "priority": "high"},
         {"id": 2, "type": "resolution", "priority": "medium"},
-        {"id": 3, "type": "monitoring", "priority": "low"}
+        {"id": 3, "type": "monitoring", "priority": "low"},
     ]
 
-    context = {
-        "operation": "load_balance",
-        "tasks": tasks
-    }
-
+    context = {"operation": "load_balance", "tasks": tasks}

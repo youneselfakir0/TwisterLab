@@ -1,8 +1,11 @@
 """
 Tests for RealResolverAgent with LLM integration
 """
-import pytest
+
 import asyncio
+
+import pytest
+
 from agents.real.real_resolver_agent import RealResolverAgent
 
 
@@ -20,13 +23,10 @@ async def test_resolver_llm_network_ticket(resolver):
         "title": "Cannot connect to WiFi",
         "description": "Laptop won't join office network. Error: 'Limited connectivity'",
         "category": "network",
-        "user": "john.doe@company.com"
+        "user": "john.doe@company.com",
     }
 
-    result = await resolver.execute({
-        "operation": "resolve_ticket",
-        "ticket": ticket
-    })
+    result = await resolver.execute({"operation": "resolve_ticket", "ticket": ticket})
 
     assert result["status"] == "success"
     assert result["ticket_id"] == "TEST-RES-001"
@@ -58,13 +58,10 @@ async def test_resolver_llm_software_ticket(resolver):
         "title": "Excel keeps crashing",
         "description": "Microsoft Excel freezes when opening large files",
         "category": "software",
-        "user": "jane.smith@company.com"
+        "user": "jane.smith@company.com",
     }
 
-    result = await resolver.execute({
-        "operation": "resolve_ticket",
-        "ticket": ticket
-    })
+    result = await resolver.execute({"operation": "resolve_ticket", "ticket": ticket})
 
     assert result["status"] == "success"
     resolution = result["resolution"]
@@ -77,7 +74,10 @@ async def test_resolver_llm_software_ticket(resolver):
     if method == "llm":
         # Verify steps are relevant to Excel/software issues
         steps_text = " ".join([s["description"] for s in resolution["steps_detail"]])
-        assert any(word in steps_text.lower() for word in ["excel", "update", "repair", "reinstall", "office"])
+        assert any(
+            word in steps_text.lower()
+            for word in ["excel", "update", "repair", "reinstall", "office"]
+        )
 
 
 @pytest.mark.asyncio
@@ -88,13 +88,10 @@ async def test_resolver_llm_performance_ticket(resolver):
         "title": "Computer running very slow",
         "description": "System sluggish, high CPU usage, takes long to open programs",
         "category": "performance",
-        "user": "bob.johnson@company.com"
+        "user": "bob.johnson@company.com",
     }
 
-    result = await resolver.execute({
-        "operation": "resolve_ticket",
-        "ticket": ticket
-    })
+    result = await resolver.execute({"operation": "resolve_ticket", "ticket": ticket})
 
     assert result["status"] == "success"
     resolution = result["resolution"]
@@ -108,8 +105,21 @@ async def test_resolver_llm_performance_ticket(resolver):
         # Verify steps are relevant (more flexible check)
         steps_text = " ".join([s["description"] for s in resolution["steps_detail"]]).lower()
         # Check for performance-related words OR generic troubleshooting
-        performance_keywords = ["cpu", "memory", "disk", "task", "process", "cleanup", "restart", "check", "monitor", "usage"]
-        assert any(word in steps_text for word in performance_keywords), f"No performance keywords found in: {steps_text[:200]}"
+        performance_keywords = [
+            "cpu",
+            "memory",
+            "disk",
+            "task",
+            "process",
+            "cleanup",
+            "restart",
+            "check",
+            "monitor",
+            "usage",
+        ]
+        assert any(
+            word in steps_text for word in performance_keywords
+        ), f"No performance keywords found in: {steps_text[:200]}"
 
 
 @pytest.mark.asyncio
@@ -120,13 +130,10 @@ async def test_resolver_llm_database_ticket(resolver):
         "title": "Database connection timeout",
         "description": "Application cannot connect to PostgreSQL database",
         "category": "database",
-        "user": "admin@company.com"
+        "user": "admin@company.com",
     }
 
-    result = await resolver.execute({
-        "operation": "resolve_ticket",
-        "ticket": ticket
-    })
+    result = await resolver.execute({"operation": "resolve_ticket", "ticket": ticket})
 
     assert result["status"] == "success"
     resolution = result["resolution"]
@@ -148,13 +155,10 @@ async def test_resolver_fallback_on_llm_failure(resolver):
         "title": "Network printer not working",
         "description": "Cannot print to office printer",
         "category": "network",
-        "user": "test@company.com"
+        "user": "test@company.com",
     }
 
-    result = await resolver.execute({
-        "operation": "resolve_ticket",
-        "ticket": ticket
-    })
+    result = await resolver.execute({"operation": "resolve_ticket", "ticket": ticket})
 
     assert result["status"] == "success"
     resolution = result["resolution"]
@@ -172,9 +176,7 @@ async def test_resolver_fallback_on_llm_failure(resolver):
 @pytest.mark.asyncio
 async def test_resolver_list_sops(resolver):
     """Test listing available static SOPs."""
-    result = await resolver.execute({
-        "operation": "list_sops"
-    })
+    result = await resolver.execute({"operation": "list_sops"})
 
     assert result["status"] == "success"
     assert result["total_sops"] == 5  # 5 built-in SOPs
@@ -205,13 +207,10 @@ async def test_resolver_sop_quality():
         "title": "Email not sending",
         "description": "Outlook gives error when trying to send emails",
         "category": "email",
-        "user": "user@company.com"
+        "user": "user@company.com",
     }
 
-    result = await resolver.execute({
-        "operation": "resolve_ticket",
-        "ticket": ticket
-    })
+    result = await resolver.execute({"operation": "resolve_ticket", "ticket": ticket})
 
     if result["resolution"].get("method") == "llm":
         steps = result["resolution"]["steps_detail"]
@@ -227,7 +226,9 @@ async def test_resolver_sop_quality():
 
         print(f"\n✅ SOP Quality Test Passed")
         print(f"   Steps count: {len(steps)}")
-        print(f"   Avg step length: {sum(len(s['description']) for s in steps) / len(steps):.0f} chars")
+        print(
+            f"   Avg step length: {sum(len(s['description']) for s in steps) / len(steps):.0f} chars"
+        )
 
 
 if __name__ == "__main__":

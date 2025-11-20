@@ -3,26 +3,25 @@ Production security configuration
 Authentication, authorization, and security middleware
 """
 
+import logging
 import os
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
-from fastapi import HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Any, Dict, Optional
+
+from fastapi import Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
-import logging
 
 # Security configuration
 SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
-)
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -36,6 +35,7 @@ logger = logging.getLogger("twisterlab.security")
 
 class TokenData(BaseModel):
     """Token payload data"""
+
     sub: str  # subject (user id)
     exp: datetime
     iat: datetime
@@ -45,12 +45,14 @@ class TokenData(BaseModel):
 
 class UserCredentials(BaseModel):
     """User login credentials"""
+
     username: str
     password: str
 
 
 class TokenResponse(BaseModel):
     """Token response"""
+
     access_token: str
     token_type: str = "bearer"
     expires_in: int
@@ -71,9 +73,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         now = datetime.now()
         cutoff = now - timedelta(minutes=1)
         if client_ip in self.requests:
-            self.requests[client_ip] = [
-                ts for ts in self.requests[client_ip] if ts > cutoff
-            ]
+            self.requests[client_ip] = [ts for ts in self.requests[client_ip] if ts > cutoff]
 
         # Check rate limit
         if client_ip not in self.requests:
@@ -82,8 +82,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if len(self.requests[client_ip]) >= self.requests_per_minute:
             logger.warning(f"Rate limit exceeded for IP: {client_ip}")
             raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many requests"
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many requests"
             )
 
         # Add current request
@@ -103,30 +102,24 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(data: Dict[str, Any],
-                        expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """Create JWT access token"""
     to_encode = data.copy()
 
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire, "iat": datetime.utcnow()})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def verify_token(credentials: HTTPAuthorizationCredentials =
-                 Depends(security)) -> TokenData:
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> TokenData:
     """Verify JWT token and return token data"""
     try:
-        payload = jwt.decode(
-            credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM]
-        )
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         token_data = TokenData(**payload)
         return token_data
     except JWTError as e:
@@ -138,24 +131,31 @@ def verify_token(credentials: HTTPAuthorizationCredentials =
         )
 
 
+def get_current_user(token_data: TokenData = Depends(verify_token)) -> str:
+    """Return the current user identifier from a valid token."""
+    return token_data.sub
+
+
 def require_role(required_role: str):
     """Dependency to require a specific role"""
+
     def role_checker(token_data: TokenData = Depends(verify_token)):
         if required_role not in token_data.roles:
             logger.warning(
-                f"Access denied. Required role: {required_role}, "
-                f"user roles: {token_data.roles}"
+                f"Access denied. Required role: {required_role}, " f"user roles: {token_data.roles}"
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient permissions. Required role: {required_role}"
+                detail=f"Insufficient permissions. Required role: {required_role}",
             )
         return token_data
+
     return role_checker
 
 
 def require_permission(required_permission: str):
     """Dependency to require a specific permission"""
+
     def permission_checker(token_data: TokenData = Depends(verify_token)):
         if required_permission not in token_data.permissions:
             logger.warning(
@@ -164,9 +164,10 @@ def require_permission(required_permission: str):
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient permissions. Required permission: {required_permission}"
+                detail=f"Insufficient permissions. Required permission: {required_permission}",
             )
         return token_data
+
     return permission_checker
 
 
@@ -220,7 +221,7 @@ def create_default_admin() -> Dict[str, str]:
         "username": admin_username,
         "password_hash": get_password_hash(admin_password),
         "roles": ["admin"],
-        "permissions": ["read", "write", "delete", "admin"]
+        "permissions": ["read", "write", "delete", "admin"],
     }
 
 
@@ -241,7 +242,8 @@ def sanitize_string(input_str: str, max_length: int = 1000) -> str:
 def validate_email(email: str) -> str:
     """Validate email format"""
     import re
-    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+    email_regex = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
     if not re.match(email_regex, email):
         raise ValueError("Invalid email format")

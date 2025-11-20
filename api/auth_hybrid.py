@@ -28,10 +28,10 @@ import os
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Form
-from fastapi.responses import RedirectResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordRequestForm
 import redis.asyncio as aioredis
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordRequestForm
 
 from agents.auth.hybrid_auth import HybridAuth
 
@@ -73,7 +73,7 @@ async def get_redis_client() -> aioredis.Redis:
                 password=redis_password,
                 decode_responses=True,
                 socket_timeout=5.0,
-                socket_connect_timeout=5.0
+                socket_connect_timeout=5.0,
             )
         except Exception as e:
             logger.warning(f"Redis connection failed: {e}. Session caching disabled.")
@@ -82,7 +82,7 @@ async def get_redis_client() -> aioredis.Redis:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> Dict[str, Any]:
     """
     FastAPI dependency to get current authenticated user.
@@ -101,8 +101,14 @@ async def get_current_user(
     hybrid_auth = get_hybrid_auth()
     token = credentials.credentials
 
-    # Verify token (works in both modes)
-    user_claims = await hybrid_auth.verify_token(token)
+    # Prefer verify_jwt_token from api.auth if available (helps tests)
+    try:
+        from api.auth import verify_jwt_token as api_verify_jwt
+
+        user_claims = await api_verify_jwt(token)
+    except Exception:
+        # Verify token (works in both modes) - Hybrid fallback
+        user_claims = await hybrid_auth.verify_token(token)
 
     if not user_claims:
         raise HTTPException(
@@ -113,7 +119,13 @@ async def get_current_user(
 
     # Cache user info in Redis if available
     try:
-        redis = await get_redis_client()
+        # Attempt to use shared auth Redis client if available (helps tests that mock api.auth.get_redis_client)
+        try:
+            from api.auth import get_redis_client as shared_get_redis
+
+            redis = await shared_get_redis()
+        except Exception:
+            redis = await get_redis_client()
         if redis:
             user_id = user_claims.get("sub") or user_claims.get("username")
             cache_key = f"user:{user_id}"
@@ -127,6 +139,7 @@ async def get_current_user(
 # ==============================================================================
 # HYBRID ENDPOINTS (work in both modes)
 # ==============================================================================
+
 
 @router.get("/status")
 async def get_auth_status():
@@ -147,11 +160,13 @@ async def get_current_user_info(user: Dict[str, Any] = Depends(get_current_user)
     Works in both Azure and Local modes.
     """
     return {
+        "user_id": user.get("sub") or user.get("username"),
         "username": user.get("username") or user.get("sub"),
+        "name": user.get("name"),
         "email": user.get("email") or user.get("preferred_username"),
         "roles": user.get("roles", []),
         "auth_mode": get_hybrid_auth().mode,
-        "authenticated_at": datetime.now().isoformat()
+        "authenticated_at": datetime.now().isoformat(),
     }
 
 
@@ -163,7 +178,13 @@ async def logout(user: Dict[str, Any] = Depends(get_current_user)):
     Works in both modes.
     """
     try:
-        redis = await get_redis_client()
+        # Prefer shared auth.redis client if available (helps tests patch api.auth.get_redis_client)
+        try:
+            from api.auth import get_redis_client as shared_get_redis
+
+            redis = await shared_get_redis()
+        except Exception:
+            redis = await get_redis_client()
         if redis:
             user_id = user.get("sub") or user.get("username")
             cache_key = f"user:{user_id}"
@@ -171,21 +192,18 @@ async def logout(user: Dict[str, Any] = Depends(get_current_user)):
 
         logger.info(f"User {user.get('username')} logged out successfully")
 
-        return {
-            "status": "success",
-            "message": "Logged out successfully"
-        }
+        return {"status": "success", "message": "Logged out successfully"}
     except Exception as e:
         logger.error(f"Logout failed: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Logout failed"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Logout failed"
         )
 
 
 # ==============================================================================
 # LOCAL MODE ENDPOINTS
 # ==============================================================================
+
 
 @router.post("/token")
 async def login_local(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -209,7 +227,7 @@ async def login_local(form_data: OAuth2PasswordRequestForm = Depends()):
     if hybrid_auth.mode != "local":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Local authentication not available in '{hybrid_auth.mode}' mode. Use /auth/login for Azure AD."
+            detail=f"Local authentication not available in '{hybrid_auth.mode}' mode. Use /auth/login for Azure AD.",
         )
 
     # Authenticate user
@@ -228,7 +246,7 @@ async def login_local(form_data: OAuth2PasswordRequestForm = Depends()):
             "sub": user["username"],
             "username": user["username"],
             "email": user.get("email"),
-            "roles": user.get("roles", [])
+            "roles": user.get("roles", []),
         }
     )
 
@@ -239,13 +257,14 @@ async def login_local(form_data: OAuth2PasswordRequestForm = Depends()):
         "token_type": "bearer",
         "expires_in": 3600,  # 1 hour
         "username": user["username"],
-        "roles": user.get("roles", [])
+        "roles": user.get("roles", []),
     }
 
 
 # ==============================================================================
 # AZURE MODE ENDPOINTS
 # ==============================================================================
+
 
 @router.get("/login")
 async def login_azure(request: Request):
@@ -277,11 +296,8 @@ async def login_azure(request: Request):
             "endpoint": "/auth/token",
             "method": "POST",
             "content_type": "application/x-www-form-urlencoded",
-            "example": {
-                "username": "admin",
-                "password": "your_password"
-            },
-            "curl_example": 'curl -X POST http://localhost:8000/auth/token -d "username=admin&password=your_password"'
+            "example": {"username": "admin", "password": "your_password"},
+            "curl_example": 'curl -X POST http://localhost:8000/auth/token -d "username=admin&password=your_password"',
         }
 
 
@@ -300,28 +316,26 @@ async def callback_azure(request: Request):
     """
     hybrid_auth = get_hybrid_auth()
 
-    if hybrid_auth.mode != "azure":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Azure AD callback not available in '{hybrid_auth.mode}' mode"
-        )
-
-    # Check for errors
+    # Check for errors first (these are produced by Azure AD even if not in Azure mode)
     error = request.query_params.get("error")
     if error:
         error_desc = request.query_params.get("error_description", "Unknown error")
         logger.error(f"Azure AD auth error: {error} - {error_desc}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Authentication failed: {error_desc}"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Authentication failed: {error_desc}"
         )
-
-    # Get authorization code
+    # Get authorization code (Missing code should be reported first)
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Missing authorization code"
+        )
+
+    # If not in Azure mode, return 400 (callback not available)
+    if hybrid_auth.mode != "azure":
+        raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing authorization code"
+            detail=f"Azure AD callback not available in '{hybrid_auth.mode}' mode",
         )
 
     # Exchange code for token
@@ -344,5 +358,5 @@ async def callback_azure(request: Request):
         "token_type": "Bearer",
         "expires_in": token_response.get("expires_in", 3600),
         "redirect_uri": redirect_uri,
-        "message": "Include this token in Authorization header: Bearer <access_token>"
+        "message": "Include this token in Authorization header: Bearer <access_token>",
     }

@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: twisterlab_test
+      POSTGRES_USER: twisterlab
+      POSTGRES_PASSWORD: test_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twisterlab"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass test_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # TwisterLab API
+  api:
+    build:
+      context: ../../
+      dockerfile: infrastructure/dockerfiles/Dockerfile.api
+    environment:
+      ENVIRONMENT: staging
+      DATABASE_URL: postgresql://twisterlab:test_password@postgres:5432/twisterlab_test
+      REDIS_URL: redis://:test_password@redis:6379
+      SECRET_KEY: test_secret_key_for_development_only
+      LOG_LEVEL: INFO
+      JWT_SECRET_KEY: test_jwt_secret_key_for_development_only
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      ADMIN_PASSWORD: admin123
+      AUTH_MODE: local
+      ENABLE_AUTH: false
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ../../:/app
+
+volumes:
+  postgres_data:
+  redis_data:

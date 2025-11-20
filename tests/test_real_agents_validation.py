@@ -5,15 +5,17 @@ Tests for Real Agents - Production Validation
 Simple tests to validate real agent functionality for production deployment.
 """
 
-import pytest
 import asyncio
+
+import pytest
+
 from agents.real.real_backup_agent import RealBackupAgent
-from agents.real.real_monitoring_agent import RealMonitoringAgent
-from agents.real.real_sync_agent import RealSyncAgent
 from agents.real.real_classifier_agent import RealClassifierAgent
-from agents.real.real_resolver_agent import RealResolverAgent
 from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
 from agents.real.real_maestro_agent import RealMaestroAgent
+from agents.real.real_monitoring_agent import RealMonitoringAgent
+from agents.real.real_resolver_agent import RealResolverAgent
+from agents.support.sync_agent import SyncAgent as RealSyncAgent
 
 
 @pytest.mark.asyncio
@@ -57,13 +59,10 @@ async def test_real_classifier_agent():
     ticket = {
         "id": "TEST-001",
         "title": "Network issue",
-        "description": "Cannot connect to internet"
+        "description": "Cannot connect to internet",
     }
 
-    result = await agent.execute({
-        "operation": "classify_ticket",
-        "ticket": ticket
-    })
+    result = await agent.execute({"operation": "classify_ticket", "ticket": ticket})
     assert result["status"] == "success"
     assert "classification" in result
 
@@ -78,13 +77,10 @@ async def test_real_resolver_agent():
         "id": "TEST-001",
         "title": "Software issue",
         "description": "Application crashes on startup",
-        "category": "software"
+        "category": "software",
     }
 
-    result = await agent.execute({
-        "operation": "resolve_ticket",
-        "ticket": ticket
-    })
+    result = await agent.execute({"operation": "resolve_ticket", "ticket": ticket})
     assert result["status"] == "success"
 
 
@@ -94,11 +90,9 @@ async def test_real_desktop_commander_agent():
     agent = RealDesktopCommanderAgent()
 
     # Test with whitelisted command
-    result = await agent.execute({
-        "operation": "execute_command",
-        "command": "ping",
-        "args": ["127.0.0.1"]
-    })
+    result = await agent.execute(
+        {"operation": "execute_command", "command": "ping", "args": ["127.0.0.1"]}
+    )
     assert "status" in result
 
 
@@ -108,14 +102,7 @@ async def test_real_maestro_agent():
     agent = RealMaestroAgent()
 
     # Test workflow orchestration
-    ticket = {
-        "id": "TEST-001",
-        "title": "Test ticket",
-        "description": "Test description"
-    }
+    ticket = {"id": "TEST-001", "title": "Test ticket", "description": "Test description"}
 
-    result = await agent.execute({
-        "operation": "orchestrate_workflow",
-        "ticket": ticket
-    })
+    result = await agent.execute({"operation": "orchestrate_workflow", "ticket": ticket})
     assert result["status"] == "success"

@@ -4,22 +4,23 @@ Tests communication between Maestro Orchestrator and worker agents
 """
 
 import asyncio
-import sys
 import json
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from agents.real.real_maestro_agent import RealMaestroAgent
+from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
 from agents.real.real_classifier_agent import RealClassifierAgent
 from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich import box
+from agents.real.real_maestro_agent import RealMaestroAgent
 
 console = Console()
 
@@ -87,7 +88,9 @@ async def test_load_balancer(maestro):
         # Test classifier instances
         classifier_instance = lb.get_best_instance("classifier")
         if classifier_instance:
-            console.print(f"   ✅ Classifier registered: {classifier_instance.instance_id}", style="green")
+            console.print(
+                f"   ✅ Classifier registered: {classifier_instance.instance_id}", style="green"
+            )
             console.print(f"      • Max Load: {classifier_instance.max_load}", style="dim")
             console.print(f"      • Current Load: {classifier_instance.current_load}", style="dim")
         else:
@@ -97,7 +100,9 @@ async def test_load_balancer(maestro):
         # Test resolver instances
         resolver_instance = lb.get_best_instance("resolver")
         if resolver_instance:
-            console.print(f"   ✅ Resolver registered: {resolver_instance.instance_id}", style="green")
+            console.print(
+                f"   ✅ Resolver registered: {resolver_instance.instance_id}", style="green"
+            )
             console.print(f"      • Max Load: {resolver_instance.max_load}", style="dim")
             console.print(f"      • Current Load: {resolver_instance.current_load}", style="dim")
         else:
@@ -107,7 +112,9 @@ async def test_load_balancer(maestro):
         # Test desktop commander instances
         dc_instance = lb.get_best_instance("desktop_commander")
         if dc_instance:
-            console.print(f"   ✅ Desktop Commander registered: {dc_instance.instance_id}", style="green")
+            console.print(
+                f"   ✅ Desktop Commander registered: {dc_instance.instance_id}", style="green"
+            )
             console.print(f"      • Max Load: {dc_instance.max_load}", style="dim")
             console.print(f"      • Current Load: {dc_instance.current_load}", style="dim")
         else:
@@ -131,7 +138,9 @@ async def test_task_scheduler(maestro):
         tasks = scheduler.get_all_tasks()
 
         if tasks:
-            console.print(f"   ✅ Task Scheduler active: {len(tasks)} tasks scheduled", style="green")
+            console.print(
+                f"   ✅ Task Scheduler active: {len(tasks)} tasks scheduled", style="green"
+            )
             for task in tasks:
                 console.print(f"      • {task.name} (every {task.interval}s)", style="dim")
         else:
@@ -154,7 +163,7 @@ async def test_ticket_classification(maestro, classifier):
             "subject": "Cannot connect to VPN",
             "description": "User unable to access VPN after Windows update",
             "priority": "high",
-            "requestor_email": "test@twisterlab.local"
+            "requestor_email": "test@twisterlab.local",
         }
 
         console.print(f"   📤 Sending test ticket to classifier...", style="cyan")
@@ -162,8 +171,7 @@ async def test_ticket_classification(maestro, classifier):
 
         # Simulate classification
         result = await classifier.execute(
-            f"Classify this ticket: {test_ticket['subject']}",
-            {"ticket": test_ticket}
+            f"Classify this ticket: {test_ticket['subject']}", {"ticket": test_ticket}
         )
 
         if result.get("status") == "success":
@@ -179,6 +187,7 @@ async def test_ticket_classification(maestro, classifier):
     except Exception as e:
         console.print(f"   ❌ Classification communication failed: {e}", style="red")
         import traceback
+
         console.print(f"      {traceback.format_exc()}", style="dim red")
         return False
 
@@ -235,9 +244,9 @@ async def test_maestro_metrics(maestro):
 
 async def generate_summary_report(results):
     """Generate summary report"""
-    console.print("\n" + "="*70)
+    console.print("\n" + "=" * 70)
     console.print("[bold cyan]📊 AGENT COMMUNICATION TEST SUMMARY[/bold cyan]")
-    console.print("="*70 + "\n")
+    console.print("=" * 70 + "\n")
 
     # Create summary table
     table = Table(box=box.ROUNDED, show_header=True)
@@ -256,7 +265,7 @@ async def generate_summary_report(results):
         "task_scheduler": "Task Scheduler",
         "classification": "Ticket Classification",
         "health_checks": "Agent Health Checks",
-        "metrics": "Metrics Tracking"
+        "metrics": "Metrics Tracking",
     }
 
     for i, (test_key, passed) in enumerate(results.items(), 1):
@@ -268,7 +277,7 @@ async def generate_summary_report(results):
             str(i),
             test_names.get(test_key, test_key),
             f"[{status_style}]{status}[/{status_style}]",
-            result
+            result,
         )
 
     console.print(table)
@@ -285,7 +294,7 @@ async def generate_summary_report(results):
             "• Agent routing working[/dim]",
             title="🎉 Communication Test: SUCCESS",
             border_style="green",
-            box=box.DOUBLE
+            box=box.DOUBLE,
         )
     else:
         panel = Panel(
@@ -294,7 +303,7 @@ async def generate_summary_report(results):
             "[dim]Check the detailed output above for failure reasons[/dim]",
             title="⚠️  Communication Test: ISSUES DETECTED",
             border_style="yellow",
-            box=box.DOUBLE
+            box=box.DOUBLE,
         )
 
     console.print(panel)
@@ -343,12 +352,11 @@ async def main():
 
     # Test 5: Classification communication (if classifier available)
     if "classifier" in agents:
-        results["classification"] = await test_ticket_classification(
-            maestro,
-            agents["classifier"]
-        )
+        results["classification"] = await test_ticket_classification(maestro, agents["classifier"])
     else:
-        console.print("\n[yellow]⚠️  Skipping classification test (classifier not available)[/yellow]")
+        console.print(
+            "\n[yellow]⚠️  Skipping classification test (classifier not available)[/yellow]"
+        )
         results["classification"] = False
 
     # Test 6: Health checks
@@ -376,5 +384,6 @@ if __name__ == "__main__":
     except Exception as e:
         console.print(f"\n[bold red]❌ FATAL ERROR: {e}[/bold red]")
         import traceback
+
         console.print(traceback.format_exc(), style="dim red")
         sys.exit(1)

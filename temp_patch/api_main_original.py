@@ -7,12 +7,12 @@ from fastapi import FastAPI, HTTPException, Response
 # Prometheus metrics
 try:
     from prometheus_client import (
+        CONTENT_TYPE_LATEST,
+        REGISTRY,
         Counter,
         Gauge,
         Histogram,
         generate_latest,
-        CONTENT_TYPE_LATEST,
-        REGISTRY,
     )
 
     PROMETHEUS_AVAILABLE = True
@@ -23,24 +23,24 @@ try:
         "Total HTTP requests",
         ["method", "endpoint", "status"],
     )
-    
+
     agent_operations_total = Counter(
         "agent_operations_total",
         "Total agent operations executed",
         ["agent", "operation", "status"],
     )
-    
+
     active_agents = Gauge(
         "active_agents_count",
         "Number of active agents",
     )
-    
+
     http_request_duration_seconds = Histogram(
         "http_request_duration_seconds",
         "HTTP request duration in seconds",
         ["method", "endpoint"],
     )
-    
+
     agent_execution_duration_seconds = Histogram(
         "agent_execution_duration_seconds",
         "Agent execution duration in seconds",
@@ -55,9 +55,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="TwisterLab API", version="1.0.0", description="Autonomous IT Helpdesk API"
-)
+app = FastAPI(title="TwisterLab API", version="1.0.0", description="Autonomous IT Helpdesk API")
 
 # Mock data for agents
 AGENTS = [
@@ -126,9 +124,11 @@ async def health_check():
 @app.get("/api/v1/autonomous/status")
 async def get_autonomous_status():
     if PROMETHEUS_AVAILABLE:
-        http_requests_total.labels(method="GET", endpoint="/api/v1/autonomous/status", status="200").inc()
+        http_requests_total.labels(
+            method="GET", endpoint="/api/v1/autonomous/status", status="200"
+        ).inc()
         active_agents.set(len([a for a in AGENTS if a["status"] == "active"]))
-    
+
     return {
         "status": "operational",
         "timestamp": datetime.now().isoformat(),
@@ -158,8 +158,9 @@ async def get_agent(agent_name: str):
 @app.post("/api/v1/autonomous/agents/{agent_name}/execute")
 async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
     import time
+
     start_time = time.time()
-    
+
     agent = next((a for a in AGENTS if a["name"].lower() == agent_name.lower()), None)
     if not agent:
         raise HTTPException(status_code=404, detail=f"Agent {agent_name} not found")
@@ -181,33 +182,28 @@ async def execute_agent_operation(agent_name: str, payload: Dict[str, Any]):
                 "timestamp": datetime.now().isoformat(),
                 "result": f"Mock execution completed for {agent_name}",
             }
-        
+
         # Track metrics
         if PROMETHEUS_AVAILABLE:
             operation = payload.get("operation", "unknown")
             status = result.get("status", "unknown")
             agent_operations_total.labels(
-                agent=agent_name,
-                operation=operation,
-                status=status
+                agent=agent_name, operation=operation, status=status
             ).inc()
-            
+
             duration = time.time() - start_time
-            agent_execution_duration_seconds.labels(
-                agent=agent_name,
-                operation=operation
-            ).observe(duration)
-        
+            agent_execution_duration_seconds.labels(agent=agent_name, operation=operation).observe(
+                duration
+            )
+
         return result
-        
+
     except Exception as e:
         # Track error
         if PROMETHEUS_AVAILABLE:
             operation = payload.get("operation", "unknown")
             agent_operations_total.labels(
-                agent=agent_name,
-                operation=operation,
-                status="error"
+                agent=agent_name, operation=operation, status="error"
             ).inc()
         raise
 
@@ -246,9 +242,7 @@ async def execute_backup_agent(payload: Dict[str, Any]):
             },
         }
     else:
-        raise HTTPException(
-            status_code=400, detail=f"Unknown backup operation: {operation}"
-        )
+        raise HTTPException(status_code=400, detail=f"Unknown backup operation: {operation}")
 
 
 async def execute_sync_agent(payload: Dict[str, Any]):
@@ -300,9 +294,7 @@ async def execute_sync_agent(payload: Dict[str, Any]):
             },
         }
     else:
-        raise HTTPException(
-            status_code=400, detail=f"Unknown sync operation: {operation}"
-        )
+        raise HTTPException(status_code=400, detail=f"Unknown sync operation: {operation}")
 
 
 async def execute_monitoring_agent(payload: Dict[str, Any]):
@@ -343,9 +335,7 @@ async def execute_monitoring_agent(payload: Dict[str, Any]):
             },
         }
     else:
-        raise HTTPException(
-            status_code=400, detail=f"Unknown monitoring operation: {operation}"
-        )
+        raise HTTPException(status_code=400, detail=f"Unknown monitoring operation: {operation}")
 
 
 @app.get("/api/v1/monitoring/health")
@@ -366,7 +356,7 @@ async def get_monitoring_health():
 async def metrics():
     """
     Prometheus metrics endpoint.
-    
+
     Exposes metrics in Prometheus format for scraping:
     - http_requests_total: Total HTTP requests by method, endpoint, and status
     - agent_operations_total: Total agent operations by agent, operation, and status
@@ -379,10 +369,10 @@ async def metrics():
             status_code=503,
             detail="Prometheus metrics not available (prometheus_client not installed)",
         )
-    
+
     # Update current active agents count
     active_agents.set(len([a for a in AGENTS if a["status"] == "active"]))
-    
+
     return Response(
         content=generate_latest(REGISTRY),
         media_type=CONTENT_TYPE_LATEST,

@@ -5,11 +5,12 @@ Provides secure authentication using Microsoft Azure Active Directory.
 Supports both user authentication (OAuth2 flow) and application-level access.
 """
 
-import os
 import logging
-from typing import Optional, Dict, Any
-from msal import ConfidentialClientApplication
+import os
+from typing import Any, Dict, Optional
+
 from fastapi import HTTPException
+from msal import ConfidentialClientApplication
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +49,7 @@ class AzureADAuth:
         self.scopes = ["https://graph.microsoft.com/.default"]
 
         self.app = ConfidentialClientApplication(
-            self.client_id,
-            authority=self.authority,
-            client_credential=self.client_secret
+            self.client_id, authority=self.authority, client_credential=self.client_secret
         )
 
         logger.info(
@@ -58,8 +57,8 @@ class AzureADAuth:
             extra={
                 "tenant_id": self.tenant_id,
                 "client_id": self.client_id,
-                "authority": self.authority
-            }
+                "authority": self.authority,
+            },
         )
 
     async def get_app_token(self) -> str:
@@ -84,25 +83,16 @@ class AzureADAuth:
 
             error = result.get("error_description", result.get("error", "Unknown error"))
             logger.error(f"Token acquisition failed: {error}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Azure AD authentication failed: {error}"
-            )
+            raise HTTPException(status_code=500, detail=f"Azure AD authentication failed: {error}")
 
         except HTTPException:
             raise
         except Exception as e:
             logger.error(f"Unexpected error during token acquisition: {e}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Authentication error: {str(e)}"
-            )
+            raise HTTPException(status_code=500, detail=f"Authentication error: {str(e)}")
 
     def get_authorization_url(
-        self,
-        redirect_uri: str,
-        state: Optional[str] = None,
-        scopes: Optional[list[str]] = None
+        self, redirect_uri: str, state: Optional[str] = None, scopes: Optional[list[str]] = None
     ) -> str:
         """
         Generate OAuth2 authorization URL for user login.
@@ -123,16 +113,11 @@ class AzureADAuth:
         scopes = scopes or ["User.Read"]
 
         return self.app.get_authorization_request_url(
-            scopes=scopes,
-            redirect_uri=redirect_uri,
-            state=state
+            scopes=scopes, redirect_uri=redirect_uri, state=state
         )
 
     async def acquire_token_by_code(
-        self,
-        code: str,
-        redirect_uri: str,
-        scopes: Optional[list[str]] = None
+        self, code: str, redirect_uri: str, scopes: Optional[list[str]] = None
     ) -> Dict[str, Any]:
         """
         Exchange authorization code for access token.
@@ -158,9 +143,7 @@ class AzureADAuth:
 
         try:
             result = self.app.acquire_token_by_authorization_code(
-                code=code,
-                scopes=scopes,
-                redirect_uri=redirect_uri
+                code=code, scopes=scopes, redirect_uri=redirect_uri
             )
 
             if "access_token" in result:
@@ -169,19 +152,13 @@ class AzureADAuth:
 
             error = result.get("error_description", result.get("error", "Unknown error"))
             logger.error(f"Token exchange failed: {error}")
-            raise HTTPException(
-                status_code=400,
-                detail=f"Token exchange failed: {error}"
-            )
+            raise HTTPException(status_code=400, detail=f"Token exchange failed: {error}")
 
         except HTTPException:
             raise
         except Exception as e:
             logger.error(f"Unexpected error during token exchange: {e}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Token exchange error: {str(e)}"
-            )
+            raise HTTPException(status_code=500, detail=f"Token exchange error: {str(e)}")
 
     def validate_token_structure(self, token: str) -> bool:
         """

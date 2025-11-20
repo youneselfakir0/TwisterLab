@@ -1,8 +1,11 @@
 """
 Tests for RealDesktopCommanderAgent with LLM command validation
 """
-import pytest
+
 import asyncio
+
+import pytest
+
 from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
 
 
@@ -17,11 +20,7 @@ async def test_commander_llm_safe_ping(commander):
     """Test LLM validates safe ping command."""
     print("\n🧪 Testing LLM validation: Safe ping command")
 
-    context = {
-        "operation": "execute_command",
-        "command": "ping",
-        "args": ["8.8.8.8"]
-    }
+    context = {"operation": "execute_command", "command": "ping", "args": ["8.8.8.8"]}
 
     result = await commander.execute(context)
 
@@ -39,10 +38,7 @@ async def test_commander_llm_safe_ipconfig(commander):
     """Test LLM validates safe ipconfig command."""
     print("\n🧪 Testing LLM validation: Safe ipconfig command")
 
-    context = {
-        "operation": "execute_command",
-        "command": "ipconfig"
-    }
+    context = {"operation": "execute_command", "command": "ipconfig"}
 
     result = await commander.execute(context)
 
@@ -63,7 +59,7 @@ async def test_commander_llm_unsafe_delete(commander):
     context = {
         "operation": "execute_command",
         "command": "del",  # Not in whitelist
-        "args": ["C:\\important_file.txt"]
+        "args": ["C:\\important_file.txt"],
     }
 
     result = await commander.execute(context)
@@ -110,10 +106,7 @@ async def test_commander_whitelist_fallback(commander):
 
     try:
         # Whitelisted command should work
-        context = {
-            "operation": "execute_command",
-            "command": "hostname"
-        }
+        context = {"operation": "execute_command", "command": "hostname"}
 
         result = await commander.execute(context)
 
@@ -134,9 +127,7 @@ async def test_commander_system_info(commander):
     """Test system info gathering."""
     print("\n🧪 Testing system info gathering")
 
-    context = {
-        "operation": "get_system_info"
-    }
+    context = {"operation": "get_system_info"}
 
     result = await commander.execute(context)
 
@@ -157,10 +148,7 @@ async def test_commander_network_diagnostic(commander):
     """Test network diagnostics."""
     print("\n🧪 Testing network diagnostics")
 
-    context = {
-        "operation": "network_diagnostic",
-        "target": "8.8.8.8"
-    }
+    context = {"operation": "network_diagnostic", "target": "8.8.8.8"}
 
     result = await commander.execute(context)
 
@@ -177,9 +165,9 @@ async def test_commander_network_diagnostic(commander):
 # Manual test runner (if not using pytest)
 async def run_tests():
     """Run all tests manually."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🧪 DESKTOP COMMANDER AGENT LLM TESTS")
-    print("="*60)
+    print("=" * 60)
 
     commander = RealDesktopCommanderAgent()
 
@@ -212,13 +200,13 @@ async def run_tests():
             print(f"   Error: {e}")
             failed += 1
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"📊 TEST SUMMARY")
-    print("="*60)
+    print("=" * 60)
     print(f"✅ Passed: {passed}")
     print(f"❌ Failed: {failed}")
     print(f"📈 Success Rate: {(passed/(passed+failed)*100):.1f}%")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

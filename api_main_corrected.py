@@ -120,9 +120,7 @@ app = FastAPI(
 try:
     from agents.api.routes_mcp_real import router as mcp_real_router
 
-    app.include_router(
-        mcp_real_router
-    )  # MCP tools router (already has /v1/mcp/tools prefix)
+    app.include_router(mcp_real_router)  # MCP tools router (already has /v1/mcp/tools prefix)
     logger.info("✅ MCP routes included successfully")
 except ImportError as e:
     logger.warning(f"⚠️ MCP routes not available: {e}")

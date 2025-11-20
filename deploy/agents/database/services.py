@@ -3,14 +3,15 @@ TwisterLab Database Services
 Service layer for database operations
 """
 
-from typing import List, Optional
-from sqlalchemy import select, update, delete, and_, or_, func
-from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime, timezone
 import uuid
+from datetime import datetime, timezone
+from typing import List, Optional
 
+from sqlalchemy import and_, delete, func, or_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..api.models_sops import SOPCreate, SOPResponse, SOPUpdate
 from .models import SOP
-from ..api.models_sops import SOPCreate, SOPUpdate, SOPResponse
 
 
 class SOPService:
@@ -48,7 +49,7 @@ class SOPService:
             version=1,
             created_at=now,
             updated_at=now,
-            created_by=created_by
+            created_by=created_by,
         )
 
         self.session.add(sop)
@@ -77,7 +78,7 @@ class SOPService:
         category: Optional[str] = None,
         is_active: Optional[bool] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[SOPResponse]:
         """
         List SOPs with optional filtering and pagination.
@@ -141,11 +142,7 @@ class SOPService:
             update_dict["version"] = db_sop.version + 1
 
             # Update the SOP
-            stmt = (
-                update(SOP)
-                .where(SOP.id == sop_id)
-                .values(**update_dict)
-            )
+            stmt = update(SOP).where(SOP.id == sop_id).values(**update_dict)
             await self.session.execute(stmt)
             await self.session.commit()
 
@@ -184,9 +181,7 @@ class SOPService:
         return await self.list_sops(category=category, limit=limit)
 
     async def count_sops(
-        self,
-        category: Optional[str] = None,
-        is_active: Optional[bool] = None
+        self, category: Optional[str] = None, is_active: Optional[bool] = None
     ) -> int:
         """
         Count SOPs with optional filtering.
@@ -225,12 +220,12 @@ class SOPService:
             List of matching SOPs
         """
         search_term = f"%{query}%"
-        stmt = select(SOP).where(
-            or_(
-                SOP.title.ilike(search_term),
-                SOP.description.ilike(search_term)
-            )
-        ).order_by(SOP.created_at.desc()).limit(limit)
+        stmt = (
+            select(SOP)
+            .where(or_(SOP.title.ilike(search_term), SOP.description.ilike(search_term)))
+            .order_by(SOP.created_at.desc())
+            .limit(limit)
+        )
 
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
@@ -249,5 +244,5 @@ class SOPService:
             version=sop.version,
             created_by=sop.created_by,
             created_at=sop.created_at.isoformat(),
-            updated_at=sop.updated_at.isoformat()
+            updated_at=sop.updated_at.isoformat(),
         )

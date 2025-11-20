@@ -3,10 +3,10 @@
 TwisterLab API Server Startup Script
 """
 
+import os
 import subprocess
 import sys
 import time
-import os
 
 
 def start_api_server() -> None:
@@ -15,18 +15,18 @@ def start_api_server() -> None:
 
     # Set environment variables
     env = os.environ.copy()
-    env['PYTHONPATH'] = 'c:\\TwisterLab'
+    env["PYTHONPATH"] = "c:\\TwisterLab"
 
     try:
         # Start the server
         cmd = 'from agents.api.main import app; import uvicorn; uvicorn.run(app, host="0.0.0.0", port=8000)'
         process = subprocess.Popen(
-            [sys.executable, '-c', cmd],
-            cwd='c:\\TwisterLab',
+            [sys.executable, "-c", cmd],
+            cwd="c:\\TwisterLab",
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
         )
 
         print("✅ Server process started")

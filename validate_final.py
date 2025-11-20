@@ -58,8 +58,7 @@ async def validate_setup():
     errors = [
         k
         for k, v in results.items()
-        if isinstance(v, str)
-        and ("Erreur" in v or ("Status" in v and not v.startswith("healthy")))
+        if isinstance(v, str) and ("Erreur" in v or ("Status" in v and not v.startswith("healthy")))
     ]
     if errors:
         print(f"\n{len(errors)} erreurs detectees")
@@ -67,9 +66,7 @@ async def validate_setup():
     else:
         models_count = results.get("models_count", 0)
         mcp_servers = results.get("mcp_servers", 0)
-        print(
-            f"\nConfiguration valide - {models_count} modeles, {mcp_servers} MCP servers"
-        )
+        print(f"\nConfiguration valide - {models_count} modeles, {mcp_servers} MCP servers")
         return True
 
 

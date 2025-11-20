@@ -2,12 +2,13 @@
 Test d'intégration complet - API + Desktop Commander MCP
 """
 
+import os
+import subprocess
+import time
+from typing import Optional
+
 import pytest
 import requests
-import time
-import subprocess
-import os
-from typing import Optional
 
 
 class TestFullIntegration:
@@ -79,9 +80,7 @@ class TestFullIntegration:
             "requester_email": "test@example.com",
         }
 
-        response = requests.post(
-            f"{self.API_URL}/api/v1/tickets/", json=ticket_data
-        )
+        response = requests.post(f"{self.API_URL}/api/v1/tickets/", json=ticket_data)
         assert response.status_code == 201
         data = response.json()
         assert "id" in data
@@ -119,9 +118,7 @@ class TestFullIntegration:
             },
         }
 
-        response = requests.post(
-            f"{self.API_URL}/api/v1/agents/execute", json=execution_data
-        )
+        response = requests.post(f"{self.API_URL}/api/v1/agents/execute", json=execution_data)
         assert response.status_code == 200
         data = response.json()
         assert "result" in data
@@ -142,9 +139,7 @@ class TestFullIntegration:
             },
         }
 
-        response = requests.post(
-            f"{self.API_URL}/api/v1/agents/execute", json=execution_data
-        )
+        response = requests.post(f"{self.API_URL}/api/v1/agents/execute", json=execution_data)
         assert response.status_code == 200
         data = response.json()
         assert "result" in data
@@ -162,9 +157,7 @@ class TestFullIntegration:
             },
         }
 
-        response = requests.post(
-            f"{self.API_URL}/api/v1/agents/execute", json=execution_data
-        )
+        response = requests.post(f"{self.API_URL}/api/v1/agents/execute", json=execution_data)
         assert response.status_code == 200
         data = response.json()
         assert "result" in data
@@ -186,16 +179,12 @@ class TestFullIntegration:
             "context": {},
         }
 
-        response = requests.post(
-            f"{self.API_URL}/api/v1/agents/execute", json=execution_data
-        )
+        response = requests.post(f"{self.API_URL}/api/v1/agents/execute", json=execution_data)
         assert response.status_code == 404
 
     def test_malformed_request(self):
         """Test avec une requête malformée."""
-        response = requests.post(
-            f"{self.API_URL}/api/v1/agents/execute", json={"invalid": "data"}
-        )
+        response = requests.post(f"{self.API_URL}/api/v1/agents/execute", json={"invalid": "data"})
         # Devrait retourner une erreur de validation
         assert response.status_code in [400, 422]
 

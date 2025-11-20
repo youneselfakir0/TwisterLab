@@ -1,6 +1,6 @@
 # test_imports.py - Script pour tester les imports Python
-import sys
 import importlib
+import sys
 
 modules_to_test = ["fastapi", "uvicorn", "sqlalchemy", "alembic", "pytest", "asyncpg"]
 

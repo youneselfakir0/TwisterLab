@@ -1,17 +1,21 @@
-from fastapi import FastAPI
-import uvicorn
 import threading
 import time
+
 import httpx
+import uvicorn
+from fastapi import FastAPI
 
 app = FastAPI()
+
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
+
 def run_server():
     uvicorn.run(app, host="127.0.0.1", port=8008, log_level="error")
+
 
 def test_request():
     time.sleep(1)  # Wait for server to start
@@ -21,6 +25,7 @@ def test_request():
             print(f"Response: {response.status_code} - {response.json()}")
     except Exception as e:
         print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     # Start server in background thread

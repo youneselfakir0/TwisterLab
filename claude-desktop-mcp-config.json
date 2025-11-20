@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "twisterlab-unified": {
+      "command": "python",
+      "args": ["agents/mcp/mcp_server.py"],
+      "env": {
+        "PYTHONPATH": "."
+      }
+    }
+  }
+}

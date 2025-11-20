@@ -56,9 +56,7 @@ class LocalAuth:
             )
 
         self.algorithm = os.getenv("JWT_ALGORITHM", "HS256")
-        self.access_token_expire_minutes = int(
-            os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60")
-        )
+        self.access_token_expire_minutes = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
         # In-memory user database
         # TODO: Replace with PostgreSQL queries for production
@@ -125,9 +123,7 @@ class LocalAuth:
         return pwd_context.hash(plain_password[:72])
 
     def create_access_token(
-        self,
-        data: Dict[str, Any],
-        expires_delta: Optional[timedelta] = None
+        self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None
     ) -> str:
         """
         Create JWT access token.
@@ -154,26 +150,20 @@ class LocalAuth:
                 minutes=self.access_token_expire_minutes
             )
 
-        to_encode.update({
-            "exp": expire,
-            "iat": datetime.now(timezone.utc),  # Issued at
-            "iss": "twisterlab-local-auth",     # Issuer
-        })
+        to_encode.update(
+            {
+                "exp": expire,
+                "iat": datetime.now(timezone.utc),  # Issued at
+                "iss": "twisterlab-local-auth",  # Issuer
+            }
+        )
 
         # Sign token
-        encoded_jwt = jwt.encode(
-            to_encode,
-            self.secret_key,
-            algorithm=self.algorithm
-        )
+        encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
 
         return encoded_jwt
 
-    async def authenticate_user(
-        self,
-        username: str,
-        password: str
-    ) -> Optional[Dict[str, Any]]:
+    async def authenticate_user(self, username: str, password: str) -> Optional[Dict[str, Any]]:
         """
         Authenticate user with username and password.
 
@@ -233,11 +223,7 @@ class LocalAuth:
         """
         try:
             # Decode token
-            payload = jwt.decode(
-                token,
-                self.secret_key,
-                algorithms=[self.algorithm]
-            )
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
 
             # Extract username
             username: str = payload.get("sub")
@@ -248,7 +234,9 @@ class LocalAuth:
             # Check if user still exists and is enabled
             user = self.users_db.get(username)
             if not user or not user.get("enabled", True):
-                logger.warning(f"Token verification failed: user '{username}' not found or disabled")
+                logger.warning(
+                    f"Token verification failed: user '{username}' not found or disabled"
+                )
                 return None
 
             return {
@@ -272,7 +260,7 @@ class LocalAuth:
         username: str,
         password: str,
         email: Optional[str] = None,
-        roles: Optional[list] = None
+        roles: Optional[list] = None,
     ) -> Dict[str, Any]:
         """
         Create new user (admin function).

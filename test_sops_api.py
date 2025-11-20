@@ -7,10 +7,10 @@ Tests:
 3. Data validation
 """
 
-import requests
+from datetime import datetime
 from typing import Optional
 
-from datetime import datetime
+import requests
 
 # API base URL
 BASE_URL = "http://localhost:8000/api/v1"
@@ -71,6 +71,8 @@ def test_health() -> bool:
 
 
 from typing import Optional
+
+
 def test_create_sop() -> Optional[str]:
     """Test creating a new SOP."""
     print_header("TEST 2: Create SOP")
@@ -87,25 +89,21 @@ def test_create_sop() -> Optional[str]:
             "5. Generate temporary password (min 12 chars)",
             "6. Check 'User must change password at next logon'",
             "7. Notify user via email with temporary password",
-            "8. Log the action in the ticket system"
+            "8. Log the action in the ticket system",
         ],
         "applicable_issues": [
             "password_reset",
             "forgot_password",
             "account_locked",
-            "password_expired"
+            "password_expired",
         ],
         "estimated_time": 5,
         "success_rate": 0.98,
-        "tags": ["password", "active-directory", "security"]
+        "tags": ["password", "active-directory", "security"],
     }
 
     try:
-        response = requests.post(
-            f"{BASE_URL}/sops/",
-            json=sop_data,
-            timeout=10
-        )
+        response = requests.post(f"{BASE_URL}/sops/", json=sop_data, timeout=10)
 
         if response.status_code == 201:
             created_sop = response.json()
@@ -113,7 +111,7 @@ def test_create_sop() -> Optional[str]:
             print_info(f"SOP ID: {created_sop['id']}")
             print_info(f"Title: {created_sop['title']}")
             print_info(f"Steps: {len(created_sop['steps'])}")
-            return created_sop['id']
+            return created_sop["id"]
         else:
             print_error(f"Failed to create SOP: {response.status_code}")
             print_error(f"Response: {response.text}")
@@ -191,15 +189,11 @@ def _test_update_sop(sop_id: str) -> bool:
     update_data = {
         "description": "UPDATED: Standard procedure for resetting user passwords in Active Directory",
         "estimated_time": 7,
-        "tags": ["password", "active-directory", "security", "updated"]
+        "tags": ["password", "active-directory", "security", "updated"],
     }
 
     try:
-        response = requests.put(
-            f"{BASE_URL}/sops/{sop_id}",
-            json=update_data,
-            timeout=10
-        )
+        response = requests.put(f"{BASE_URL}/sops/{sop_id}", json=update_data, timeout=10)
 
         if response.status_code == 200:
             updated_sop = response.json()
@@ -248,11 +242,7 @@ def test_search_by_category() -> bool:
     print_header("TEST 7: Search by Category")
 
     try:
-        response = requests.get(
-            f"{BASE_URL}/sops/",
-            params={"category": "password"},
-            timeout=10
-        )
+        response = requests.get(f"{BASE_URL}/sops/", params={"category": "password"}, timeout=10)
 
         if response.status_code == 200:
             sops = response.json()
@@ -278,11 +268,7 @@ def main() -> None:
     print(f"  Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'*' * 60}{RESET}\n")
 
-    results = {
-        "total": 0,
-        "passed": 0,
-        "failed": 0
-    }
+    results = {"total": 0, "passed": 0, "failed": 0}
 
     # Test 1: Health check
     results["total"] += 1
@@ -343,10 +329,10 @@ def main() -> None:
     print(f"{GREEN}Passed: {results['passed']}{RESET}")
     print(f"{RED}Failed: {results['failed']}{RESET}")
 
-    success_rate = (results['passed'] / results['total']) * 100
+    success_rate = (results["passed"] / results["total"]) * 100
     print(f"\n{BLUE}Success rate: {success_rate:.1f}%{RESET}")
 
-    if results['failed'] == 0:
+    if results["failed"] == 0:
         print(f"\n{GREEN}{'🎉 ' * 10}")
         print("  ALL TESTS PASSED!")
         print(f"{'🎉 ' * 10}{RESET}\n")

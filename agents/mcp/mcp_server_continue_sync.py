@@ -56,9 +56,7 @@ class MCPServerContinue:
         # Test API connectivity on startup
         self.api_available = self._test_api_connectivity()
 
-        logger.info(
-            f"Initialized: {self.server_info['name']} v{self.server_info['version']}"
-        )
+        logger.info(f"Initialized: {self.server_info['name']} v{self.server_info['version']}")
         logger.info(f"Mode: {self.mode}")
         logger.info(f"API URL: {self.api_url}")
         logger.info(f"API Available: {self.api_available}")
@@ -104,9 +102,7 @@ class MCPServerContinue:
             elif method == "prompts/get":
                 return self._handle_prompts_get(request_id, params)
             else:
-                return self._error_response(
-                    request_id, -32601, f"Method not found: {method}"
-                )
+                return self._error_response(request_id, -32601, f"Method not found: {method}")
 
         except json.JSONDecodeError as e:
             logger.error(f"JSON parsing error: {e}")
@@ -175,7 +171,7 @@ class MCPServerContinue:
                 },
             },
             {
-                "name": "sync_cache",
+                "name": "sync_cache_db",
                 "description": "RealSyncAgent - Synchronize Redis cache with PostgreSQL database",
                 "inputSchema": {
                     "type": "object",
@@ -221,7 +217,7 @@ class MCPServerContinue:
                 },
             },
             {
-                "name": "execute_desktop_command",
+                "name": "execute_command",
                 "description": "RealDesktopCommanderAgent - Execute system commands on remote machines (PowerShell/Bash)",
                 "inputSchema": {
                     "type": "object",
@@ -267,9 +263,7 @@ class MCPServerContinue:
         return {
             "jsonrpc": "2.0",
             "id": request_id,
-            "result": {
-                "content": [{"type": "text", "text": json.dumps(result, indent=2)}]
-            },
+            "result": {"content": [{"type": "text", "text": json.dumps(result, indent=2)}]},
         }
 
     def _call_api(self, tool_name: str, arguments: Dict) -> Dict:
@@ -278,15 +272,14 @@ class MCPServerContinue:
             "twisterlab_mcp_list_autonomous_agents": "/v1/mcp/tools/list_autonomous_agents",
             "monitor_system_health": "/v1/mcp/tools/monitor_system_health",
             "create_backup": "/v1/mcp/tools/create_backup",
-            "sync_cache": "/v1/mcp/tools/sync_cache",
+            "sync_cache_db": "/v1/mcp/tools/sync_cache_db",
             "classify_ticket": "/v1/mcp/tools/classify_ticket",
             "resolve_ticket": "/v1/mcp/tools/resolve_ticket",
             "execute_desktop_command": "/v1/mcp/tools/execute_desktop_command",
         }
 
-        endpoint = endpoint_map.get(tool_name)
-        if not endpoint:
-            raise ValueError(f"Unknown tool: {tool_name}")
+        # Use REST wrapper endpoint for simplified tool calls (JSON-RPC wrapper)
+        call_url = f"{self.api_url}/v1/mcp/message"
 
         # Map arguments to API format
         if tool_name == "twisterlab_mcp_list_autonomous_agents":
@@ -298,9 +291,9 @@ class MCPServerContinue:
             }
         elif tool_name == "resolve_ticket":
             payload = {
-                "ticket_id": int(arguments.get("ticket_id", 0))
-                if arguments.get("ticket_id")
-                else None,
+                "ticket_id": (
+                    int(arguments.get("ticket_id", 0)) if arguments.get("ticket_id") else None
+                ),
                 "category": arguments.get("category", "network"),
                 "description": arguments.get("description"),
             }
@@ -308,9 +301,9 @@ class MCPServerContinue:
             payload = {"detailed": arguments.get("detailed", False)}
         elif tool_name == "create_backup":
             payload = {"backup_type": arguments.get("backup_type", "full")}
-        elif tool_name == "sync_cache":
+        elif tool_name == "sync_cache_db":
             payload = {"force": arguments.get("force", False)}
-        elif tool_name == "execute_desktop_command":
+        elif tool_name == "execute_command" or tool_name == "execute_desktop_command":
             payload = {
                 "command": arguments.get("command"),
                 "target_host": arguments.get("target_host"),
@@ -320,24 +313,27 @@ class MCPServerContinue:
             payload = arguments
 
         # Call API
-        url = f"{self.api_url}{endpoint}"
-        logger.info(f"Calling API: POST {url}")
+        url = call_url
+        logger.info(f"Calling API: POST {url} (tool: {tool_name})")
 
         try:
             with httpx.Client(timeout=self.api_timeout) as client:
-                response = client.post(url, json=payload)
+                # Use JSON-RPC wrapper 'message' endpoint to make a tool call
+                jsonrpc_request = {
+                    "jsonrpc": "2.0",
+                    "id": f"continue-{int(datetime.now().timestamp())}",
+                    "method": "tools/call",
+                    "params": {"name": tool_name, "arguments": payload},
+                }
+                response = client.post(url, json=jsonrpc_request)
                 response.raise_for_status()
                 api_response = response.json()
         except httpx.TimeoutException as e:
             logger.error(f"API timeout: {e}")
             raise ValueError(f"API timeout after {self.api_timeout}s")
         except httpx.HTTPStatusError as e:
-            logger.error(
-                f"API HTTP error: {e.response.status_code} - {e.response.text}"
-            )
-            raise ValueError(
-                f"API returned {e.response.status_code}: {e.response.text}"
-            )
+            logger.error(f"API HTTP error: {e.response.status_code} - {e.response.text}")
+            raise ValueError(f"API returned {e.response.status_code}: {e.response.text}")
         except httpx.RequestError as e:
             logger.error(f"API request error: {e}")
             raise ValueError(f"Failed to connect to API: {e}")
@@ -417,9 +413,11 @@ class MCPServerContinue:
             result = {
                 "status": "success",
                 "agent": "RealClassifierAgent",
-                "category": "network"
-                if "wifi" in ticket_text.lower() or "network" in ticket_text.lower()
-                else "software",
+                "category": (
+                    "network"
+                    if "wifi" in ticket_text.lower() or "network" in ticket_text.lower()
+                    else "software"
+                ),
                 "confidence": 0.85,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "mode": "MOCK",
@@ -746,11 +744,7 @@ class MCPServerContinue:
         return {
             "jsonrpc": "2.0",
             "id": request_id,
-            "result": {
-                "contents": [
-                    {"uri": uri, "mimeType": "application/json", "text": content}
-                ]
-            },
+            "result": {"contents": [{"uri": uri, "mimeType": "application/json", "text": content}]},
         }
 
     def _handle_resources_templates_list(self, request_id: int) -> Dict:
@@ -784,9 +778,7 @@ class MCPServerContinue:
             "id": request_id,
             "result": {
                 "description": f"Prompt: {name}",
-                "messages": [
-                    {"role": "user", "content": {"type": "text", "text": text}}
-                ],
+                "messages": [{"role": "user", "content": {"type": "text", "text": text}}],
             },
         }
 

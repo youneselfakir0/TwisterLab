@@ -3,20 +3,19 @@
 Script d'installation des dépendances pour les tests de charge
 """
 
+import logging
 import subprocess
 import sys
-import logging
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+
 
 def install_package(package_name: str, description: str = "") -> bool:
     """Installe un package pip"""
     try:
         logger.info(f"📦 Installation de {package_name}... {description}")
-        subprocess.check_call([
-            sys.executable, "-m", "pip", "install", package_name
-        ])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
         logger.info(f"✅ {package_name} installé avec succès")
         return True
     except subprocess.CalledProcessError as e:

@@ -2,8 +2,10 @@
 Test Desktop Commander MCP Integration
 """
 
-import pytest
 from unittest.mock import patch
+
+import pytest
+
 from agents.helpdesk.desktop_commander import DesktopCommanderAgent
 
 
@@ -47,9 +49,7 @@ class TestDesktopCommanderMCPIntegration:
                 mock_start.assert_called_once()
 
                 # Verify MCP execute_command was called
-                mock_execute.assert_called_once_with(
-                    "test-device", "systeminfo", 300
-                )
+                mock_execute.assert_called_once_with("test-device", "systeminfo", 300)
 
                 # Verify result is returned from MCP client
                 assert result == mock_result
@@ -104,17 +104,13 @@ class TestDesktopCommanderMCPIntegration:
         ) as mock_get_info:
             with patch.object(agent.mcp_client, "start") as mock_start:
 
-                result = await agent.get_system_info(
-                    device_id="test-device", info_type="hardware"
-                )
+                result = await agent.get_system_info(device_id="test-device", info_type="hardware")
 
                 # Verify MCP client was started
                 mock_start.assert_called_once()
 
                 # Verify MCP get_system_info was called
-                mock_get_info.assert_called_once_with(
-                    "test-device", "hardware"
-                )
+                mock_get_info.assert_called_once_with("test-device", "hardware")
 
                 # Verify result is returned from MCP client
                 assert result == mock_result
@@ -164,13 +160,9 @@ class TestDesktopCommanderMCPIntegration:
             "output": "Mock output",
         }
 
-        with patch.object(
-            agent, "execute_command", return_value=mock_result
-        ) as mock_execute_cmd:
+        with patch.object(agent, "execute_command", return_value=mock_result) as mock_execute_cmd:
 
-            result = await agent.execute(
-                "Execute systeminfo on test-device", context
-            )
+            result = await agent.execute("Execute systeminfo on test-device", context)
 
             mock_execute_cmd.assert_called_once_with(
                 device_id="test-device", command="systeminfo", timeout=300

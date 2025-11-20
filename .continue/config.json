@@ -49,19 +49,20 @@
         "transport": {
           "type": "stdio",
           "command": "python",
-          "args": ["agents/mcp/mcp_server_continue_sync.py"],
+          "args": ["-m", "agents.mcp.mcp_server_continue_sync"],
           "env": {
             "PYTHONPATH": "C:\\TwisterLab",
             "API_URL": "http://192.168.0.30:8000"
           }
         },
         "autoApprove": [
+          "twisterlab_mcp_list_autonomous_agents",
           "monitor_system_health",
           "create_backup",
           "sync_cache_db",
           "classify_ticket",
           "resolve_ticket",
-          "execute_desktop_command"
+          "execute_command"
         ]
       }
     ]

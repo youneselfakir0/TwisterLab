@@ -326,8 +326,6 @@ services:
     networks:
       - backend
       - traefik-public
-    depends_on:
-      - ollama
     # Healthcheck désactivé (le téléchargement du modèle embedding prend trop de temps)
     healthcheck:
       disable: true
@@ -350,38 +348,6 @@ services:
         - "traefik.http.routers.webui.rule=Host(`webui.${DOMAIN:-twisterlab.local}`)"
         - "traefik.http.routers.webui.entrypoints=web"
         - "traefik.http.services.webui.loadbalancer.server.port=8080"
-    logging: *default-logging
-
-  # ===========================================================================
-  # OLLAMA - Local LLM Inference (GPU-Accelerated on CoreRTX)
-  # ===========================================================================
-  ollama:
-    image: ollama/ollama:0.1.44
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - backend
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-      - OLLAMA_ORIGINS=*
-    deploy:
-      placement:
-        constraints:
-          - node.hostname == corertx
-      replicas: 1
-      resources:
-        limits:
-          memory: 8G
-          cpus: '4.0'
-        reservations:
-          memory: 4G
-          cpus: '2.0'
-      restart_policy:
-        condition: on-failure
-      labels:
-        - "traefik.enable=false"
     logging: *default-logging
 
   # ===========================================================================
@@ -521,9 +487,6 @@ volumes:
     driver: local
 
   letsencrypt_data:
-    driver: local
-
-  ollama_data:
     driver: local
 
   prometheus_data:

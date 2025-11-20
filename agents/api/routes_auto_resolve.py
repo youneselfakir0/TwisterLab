@@ -69,9 +69,7 @@ class ResolutionMetrics(BaseModel):
 class BatchResolveRequest(BaseModel):
     """Request model for batch auto-resolution"""
 
-    tickets: List[TicketAutoResolveRequest] = Field(
-        ..., description="List of tickets to resolve"
-    )
+    tickets: List[TicketAutoResolveRequest] = Field(..., description="List of tickets to resolve")
     max_concurrent: int = Field(5, description="Maximum concurrent resolutions")
 
 
@@ -154,9 +152,11 @@ async def get_auto_resolve_status() -> Dict[str, Any]:
             metrics = {"error": "metrics_unavailable"}
 
         return {
-            "status": "operational"
-            if all(s == "available" for s in components_status.values())
-            else "degraded",
+            "status": (
+                "operational"
+                if all(s == "available" for s in components_status.values())
+                else "degraded"
+            ),
             "timestamp": datetime.utcnow().isoformat(),
             "components": components_status,
             "capabilities": {
@@ -181,9 +181,7 @@ async def get_auto_resolve_status() -> Dict[str, Any]:
 
 
 @router.post("/resolve", response_model=AutoResolveResponse)
-async def auto_resolve_ticket(
-    request: TicketAutoResolveRequest, background_tasks: BackgroundTasks
-):
+async def auto_resolve_ticket(request: TicketAutoResolveRequest, background_tasks: BackgroundTasks):
     """
     Automatically resolve a single ticket using ML classification and SOP execution.
 
@@ -242,9 +240,7 @@ async def auto_resolve_ticket(
 
 
 @router.post("/resolve/batch", response_model=List[AutoResolveResponse])
-async def batch_auto_resolve(
-    request: BatchResolveRequest, background_tasks: BackgroundTasks
-):
+async def batch_auto_resolve(request: BatchResolveRequest, background_tasks: BackgroundTasks):
     """
     Automatically resolve multiple tickets in batch.
 
@@ -284,9 +280,7 @@ async def batch_auto_resolve(
 
     except Exception as e:
         logger.error(f"Error in batch auto-resolution: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Batch auto-resolution failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Batch auto-resolution failed: {str(e)}")
 
 
 @router.get("/metrics", response_model=ResolutionMetrics)
@@ -331,9 +325,7 @@ async def list_available_sops():
         return {
             "sops": SOPExecutor.SOPS,
             "total_sops": len(SOPExecutor.SOPS),
-            "categories_covered": list(
-                set(sop["category"] for sop in SOPExecutor.SOPS.values())
-            ),
+            "categories_covered": list(set(sop["category"] for sop in SOPExecutor.SOPS.values())),
             "auto_resolvable_count": sum(
                 1 for sop in SOPExecutor.SOPS.values() if sop["auto_resolvable"]
             ),
@@ -400,9 +392,9 @@ async def test_resolution_pipeline():
 
         return {
             "test_result": result,
-            "pipeline_status": "operational"
-            if result["status"] in ["resolved", "escalated"]
-            else "error",
+            "pipeline_status": (
+                "operational" if result["status"] in ["resolved", "escalated"] else "error"
+            ),
             "current_metrics": metrics,
             "timestamp": datetime.utcnow().isoformat(),
         }

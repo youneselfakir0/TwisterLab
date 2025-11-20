@@ -7,9 +7,7 @@ from fastapi import FastAPI, HTTPException
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="TwisterLab API", version="1.0.0", description="Autonomous IT Helpdesk API"
-)
+app = FastAPI(title="TwisterLab API", version="1.0.0", description="Autonomous IT Helpdesk API")
 
 # Mock data for agents
 AGENTS = [
@@ -159,9 +157,7 @@ async def execute_backup_agent(payload: Dict[str, Any]):
             },
         }
     else:
-        raise HTTPException(
-            status_code=400, detail=f"Unknown backup operation: {operation}"
-        )
+        raise HTTPException(status_code=400, detail=f"Unknown backup operation: {operation}")
 
 
 async def execute_sync_agent(payload: Dict[str, Any]):
@@ -213,9 +209,7 @@ async def execute_sync_agent(payload: Dict[str, Any]):
             },
         }
     else:
-        raise HTTPException(
-            status_code=400, detail=f"Unknown sync operation: {operation}"
-        )
+        raise HTTPException(status_code=400, detail=f"Unknown sync operation: {operation}")
 
 
 async def execute_monitoring_agent(payload: Dict[str, Any]):
@@ -256,9 +250,7 @@ async def execute_monitoring_agent(payload: Dict[str, Any]):
             },
         }
     else:
-        raise HTTPException(
-            status_code=400, detail=f"Unknown monitoring operation: {operation}"
-        )
+        raise HTTPException(status_code=400, detail=f"Unknown monitoring operation: {operation}")
 
 
 @app.get("/api/v1/monitoring/health")

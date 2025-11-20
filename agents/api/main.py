@@ -4,24 +4,25 @@ AI-powered IT Helpdesk automation platform
 """
 
 import os
-from fastapi import FastAPI
+
+from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import PlainTextResponse
-from .routes_tickets import router as tickets_router
+
+from .monitoring import MetricsMiddleware, create_health_endpoint, setup_logging
 from .routes_agents import router as agents_router
-from .routes_sops import router as sops_router
-from .routes_orchestrator import router as orchestrator_router
 from .routes_mcp_real import router as mcp_real_router
-from .monitoring import setup_logging, MetricsMiddleware, create_health_endpoint
+from .routes_orchestrator import router as orchestrator_router
+from .routes_sops import router as sops_router
+from .routes_tickets import router as tickets_router
 from .security import (
-    setup_security_middleware,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    TokenResponse,
+    UserCredentials,
     create_access_token,
     create_default_admin,
-    UserCredentials,
-    TokenResponse,
+    setup_security_middleware,
     verify_password,
-    ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from fastapi import HTTPException, status
 
 # Configure structured logging for production
 log_level = os.getenv("LOG_LEVEL", "INFO")
@@ -75,7 +76,7 @@ async def root() -> dict:
         "description": "AI-powered IT Helpdesk automation platform",
         "version": "1.0.0-alpha.1",
         "docs": "/docs",
-        "health": "/health"
+        "health": "/health",
     }
 
 
@@ -84,6 +85,8 @@ async def health_check():
     """Comprehensive health check endpoint."""
     logger.info("Health check endpoint called")
     return await create_health_endpoint()()
+
+
 @app.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserCredentials):
     """Authenticate user and return access token."""
@@ -92,34 +95,30 @@ async def login(credentials: UserCredentials):
     # For development, use default admin credentials
     admin_data = create_default_admin()
 
-    if (credentials.username == admin_data["username"] and
-        verify_password(credentials.password, admin_data["password_hash"])):
+    if credentials.username == admin_data["username"] and verify_password(
+        credentials.password, admin_data["password_hash"]
+    ):
 
         token_data = {
             "sub": credentials.username,
             "roles": admin_data["roles"],
-            "permissions": admin_data["permissions"]
+            "permissions": admin_data["permissions"],
         }
 
         access_token = create_access_token(data=token_data)
         logger.info(f"Login successful for user: {credentials.username}")
 
-        return TokenResponse(
-            access_token=access_token,
-            expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
-        )
+        return TokenResponse(access_token=access_token, expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60)
     else:
         logger.warning(f"Login failed for user: {credentials.username}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
 
 logger.info("Routes registered successfully")
 
 # Prometheus metrics endpoint
 try:
-    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, REGISTRY
+    from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, generate_latest
 
     @app.get("/metrics", response_class=PlainTextResponse)
     async def metrics() -> PlainTextResponse:
@@ -127,16 +126,12 @@ try:
         logger.info("Metrics endpoint called")
         data = generate_latest(REGISTRY)
         return PlainTextResponse(content=data, media_type=CONTENT_TYPE_LATEST)
+
 except Exception:
     logger.warning("prometheus_client not available; /metrics endpoint not enabled")
 
 if __name__ == "__main__":
     logger.info("Starting server with uvicorn...")
     import uvicorn
-    uvicorn.run(
-        "agents.api.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=False,
-        log_level="info"
-    )
+
+    uvicorn.run("agents.api.main:app", host="0.0.0.0", port=8000, reload=False, log_level="info")

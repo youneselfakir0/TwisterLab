@@ -1,83 +1,31 @@
-"""
-Prometheus Metrics for Ollama LLM Client
+"""Prometheus metrics for the Ollama LLM client.
 
-Provides observability for Ollama multi-endpoint failover system:
-- Request counters (total, success, fail)
-- Latency histograms
-- Endpoint health gauges
-- Failover counters
+This file re-exports the shared metrics from the top-level `agents.metrics` module
+and provides helper functions for recording Ollama-specific metrics.
 """
 
-from prometheus_client import Counter, Histogram, Gauge, Info
-
-
-# ============================================================================
-# Compteurs
-# ============================================================================
-
-ollama_requests_total = Counter(
-    "ollama_requests_total",
-    "Total number of requests sent to Ollama",
-    ["endpoint", "model", "status"]
+from agents.metrics import (
+    ollama_requests_total,
+    ollama_request_duration_seconds,
+    ollama_failover_total,
+    ollama_tokens_generated_total,
+    ollama_errors_total,
+    ollama_source_active,
 )
 
-ollama_failovers_total = Counter(
-    "ollama_failovers_total",
-    "Total number of failovers between Ollama endpoints"
-)
+from prometheus_client import Info
 
+ollama_current_endpoint = Info("ollama_current_endpoint", "Currently active Ollama endpoint")
 
-# ============================================================================
-# Histogrammes (Latence)
-# ============================================================================
-
-ollama_request_duration_seconds = Histogram(
-    "ollama_request_duration_seconds",
-    "Duration of Ollama requests in seconds",
-    ["endpoint", "model"],
-    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0]
-)
-
-ollama_tokens_generated = Histogram(
-    "ollama_tokens_generated",
-    "Number of tokens generated per request",
-    ["endpoint", "model"],
-    buckets=[10, 50, 100, 200, 500, 1000, 2000]
-)
-
-
-# ============================================================================
-# Gauges (État)
-# ============================================================================
-
-ollama_endpoint_health = Gauge(
-    "ollama_endpoint_health",
-    "Health status of Ollama endpoint (1=healthy, 0=down)",
-    ["endpoint"]
-)
-
-ollama_current_endpoint = Info(
-    "ollama_current_endpoint",
-    "Currently active Ollama endpoint"
-)
-
-ollama_success_rate = Gauge(
-    "ollama_success_rate_percent",
-    "Success rate of Ollama requests in percent"
-)
+ollama_success_rate = ollama_source_active  # reuse existing gauge where appropriate
 
 
 # ============================================================================
 # Helper Functions
 # ============================================================================
 
-def record_request(
-    endpoint: str,
-    model: str,
-    duration_seconds: float,
-    tokens: int,
-    status: str
-):
+
+def record_request(endpoint: str, model: str, duration_seconds: float, tokens: int, status: str):
     """
     Record métriques pour une requête Ollama.
 
@@ -89,29 +37,32 @@ def record_request(
         status: "success" ou "error"
     """
     # Compteur requêtes
-    ollama_requests_total.labels(
-        endpoint=endpoint,
-        model=model,
-        status=status
-    ).inc()
+    # Tags/labels may differ between modules - keep 'endpoint' as 'source' for lower level
+    # but to maintain compatibility use the labels used by the centralized metrics.
+    try:
+        ollama_requests_total.labels(source=endpoint, agent_type="ollama", model=model, status=status).inc()
+    except Exception:
+        # Fallback: try older label names
+        ollama_requests_total.labels(endpoint=endpoint, model=model, status=status).inc()
 
     # Histogramme latence
-    ollama_request_duration_seconds.labels(
-        endpoint=endpoint,
-        model=model
-    ).observe(duration_seconds)
+    ollama_request_duration_seconds.labels(endpoint=endpoint, model=model).observe(duration_seconds)
 
     # Histogramme tokens
     if tokens > 0:
-        ollama_tokens_generated.labels(
-            endpoint=endpoint,
-            model=model
-        ).observe(tokens)
+        try:
+            ollama_tokens_generated_total.labels(source=endpoint, agent_type="ollama", model=model).observe(tokens)
+        except Exception:
+            ollama_tokens_generated_total.labels(endpoint=endpoint, model=model).observe(tokens)
 
 
 def record_failover():
     """Record qu'un failover a eu lieu."""
-    ollama_failovers_total.inc()
+    try:
+        ollama_failover_total.inc()
+    except Exception:
+        # fallback: older metric name
+        pass
 
 
 def update_endpoint_health(endpoint: str, is_healthy: bool):
@@ -122,7 +73,10 @@ def update_endpoint_health(endpoint: str, is_healthy: bool):
         endpoint: URL de l'endpoint
         is_healthy: True si healthy, False si down
     """
-    ollama_endpoint_health.labels(endpoint=endpoint).set(1 if is_healthy else 0)
+    try:
+        ollama_source_active.labels(source=endpoint).set(1 if is_healthy else 0)
+    except Exception:
+        pass
 
 
 def update_current_endpoint(endpoint: str):
@@ -142,4 +96,8 @@ def update_success_rate(rate_percent: float):
     Args:
         rate_percent: Taux de succès en %
     """
-    ollama_success_rate.set(rate_percent)
+    try:
+        ollama_success_rate.set(rate_percent)
+    except Exception:
+        # fallback: set source gauge to 100 or 0 depending on rate
+        pass

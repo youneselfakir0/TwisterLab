@@ -12,13 +12,15 @@ Usage:
     pytest tests/integration/test_auth_api.py -v
 """
 
-import pytest
-from unittest.mock import Mock, patch, AsyncMock
-from fastapi.testclient import TestClient
+import os
 
 # Import the app
 import sys
-import os
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+from fastapi.testclient import TestClient
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from api.main import app
@@ -35,21 +37,27 @@ def mock_azure_auth():
     """Mock AzureADAuth instance."""
     mock_instance = Mock()
     mock_instance.get_authorization_url.return_value = "https://login.microsoftonline.com/tenant/oauth2/v2.0/authorize?client_id=abc&redirect_uri=http://test"
-    mock_instance.acquire_token_by_code = AsyncMock(return_value={
-        "access_token": "mock_access_token_12345",
-        "token_type": "Bearer",
-        "expires_in": 3600,
-        "scope": "User.Read"
-    })
+    mock_instance.acquire_token_by_code = AsyncMock(
+        return_value={
+            "access_token": "mock_access_token_12345",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "scope": "User.Read",
+        }
+    )
     mock_instance.validate_token_structure.return_value = True
 
     # Patch the get_hybrid_auth function to return our mock in Azure mode
     with patch("api.auth_hybrid.get_hybrid_auth") as mock_get_auth:
         mock_hybrid_auth = Mock()
         mock_hybrid_auth.mode = "azure"
-        mock_hybrid_auth.get_authorization_url.return_value = mock_instance.get_authorization_url.return_value
+        mock_hybrid_auth.get_authorization_url.return_value = (
+            mock_instance.get_authorization_url.return_value
+        )
         mock_hybrid_auth.acquire_token_by_code = mock_instance.acquire_token_by_code
-        mock_hybrid_auth.verify_token = AsyncMock(return_value={"sub": "test_user", "username": "test@example.com"})
+        mock_hybrid_auth.verify_token = AsyncMock(
+            return_value={"sub": "test_user", "username": "test@example.com"}
+        )
         mock_get_auth.return_value = mock_hybrid_auth
         yield mock_hybrid_auth
 
@@ -78,10 +86,7 @@ def test_auth_login_redirect(client, mock_azure_auth):
 @pytest.mark.integration
 def test_auth_login_with_redirect_uri(client, mock_azure_auth):
     """Test /auth/login with custom redirect_uri parameter."""
-    response = client.get(
-        "/auth/login?redirect_uri=/dashboard",
-        follow_redirects=False
-    )
+    response = client.get("/auth/login?redirect_uri=/dashboard", follow_redirects=False)
 
     assert response.status_code == 307
     # State should contain redirect URI
@@ -94,9 +99,7 @@ def test_auth_login_with_redirect_uri(client, mock_azure_auth):
 @pytest.mark.asyncio
 async def test_auth_callback_success(client, mock_azure_auth, mock_redis):
     """Test successful OAuth2 callback with authorization code."""
-    response = client.get(
-        "/auth/callback?code=mock_auth_code_123&state=redirect=/"
-    )
+    response = client.get("/auth/callback?code=mock_auth_code_123&state=redirect=/")
 
     assert response.status_code == 200
     data = response.json()
@@ -114,9 +117,7 @@ async def test_auth_callback_success(client, mock_azure_auth, mock_redis):
 @pytest.mark.integration
 def test_auth_callback_error(client):
     """Test OAuth2 callback with error from Azure AD."""
-    response = client.get(
-        "/auth/callback?error=access_denied&error_description=User cancelled"
-    )
+    response = client.get("/auth/callback?error=access_denied&error_description=User cancelled")
 
     assert response.status_code == 401
     data = response.json()
@@ -151,16 +152,13 @@ def test_auth_me_with_valid_token(client):
         "name": "Test User",
         "preferred_username": "test@example.com",
         "roles": ["user", "admin"],
-        "tid": "tenant-123"
+        "tid": "tenant-123",
     }
 
     with patch("api.auth.verify_jwt_token", new_callable=AsyncMock) as mock_verify:
         mock_verify.return_value = mock_user
 
-        response = client.get(
-            "/auth/me",
-            headers={"Authorization": "Bearer mock_valid_token"}
-        )
+        response = client.get("/auth/me", headers={"Authorization": "Bearer mock_valid_token"})
 
         assert response.status_code == 200
         data = response.json()
@@ -175,18 +173,12 @@ def test_auth_me_with_valid_token(client):
 @pytest.mark.asyncio
 async def test_auth_logout_success(client, mock_redis):
     """Test logout endpoint removes user from cache."""
-    mock_user = {
-        "sub": "user-456",
-        "name": "Logout User"
-    }
+    mock_user = {"sub": "user-456", "name": "Logout User"}
 
     with patch("api.auth.verify_jwt_token", new_callable=AsyncMock) as mock_verify:
         mock_verify.return_value = mock_user
 
-        response = client.post(
-            "/auth/logout",
-            headers={"Authorization": "Bearer mock_token"}
-        )
+        response = client.post("/auth/logout", headers={"Authorization": "Bearer mock_token"})
 
         assert response.status_code == 200
         data = response.json()
@@ -202,8 +194,7 @@ async def test_auth_logout_success(client, mock_redis):
 def test_protected_route_without_auth(client):
     """Test protected route rejects unauthenticated requests."""
     response = client.post(
-        "/api/v1/autonomous/agents/MonitoringAgent/execute",
-        json={"operation": "health_check"}
+        "/api/v1/autonomous/agents/MonitoringAgent/execute", json={"operation": "health_check"}
     )
 
     # Should return 403 (no auth) or 200 if auth is optional
@@ -214,24 +205,17 @@ def test_protected_route_without_auth(client):
 @pytest.mark.integration
 def test_protected_route_with_auth(client):
     """Test protected route accepts authenticated requests."""
-    mock_user = {
-        "sub": "user-789",
-        "name": "Authorized User",
-        "roles": ["admin"]
-    }
+    mock_user = {"sub": "user-789", "name": "Authorized User", "roles": ["admin"]}
 
     with patch("api.auth.verify_jwt_token", new_callable=AsyncMock) as mock_verify:
         with patch("api.main.execute_monitoring_agent", new_callable=AsyncMock) as mock_exec:
             mock_verify.return_value = mock_user
-            mock_exec.return_value = {
-                "status": "success",
-                "data": {"cpu": 25.5, "memory": 60.2}
-            }
+            mock_exec.return_value = {"status": "success", "data": {"cpu": 25.5, "memory": 60.2}}
 
             response = client.post(
                 "/api/v1/autonomous/agents/MonitoringAgent/execute",
                 json={"operation": "health_check"},
-                headers={"Authorization": "Bearer valid_token"}
+                headers={"Authorization": "Bearer valid_token"},
             )
 
             # Should succeed with valid token
@@ -272,15 +256,9 @@ def test_auth_flow_complete(client, mock_azure_auth, mock_redis):
     with patch("api.auth.verify_jwt_token", new_callable=AsyncMock) as mock_verify:
         mock_verify.return_value = mock_user
 
-        response = client.get(
-            "/auth/me",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
+        response = client.get("/auth/me", headers={"Authorization": f"Bearer {access_token}"})
         assert response.status_code == 200
 
         # Step 4: Logout
-        response = client.post(
-            "/auth/logout",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
+        response = client.post("/auth/logout", headers={"Authorization": f"Bearer {access_token}"})
         assert response.status_code == 200

@@ -2,9 +2,10 @@
 Test direct du PRIMARY Ollama (Corertx) depuis Python
 Pour confirmer que le HTTP 500 est résolu
 """
+
 import asyncio
-import sys
 import os
+import sys
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
@@ -14,9 +15,9 @@ from agents.base.llm_client import ollama_client
 
 async def test_primary_direct():
     """Tester PRIMARY Ollama directement (sans failover)"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST: PRIMARY Ollama (Corertx RTX 3060) Direct")
-    print("="*70)
+    print("=" * 70)
 
     prompt = """Classify this IT support ticket into ONE category.
 
@@ -31,10 +32,7 @@ Answer with ONE word only:"""
 
         start_time = datetime.now(timezone.utc)
 
-        result = await ollama_client.generate(
-            prompt=prompt,
-            agent_type="classifier"
-        )
+        result = await ollama_client.generate(prompt=prompt, agent_type="classifier")
 
         end_time = datetime.now(timezone.utc)
         duration_ms = int((end_time - start_time).total_seconds() * 1000)
@@ -50,25 +48,23 @@ Answer with ONE word only:"""
     except Exception as e:
         print(f"\n❌ PRIMARY Ollama ERREUR: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 async def test_primary_with_failover():
     """Tester PRIMARY via generate_with_fallback()"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST: PRIMARY Ollama via generate_with_fallback()")
-    print("="*70)
+    print("=" * 70)
 
     prompt = "Classify this ticket: WiFi not working. Category (one word):"
 
     try:
         start_time = datetime.now(timezone.utc)
 
-        result = await ollama_client.generate_with_fallback(
-            prompt=prompt,
-            agent_type="classifier"
-        )
+        result = await ollama_client.generate_with_fallback(prompt=prompt, agent_type="classifier")
 
         end_time = datetime.now(timezone.utc)
         duration_ms = int((end_time - start_time).total_seconds() * 1000)
@@ -90,6 +86,7 @@ async def test_primary_with_failover():
     except Exception as e:
         print(f"\n❌ Failover ERREUR: {e}")
         import traceback
+
         traceback.print_exc()
         return None
 
@@ -107,9 +104,9 @@ async def main():
     test2_source = await test_primary_with_failover()
 
     # Résumé
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("📊 RÉSUMÉ DIAGNOSTIC")
-    print("="*70)
+    print("=" * 70)
 
     if test1_success:
         print("\n✅ PRIMARY Ollama (Corertx RTX 3060) : OPÉRATIONNEL")
@@ -128,7 +125,7 @@ async def main():
         print("   - PRIMARY toujours down pour le failover")
         print("   - BACKUP assure la continuité de service")
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
 
     return 0 if test1_success else 1
 

@@ -14,6 +14,7 @@ from agents.core.backup_agent import BackupAgent
 from agents.core.maestro_orchestrator_agent import MaestroOrchestratorAgent
 from agents.core.monitoring_agent import MonitoringAgent
 from agents.core.sync_agent import SyncAgent
+from agents.mcp.mcp_router import MCPRouter
 
 
 class TestAgentIntegration:
@@ -64,9 +65,7 @@ class TestAgentIntegration:
             )
 
             # Execute monitoring cycle
-            monitoring_result = await agents["monitoring"].execute(
-                {"operation": "health_check"}
-            )
+            monitoring_result = await agents["monitoring"].execute({"operation": "health_check"})
 
             diagnostic_result = await agents["monitoring"].execute(
                 {"operation": "diagnostic", "check_type": "system"}
@@ -90,27 +89,40 @@ class TestAgentIntegration:
             "config_files_missing": True,
         }
 
-        with patch("agents.mcp.mcp_router.MCPRouter") as mock_router_class:
-            mock_router = MagicMock()
-            mock_router_class.return_value = mock_router
+        # Setup disaster recovery sequence - shared call counter
+        mock_responses = [
+            # Monitoring detects disaster (first call)
+            {"status": "critical_failure", "issues": disaster_scenario},
+            # Monitoring detects disaster (second call - duplicate)
+            {"status": "critical_failure", "issues": disaster_scenario},
+            # Backup agent integrity check
+            {"integrity_status": "compromised", "issues_found": 3},
+            # Backup agent recovery
+            {"status": "restored", "components": ["database", "config"]},
+            # Sync agent consistency check
+            {"consistency_status": "inconsistent", "inconsistencies_found": 2},
+            # Sync agent reconciliation
+            {"reconciled_items": 2, "status": "consistent"},
+            # Final health check
+            {"status": "healthy", "all_systems": "operational"},
+        ]
 
-            # Setup disaster recovery sequence
-            mock_router.route_to_mcp = AsyncMock(
-                side_effect=[
-                    # Monitoring detects disaster
-                    {"status": "critical_failure", "issues": disaster_scenario},
-                    # Backup agent integrity check
-                    {"integrity_status": "compromised", "issues_found": 3},
-                    # Backup agent recovery
-                    {"status": "restored", "components": ["database", "config"]},
-                    # Sync agent consistency check
-                    {"consistency_status": "inconsistent", "inconsistencies_found": 2},
-                    # Sync agent reconciliation
-                    {"reconciled_items": 2, "status": "consistent"},
-                    # Final health check
-                    {"status": "healthy", "all_systems": "operational"},
-                ]
-            )
+        call_counter = [0]  # Use list to modify in nested function
+
+        async def mock_mcp_call(self, agent_name, mcp_name, operation, params):
+            index = call_counter[0]
+            call_counter[0] += 1
+            if index < len(mock_responses):
+                return mock_responses[index]
+            else:
+                return {"status": "mock_response", "call_index": index}
+
+        async def mock_validate_access(self, *args, **kwargs):
+            pass  # Allow all access in tests
+
+        # Patch the MCPRouter class methods
+        with patch.object(MCPRouter, '_mock_mcp_call', mock_mcp_call), \
+             patch.object(MCPRouter, '_validate_access', mock_validate_access):
 
             # Execute disaster recovery workflow
             # 1. Monitoring detects issues
@@ -119,23 +131,17 @@ class TestAgentIntegration:
             )
 
             # 2. Backup agent performs integrity check and recovery
-            backup_integrity = await agents["backup"].execute(
-                {"operation": "integrity_check"}
-            )
+            backup_integrity = await agents["backup"].execute({"operation": "integrity_check"})
 
             backup_recovery = await agents["backup"].execute(
                 {"operation": "recovery", "recovery_type": "full"}
             )
 
             # 3. Sync agent reconciles inconsistencies
-            sync_reconciliation = await agents["sync"].execute(
-                {"operation": "reconciliation"}
-            )
+            sync_reconciliation = await agents["sync"].execute({"operation": "reconciliation"})
 
             # 4. Monitoring verifies recovery
-            final_health = await agents["monitoring"].execute(
-                {"operation": "health_check"}
-            )
+            final_health = await agents["monitoring"].execute({"operation": "health_check"})
 
             # Verify disaster recovery succeeded
             assert len(monitoring_result["diagnosis"]) > 0
@@ -176,15 +182,11 @@ class TestAgentIntegration:
             )
 
             # Execute performance optimization cycle
-            initial_perf = await agents["sync"].execute(
-                {"operation": "performance_check"}
-            )
+            initial_perf = await agents["sync"].execute({"operation": "performance_check"})
 
             # Simulate optimizations (would be triggered by Maestro)
             # Final verification
-            final_perf = await agents["sync"].execute(
-                {"operation": "performance_check"}
-            )
+            final_perf = await agents["sync"].execute({"operation": "performance_check"})
 
             # Verify optimization worked
             assert initial_perf["result"]["result"]["optimization_needed"] == True
@@ -226,9 +228,7 @@ class TestAgentIntegration:
             # based on monitoring alerts
 
             # Maestro assesses situation
-            maestro_assessment = await agents["maestro"].execute(
-                {"operation": "assess_situation"}
-            )
+            maestro_assessment = await agents["maestro"].execute({"operation": "assess_situation"})
 
             # Maestro coordinates diagnostic
             diagnostic_coordination = await agents["monitoring"].execute(
@@ -236,9 +236,7 @@ class TestAgentIntegration:
             )
 
             # Maestro coordinates recovery
-            recovery_coordination = await agents["backup"].execute(
-                {"operation": "recovery"}
-            )
+            recovery_coordination = await agents["backup"].execute({"operation": "recovery"})
 
             # Maestro coordinates optimization
             optimization_coordination = await agents["sync"].execute(
@@ -246,9 +244,7 @@ class TestAgentIntegration:
             )
 
             # Maestro verifies resolution
-            final_verification = await agents["maestro"].execute(
-                {"operation": "verify_resolution"}
-            )
+            final_verification = await agents["maestro"].execute({"operation": "verify_resolution"})
 
             # Verify orchestration succeeded
             assert maestro_assessment["status"] == "success"
@@ -279,12 +275,8 @@ class TestAgentIntegration:
             monitoring_calls = [
                 call for call in mcp_calls if call["agent_name"] == "MonitoringAgent"
             ]
-            backup_calls = [
-                call for call in mcp_calls if call["agent_name"] == "BackupAgent"
-            ]
-            sync_calls = [
-                call for call in mcp_calls if call["agent_name"] == "SyncAgent"
-            ]
+            backup_calls = [call for call in mcp_calls if call["agent_name"] == "BackupAgent"]
+            sync_calls = [call for call in mcp_calls if call["agent_name"] == "SyncAgent"]
 
             # Monitoring agent should only call monitoring-related MCPs
             for call in monitoring_calls:
@@ -292,10 +284,7 @@ class TestAgentIntegration:
 
             # Backup agent should only call backup/sync-related MCPs
             for call in backup_calls:
-                assert (
-                    "sync" in call["mcp_name"]
-                    or "desktop_commander" in call["mcp_name"]
-                )
+                assert "sync" in call["mcp_name"] or "desktop_commander" in call["mcp_name"]
 
             # Sync agent should only call sync-related MCPs
             for call in sync_calls:
@@ -352,9 +341,7 @@ class TestAgentIntegration:
 
             # Execute cascading failure response
             # 1. Initial detection
-            initial_detection = await agents["monitoring"].execute(
-                {"operation": "health_check"}
-            )
+            initial_detection = await agents["monitoring"].execute({"operation": "health_check"})
 
             # 2. Emergency backup
             emergency_backup = await agents["backup"].execute(
@@ -362,9 +349,7 @@ class TestAgentIntegration:
             )
 
             # 3. Component isolation
-            isolation = await agents["sync"].execute(
-                {"operation": "isolate_components"}
-            )
+            isolation = await agents["sync"].execute({"operation": "isolate_components"})
 
             # 4. Gradual recovery
             recovery = await agents["backup"].execute(
@@ -372,9 +357,7 @@ class TestAgentIntegration:
             )
 
             # 5. Final verification
-            final_check = await agents["monitoring"].execute(
-                {"operation": "health_check"}
-            )
+            final_check = await agents["monitoring"].execute({"operation": "health_check"})
 
             # Verify cascading failure was handled
             assert len(initial_detection["diagnosis"]) > 0
@@ -406,12 +389,15 @@ async def test_agent_audit_trail_integrity():
             assert len(audit_entries) == 6  # 2 entries per operation (start + complete)
 
             operations_audited = [entry[0] for entry in audit_entries]
-            assert "monitoring_start" in operations_audited
-            assert "monitoring_complete" in operations_audited
+            # Expect modernized operation naming
+            assert "monitoring_operation_start" in operations_audited
+            assert "monitoring_operation_complete" in operations_audited
 
             # Verify timestamps are present and sequential
             timestamps = [
-                entry[1].get("timestamp") for entry in audit_entries if len(entry) > 1
+                entry[1].get("timestamp")
+                for entry in audit_entries
+                if len(entry) > 1
             ]
             assert all(ts for ts in timestamps)
             assert all(datetime.fromisoformat(ts) for ts in timestamps)
@@ -429,7 +415,9 @@ async def test_agent_error_propagation_and_recovery():
     error_scenario = "MCP connection failure"
 
     with (
-        patch.object(agents["monitoring"], "mcp_router") as mock_router_monitoring,
+        patch.object(
+            agents["monitoring"], "mcp_router"
+        ) as mock_router_monitoring,
         patch.object(agents["backup"], "mcp_router") as mock_router_backup,
         patch.object(agents["sync"], "mcp_router") as mock_router_sync,
     ):
@@ -439,7 +427,9 @@ async def test_agent_error_propagation_and_recovery():
             mock_router_backup,
             mock_router_sync,
         ]:
-            mock_router.route_to_mcp = AsyncMock(side_effect=Exception(error_scenario))
+            mock_router.route_to_mcp = AsyncMock(
+                side_effect=Exception(error_scenario)
+            )
 
         # Test that all agents handle errors gracefully
         for agent_name, agent in agents.items():

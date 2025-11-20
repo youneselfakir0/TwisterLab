@@ -180,9 +180,7 @@ class BackupAgent(BaseAgent):
             },
         ]
 
-    async def execute(
-        self, task: str, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Execute backup operation.
 
@@ -298,8 +296,7 @@ class BackupAgent(BaseAgent):
             self.backup_history.append(metadata)
 
             logger.info(
-                f"Backup {backup_id} completed: "
-                f"{size_bytes} bytes, {execution_time:.2f}s"
+                f"Backup {backup_id} completed: " f"{size_bytes} bytes, {execution_time:.2f}s"
             )
 
             return {
@@ -565,9 +562,7 @@ class BackupAgent(BaseAgent):
             backups_list = await self._list_backups()
 
             for backup in backups_list.get("backups", []):
-                backup_date = datetime.fromisoformat(
-                    backup["timestamp"].replace("Z", "+00:00")
-                )
+                backup_date = datetime.fromisoformat(backup["timestamp"].replace("Z", "+00:00"))
                 backup_type = backup["backup_type"]
                 backup_id = backup["backup_id"]
 
@@ -640,9 +635,7 @@ if __name__ == "__main__":
 
         # Test listing backups
         print("\n=== Listing Backups ===")
-        list_result = await backup_agent.execute(
-            "List backups", {"operation": "list_backups"}
-        )
+        list_result = await backup_agent.execute("List backups", {"operation": "list_backups"})
         print(json.dumps(list_result, indent=2))
 
         # Test statistics

@@ -205,9 +205,7 @@ class ResolverAgent(TwisterAgent):
         self.confidence_threshold_adaptive = 0.70
         self.confidence_threshold_manual = 0.50
         self.max_execution_retries = 3
-        self.desktop_commander_url = (
-            "http://localhost:8000/api/v1/agents/desktop-commander"
-        )
+        self.desktop_commander_url = "http://localhost:8000/api/v1/agents/desktop-commander"
 
         logger.info(f"ResolverAgent initialized: {self.name}")
 
@@ -244,14 +242,10 @@ class ResolverAgent(TwisterAgent):
 
             # Step 2: Validate prerequisites
             if selected_sop:
-                prerequisites_valid = await self._validate_prerequisites(
-                    selected_sop, task
-                )
+                prerequisites_valid = await self._validate_prerequisites(selected_sop, task)
 
                 if not prerequisites_valid:
-                    logger.warning(
-                        f"[{self.name}] Prerequisites not met, adjusting strategy"
-                    )
+                    logger.warning(f"[{self.name}] Prerequisites not met, adjusting strategy")
                     strategy = ResolutionStrategy.MANUAL_EXECUTION
 
             # Step 3: Execute resolution based on strategy
@@ -262,9 +256,7 @@ class ResolverAgent(TwisterAgent):
                 result = await self._execute_adaptive(ticket_id, selected_sop, task)
 
             elif strategy == ResolutionStrategy.HYBRID_EXECUTION:
-                result = await self._execute_hybrid(
-                    ticket_id, sop_recommendations, task
-                )
+                result = await self._execute_hybrid(ticket_id, sop_recommendations, task)
 
             elif strategy == ResolutionStrategy.MANUAL_EXECUTION:
                 result = await self._execute_manual(ticket_id, selected_sop, task)
@@ -347,10 +339,7 @@ class ResolverAgent(TwisterAgent):
         elif confidence >= self.confidence_threshold_adaptive:
             return ResolutionStrategy.ADAPTIVE_EXECUTION, top_sop, confidence
 
-        elif (
-            confidence >= self.confidence_threshold_manual
-            and len(sop_recommendations) > 1
-        ):
+        elif confidence >= self.confidence_threshold_manual and len(sop_recommendations) > 1:
             return ResolutionStrategy.HYBRID_EXECUTION, top_sop, confidence
 
         elif confidence >= self.confidence_threshold_manual:
@@ -407,9 +396,7 @@ class ResolverAgent(TwisterAgent):
             required_permissions = prerequisites.get("permissions", [])
             # TODO: Validate current user permissions
 
-            logger.info(
-                f"[ResolverAgent] Prerequisites validated for SOP {sop.get('id')}"
-            )
+            logger.info(f"[ResolverAgent] Prerequisites validated for SOP {sop.get('id')}")
             return True
 
         except Exception as e:
@@ -431,9 +418,7 @@ class ResolverAgent(TwisterAgent):
 
         for idx, step in enumerate(steps, 1):
             try:
-                step_result = await self._execute_step(
-                    step, task_context, allow_variations=False
-                )
+                step_result = await self._execute_step(step, task_context, allow_variations=False)
 
                 execution_log.append(
                     {
@@ -466,9 +451,7 @@ class ResolverAgent(TwisterAgent):
                 retry_count = 0
                 while retry_count < self.max_execution_retries:
                     retry_count += 1
-                    logger.info(
-                        f"[ResolverAgent] Retrying step {idx} (attempt {retry_count})"
-                    )
+                    logger.info(f"[ResolverAgent] Retrying step {idx} (attempt {retry_count})")
 
                     try:
                         step_result = await self._execute_step(
@@ -521,9 +504,7 @@ class ResolverAgent(TwisterAgent):
         for idx, step in enumerate(steps, 1):
             try:
                 # Allow AI to adjust commands based on context
-                step_result = await self._execute_step(
-                    step, task_context, allow_variations=True
-                )
+                step_result = await self._execute_step(step, task_context, allow_variations=True)
 
                 execution_log.append(
                     {
@@ -551,9 +532,7 @@ class ResolverAgent(TwisterAgent):
                 )
 
         failed_steps = [log for log in execution_log if log["status"] == "failed"]
-        status = (
-            ResolutionStatus.SUCCESS if not failed_steps else ResolutionStatus.PARTIAL
-        )
+        status = ResolutionStatus.SUCCESS if not failed_steps else ResolutionStatus.PARTIAL
 
         return {
             "status": status.value,
@@ -591,9 +570,7 @@ class ResolverAgent(TwisterAgent):
         # Execute combined steps
         for idx, step in enumerate(combined_steps, 1):
             try:
-                step_result = await self._execute_step(
-                    step, task_context, allow_variations=True
-                )
+                step_result = await self._execute_step(step, task_context, allow_variations=True)
 
                 execution_log.append(
                     {
@@ -758,9 +735,7 @@ class ResolverAgent(TwisterAgent):
             logger.error(f"[ResolverAgent] Desktop-Commander call failed: {e}")
             raise RuntimeError(f"Command execution failed: {e}")
 
-    async def _update_ticket_status(
-        self, ticket_id: str, result: Dict[str, Any]
-    ) -> None:
+    async def _update_ticket_status(self, ticket_id: str, result: Dict[str, Any]) -> None:
         """Update ticket status in database based on resolution result"""
         try:
             # TODO: Implement TicketService

@@ -14,13 +14,13 @@ import shutil
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import json
+import os
+
 import pytest
 
 from agents.real.real_backup_agent import RealBackupAgent
-from agents.support.backup_agent import (
-    BackupType,
-    BackupStatus
-)
+from agents.support.backup_agent import BackupStatus, BackupType
 
 
 @pytest.fixture
@@ -66,10 +66,9 @@ class TestBackupAgent:
     @pytest.mark.asyncio
     async def test_create_full_backup(self, backup_agent):
         """Test creating full backup"""
-        result = await backup_agent.execute({
-            "operation": "create_backup",
-            "backup_type": BackupType.FULL
-        })
+        result = await backup_agent.execute(
+            {"operation": "create_backup", "backup_type": BackupType.FULL}
+        )
 
         assert result["status"] == "success"
         assert "backup_id" in result
@@ -79,8 +78,7 @@ class TestBackupAgent:
     async def test_create_incremental_backup(self, backup_agent):
         """Test creating incremental backup"""
         result = await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.INCREMENTAL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.INCREMENTAL}
         )
 
         assert result["status"] == BackupStatus.SUCCESS
@@ -92,8 +90,7 @@ class TestBackupAgent:
         initial_count = backup_agent.backup_stats["total_backups"]
 
         await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.FULL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
         )
 
         assert backup_agent.backup_stats["total_backups"] == initial_count + 1
@@ -103,10 +100,7 @@ class TestBackupAgent:
     @pytest.mark.asyncio
     async def test_list_backups_empty(self, backup_agent):
         """Test listing backups when none exist"""
-        result = await backup_agent.execute(
-            "List backups",
-            {"operation": "list_backups"}
-        )
+        result = await backup_agent.execute("List backups", {"operation": "list_backups"})
 
         assert result["status"] == "success"
         assert "backups" in result
@@ -117,15 +111,11 @@ class TestBackupAgent:
         """Test listing backups after creating one"""
         # Create backup
         await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.FULL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
         )
 
         # List backups
-        result = await backup_agent.execute(
-            "List backups",
-            {"operation": "list_backups"}
-        )
+        result = await backup_agent.execute("List backups", {"operation": "list_backups"})
 
         assert result["status"] == "success"
         assert result["total_backups"] == 1
@@ -136,16 +126,14 @@ class TestBackupAgent:
         """Test verifying valid backup"""
         # Create backup
         create_result = await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.FULL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
         )
 
         backup_id = create_result["backup_id"]
 
         # Verify backup
         verify_result = await backup_agent.execute(
-            "Verify backup",
-            {"operation": "verify_backup", "backup_id": backup_id}
+            "Verify backup", {"operation": "verify_backup", "backup_id": backup_id}
         )
 
         assert verify_result["status"] == BackupStatus.VERIFIED
@@ -155,8 +143,7 @@ class TestBackupAgent:
     async def test_verify_nonexistent_backup(self, backup_agent):
         """Test verifying non-existent backup"""
         result = await backup_agent.execute(
-            "Verify backup",
-            {"operation": "verify_backup", "backup_id": "nonexistent"}
+            "Verify backup", {"operation": "verify_backup", "backup_id": "nonexistent"}
         )
 
         assert result["status"] == "error"
@@ -165,8 +152,7 @@ class TestBackupAgent:
     async def test_verify_without_backup_id(self, backup_agent):
         """Test verifying without providing backup_id"""
         result = await backup_agent.execute(
-            "Verify backup",
-            {"operation": "verify_backup", "backup_id": None}
+            "Verify backup", {"operation": "verify_backup", "backup_id": None}
         )
 
         assert result["status"] == "error"
@@ -177,16 +163,14 @@ class TestBackupAgent:
         """Test restoring from backup"""
         # Create backup
         create_result = await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.FULL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
         )
 
         backup_id = create_result["backup_id"]
 
         # Restore backup
         restore_result = await backup_agent.execute(
-            "Restore backup",
-            {"operation": "restore_backup", "backup_id": backup_id}
+            "Restore backup", {"operation": "restore_backup", "backup_id": backup_id}
         )
 
         assert restore_result["status"] == "success"
@@ -196,8 +180,7 @@ class TestBackupAgent:
     async def test_restore_without_backup_id(self, backup_agent):
         """Test restoring without backup_id"""
         result = await backup_agent.execute(
-            "Restore backup",
-            {"operation": "restore_backup", "backup_id": None}
+            "Restore backup", {"operation": "restore_backup", "backup_id": None}
         )
 
         assert result["status"] == "error"
@@ -206,10 +189,7 @@ class TestBackupAgent:
     @pytest.mark.asyncio
     async def test_apply_retention_no_backups(self, backup_agent):
         """Test applying retention with no backups"""
-        result = await backup_agent.execute(
-            "Apply retention",
-            {"operation": "apply_retention"}
-        )
+        result = await backup_agent.execute("Apply retention", {"operation": "apply_retention"})
 
         assert result["status"] == "success"
         assert result["deleted_count"] == 0
@@ -219,15 +199,11 @@ class TestBackupAgent:
         """Test retention doesn't delete recent backups"""
         # Create recent backup
         await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.FULL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
         )
 
         # Apply retention
-        result = await backup_agent.execute(
-            "Apply retention",
-            {"operation": "apply_retention"}
-        )
+        result = await backup_agent.execute("Apply retention", {"operation": "apply_retention"})
 
         assert result["status"] == "success"
         assert result["deleted_count"] == 0
@@ -238,18 +214,109 @@ class TestBackupAgent:
         # Create 3 backups
         for i in range(3):
             await backup_agent.execute(
-                "Create backup",
-                {"operation": "create_backup", "backup_type": BackupType.FULL}
+                "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
             )
 
         # List backups
-        result = await backup_agent.execute(
-            "List backups",
-            {"operation": "list_backups"}
-        )
+        result = await backup_agent.execute("List backups", {"operation": "list_backups"})
 
         assert result["total_backups"] == 3
         assert backup_agent.backup_stats["successful_backups"] == 3
+
+    @pytest.mark.asyncio
+    async def test_unique_backup_ids(self, backup_agent):
+        """Create many backups in quick succession and assert unique ids are generated."""
+        n = 20
+        results = []
+        for _ in range(n):
+            r = await backup_agent.execute(
+                "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
+            )
+            results.append(r)
+
+        ids = [r["backup_id"] for r in results]
+        assert len(set(ids)) == n
+        # list backups should reflect total
+        listing = await backup_agent.execute("List backups", {"operation": "list_backups"})
+        assert listing["total_backups"] >= n
+
+    @pytest.mark.asyncio
+    async def test_atomic_metadata_write(self, backup_agent):
+        """Ensure metadata file is written atomically and no .json.tmp files are left behind."""
+        result = await backup_agent.execute(
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
+        )
+        backup_id = result["backup_id"]
+        # no tmp files
+        tmp_files = list(Path(backup_agent.backup_dir).rglob("*.json.tmp"))
+        assert len(tmp_files) == 0
+        metadata_file = Path(backup_agent.backup_dir) / BackupType.FULL / f"{backup_id}.json"
+        assert metadata_file.exists()
+        metadata = json.loads(metadata_file.read_text())
+        assert metadata.get("checksum") is not None
+
+    @pytest.mark.asyncio
+    async def test_manifest_written(self, backup_agent):
+        """Manifest should contain entry after backup creation"""
+        result = await backup_agent.execute(
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
+        )
+        bid = result["backup_id"]
+        manifest_path = Path(backup_agent.backup_dir) / "manifest.json"
+        assert manifest_path.exists()
+        manifest = json.loads(manifest_path.read_text())
+        assert bid in manifest
+
+    @pytest.mark.asyncio
+    async def test_apply_retention_deletes_old_backups(self, backup_agent):
+        """Older backups should be removed by apply_retention"""
+        result = await backup_agent.execute(
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
+        )
+        bid = result["backup_id"]
+        archive = backup_agent.backup_dir / BackupType.FULL / f"{bid}.tar.gz"
+        # Set the file modification time to 10 days ago
+        old_time = (datetime.now(timezone.utc) - timedelta(days=10)).timestamp()
+        os.utime(archive, (old_time, old_time))
+        # configure retention policy to 7 days
+        backup_agent.backup_stats["retention_policy"] = {"full": 7}
+        res = await backup_agent.execute("Apply retention", {"operation": "apply_retention"})
+        assert res["status"] == "success"
+        # archive should be removed
+        assert not archive.exists()
+
+    @pytest.mark.asyncio
+    async def test_scheduled_retention_worker(self, backup_agent):
+        """Start retention worker and ensure it removes old backups"""
+        result = await backup_agent.execute(
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
+        )
+        bid = result["backup_id"]
+        archive = backup_agent.backup_dir / BackupType.FULL / f"{bid}.tar.gz"
+        # make it old
+        old_time = (datetime.now(timezone.utc) - timedelta(days=10)).timestamp()
+        os.utime(archive, (old_time, old_time))
+        # set retention policy low and start worker
+        backup_agent.backup_stats["retention_policy"] = {"full": 0}
+        started = await backup_agent.start_scheduled_retention(interval_seconds=0.1)
+        assert started
+        # wait for the worker to run a couple cycles
+        await asyncio.sleep(0.5)
+        # Should be removed by now
+        assert not archive.exists()
+        # stop worker
+        await backup_agent.stop_scheduled_retention()
+
+    @pytest.mark.asyncio
+    async def test_start_on_init_env_var(self, monkeypatch, tmp_path):
+        """Agent should auto-start retention worker if env var is set and event loop is running."""
+        monkeypatch.setenv("TWISTERLAB_START_RETENTION", "true")
+        monkeypatch.setenv("TWISTERLAB_RETENTION_INTERVAL", "1")
+        agent = RealBackupAgent(backup_dir=str(tmp_path))
+        # the agent should schedule worker on init because event loop is running
+        await asyncio.sleep(0.2)
+        assert agent.is_retention_running()
+        await agent.stop_scheduled_retention()
 
     def test_get_backup_stats(self, backup_agent):
         """Test getting backup statistics"""
@@ -274,8 +341,7 @@ class TestBackupAgent:
     async def test_backup_creates_archive(self, backup_agent):
         """Test backup creates archive file"""
         result = await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.FULL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
         )
 
         backup_id = result["backup_id"]
@@ -288,10 +354,7 @@ class TestBackupAgent:
     @pytest.mark.asyncio
     async def test_unknown_operation(self, backup_agent):
         """Test handling unknown operation"""
-        result = await backup_agent.execute(
-            "Unknown task",
-            {"operation": "unknown_operation"}
-        )
+        result = await backup_agent.execute("Unknown task", {"operation": "unknown_operation"})
 
         assert result["status"] == BackupStatus.FAILED
         assert "Unknown operation" in result["error"]
@@ -310,8 +373,7 @@ class TestBackupIntegration:
         """Test complete backup workflow"""
         # Create backup
         create_result = await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.FULL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
         )
         assert create_result["status"] == BackupStatus.SUCCESS
 
@@ -319,16 +381,12 @@ class TestBackupIntegration:
 
         # Verify backup
         verify_result = await backup_agent.execute(
-            "Verify backup",
-            {"operation": "verify_backup", "backup_id": backup_id}
+            "Verify backup", {"operation": "verify_backup", "backup_id": backup_id}
         )
         assert verify_result["status"] == BackupStatus.VERIFIED
 
         # List backups
-        list_result = await backup_agent.execute(
-            "List backups",
-            {"operation": "list_backups"}
-        )
+        list_result = await backup_agent.execute("List backups", {"operation": "list_backups"})
         assert list_result["total_backups"] >= 1
 
     @pytest.mark.asyncio
@@ -336,22 +394,19 @@ class TestBackupIntegration:
         """Test backup → verify → restore cycle"""
         # Create
         create_result = await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.FULL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
         )
         backup_id = create_result["backup_id"]
 
         # Verify
         verify_result = await backup_agent.execute(
-            "Verify backup",
-            {"operation": "verify_backup", "backup_id": backup_id}
+            "Verify backup", {"operation": "verify_backup", "backup_id": backup_id}
         )
         assert verify_result["checksum_match"] is True
 
         # Restore
         restore_result = await backup_agent.execute(
-            "Restore backup",
-            {"operation": "restore_backup", "backup_id": backup_id}
+            "Restore backup", {"operation": "restore_backup", "backup_id": backup_id}
         )
         assert restore_result["status"] == "success"
 
@@ -360,8 +415,7 @@ class TestBackupIntegration:
         """Test multiple concurrent backup operations"""
         tasks = [
             backup_agent.execute(
-                "Create backup",
-                {"operation": "create_backup", "backup_type": BackupType.FULL}
+                "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
             )
             for _ in range(3)
         ]
@@ -377,12 +431,10 @@ class TestBackupIntegration:
         """Test backup statistics accumulate correctly"""
         # Perform multiple operations
         await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.FULL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.FULL}
         )
         await backup_agent.execute(
-            "Create backup",
-            {"operation": "create_backup", "backup_type": BackupType.INCREMENTAL}
+            "Create backup", {"operation": "create_backup", "backup_type": BackupType.INCREMENTAL}
         )
 
         stats = backup_agent.get_backup_stats()

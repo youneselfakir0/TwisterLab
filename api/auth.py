@@ -22,11 +22,11 @@ import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-import redis.asyncio as aioredis
 
 from agents.auth.azure_ad_auth import AzureADAuth
 
@@ -66,7 +66,7 @@ async def get_redis_client() -> aioredis.Redis:
             password=redis_password,
             decode_responses=True,
             socket_timeout=5.0,
-            socket_connect_timeout=5.0
+            socket_connect_timeout=5.0,
         )
     return _redis_client
 
@@ -135,7 +135,7 @@ async def verify_jwt_token(token: str) -> Dict[str, Any]:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> Dict[str, Any]:
     """
     FastAPI dependency to get current authenticated user.
@@ -167,11 +167,7 @@ async def get_current_user(
         user_id = user_claims.get("sub")
         cache_key = f"user:{user_id}"
 
-        await redis.setex(
-            cache_key,
-            3600,  # 1 hour TTL
-            str(user_claims)
-        )
+        await redis.setex(cache_key, 3600, str(user_claims))  # 1 hour TTL
     except Exception as e:
         logger.warning(f"Failed to cache user in Redis: {e}")
 
@@ -233,16 +229,14 @@ async def callback(request: Request):
         error_desc = request.query_params.get("error_description", "Unknown error")
         logger.error(f"Azure AD auth error: {error} - {error_desc}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Authentication failed: {error_desc}"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Authentication failed: {error_desc}"
         )
 
     # Get authorization code
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing authorization code"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Missing authorization code"
         )
 
     # Exchange code for token
@@ -279,7 +273,7 @@ async def callback(request: Request):
         "token_type": "Bearer",
         "expires_in": token_response.get("expires_in", 3600),
         "redirect_uri": redirect_uri,
-        "message": "Include this token in Authorization header: Bearer <access_token>"
+        "message": "Include this token in Authorization header: Bearer <access_token>",
     }
 
 
@@ -306,15 +300,11 @@ async def logout(user: Dict[str, Any] = Depends(get_current_user)):
 
         logger.info(f"User {user_id} logged out successfully")
 
-        return {
-            "status": "success",
-            "message": "Logged out successfully"
-        }
+        return {"status": "success", "message": "Logged out successfully"}
     except Exception as e:
         logger.error(f"Logout failed: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Logout failed"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Logout failed"
         )
 
 
@@ -337,5 +327,5 @@ async def get_current_user_info(user: Dict[str, Any] = Depends(get_current_user)
         "email": user.get("preferred_username") or user.get("email"),
         "roles": user.get("roles", []),
         "tenant_id": user.get("tid"),
-        "authenticated_at": datetime.now().isoformat()
+        "authenticated_at": datetime.now().isoformat(),
     }

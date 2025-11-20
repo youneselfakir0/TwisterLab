@@ -1,5 +1,6 @@
 """
 Native MCP Server for TwisterLab Agents (Mode 2).
+Updated to use Unified MCP Server for comprehensive agent access.
 
 Standard Model Context Protocol server using stdio transport.
 Designed for Claude Desktop and other native MCP clients.
@@ -12,17 +13,16 @@ import asyncio
 import json
 import logging
 import sys
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from agents.mcp.mcp_router import MCPRouter
+from agents.mcp.unified_mcp_server import UnifiedMCPServer
 
 logger = logging.getLogger(__name__)
 
 
 class MCPServer:
     """
-    Native MCP Server implementing the Model Context Protocol.
+    Native MCP Server using Unified MCP Server.
 
     Supports:
     - tools/* - Callable agent operations
@@ -33,13 +33,21 @@ class MCPServer:
     """
 
     def __init__(self):
-        """Initialize MCP server."""
-        self.router = MCPRouter()
-        self.capabilities = {
-            "tools": True,
-            "resources": True,
-            "prompts": True,
+        """Initialize MCP server with unified capabilities."""
+        self.unified_server = UnifiedMCPServer()
+        # Expose router for compatibility with tests and context managers
+        self.router = self.unified_server.router
+        # Mirror unified server capabilities to satisfy API expectations
+        self.capabilities = self.unified_server.capabilities
+
+        # Override server info for Claude Desktop
+        self.unified_server.server_info = {
+            "name": "twisterlab-mcp-claude",
+            "version": "2.0.0",
+            "description": "TwisterLab Unified MCP Server for Claude Desktop",
         }
+
+        logger.info("MCP Server for Claude Desktop initialized with unified capabilities")
 
         # Available tools (exposed agent operations)
         self.tools = [
@@ -86,6 +94,16 @@ class MCPServer:
                 },
             },
             {
+                "name": "twisterlab_mcp_sync_cache",
+                "description": "(alias) Synchronize Redis cache with PostgreSQL database",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "force": {"type": "boolean", "description": "Force sync even if cache is fresh", "default": False},
+                    },
+                },
+            },
+            {
                 "name": "classify_ticket",
                 "description": "Classify IT helpdesk ticket using LLM",
                 "inputSchema": {
@@ -95,6 +113,17 @@ class MCPServer:
                             "type": "string",
                             "description": "Ticket description text",
                         },
+                    },
+                    "required": ["ticket_text"],
+                },
+            },
+            {
+                "name": "twisterlab_mcp_classify_ticket",
+                "description": "(alias) Classify IT helpdesk ticket using LLM",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "ticket_text": {"type": "string", "description": "Ticket description text"},
                     },
                     "required": ["ticket_text"],
                 },
@@ -113,6 +142,18 @@ class MCPServer:
                             "type": "string",
                             "description": "Ticket category from classifier",
                         },
+                    },
+                    "required": ["ticket_id", "category"],
+                },
+            },
+            {
+                "name": "twisterlab_mcp_resolve_ticket",
+                "description": "(alias) Execute SOP to resolve classified ticket",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "ticket_id": {"type": "string", "description": "Ticket identifier"},
+                        "category": {"type": "string", "description": "Ticket category from classifier"},
                     },
                     "required": ["ticket_id", "category"],
                 },
@@ -235,7 +276,7 @@ class MCPServer:
                     ],
                 }
 
-            elif tool_name == "sync_cache_db":
+            elif tool_name == "sync_cache_db" or tool_name == "twisterlab_mcp_sync_cache":
                 result = await self.router.route_to_mcp(
                     agent_name="MCP-Client",
                     mcp_name="sync_mcp",
@@ -251,32 +292,38 @@ class MCPServer:
                     ],
                 }
 
-            elif tool_name == "classify_ticket":
+            elif tool_name == "classify_ticket" or tool_name == "twisterlab_mcp_classify_ticket":
                 # Route to classifier agent (placeholder)
                 return {
                     "content": [
                         {
                             "type": "text",
-                            "text": json.dumps({
-                                "category": "network",
-                                "confidence": 0.95,
-                                "ticket": arguments.get("ticket_text"),
-                            }, indent=2),
+                            "text": json.dumps(
+                                {
+                                    "category": "network",
+                                    "confidence": 0.95,
+                                    "ticket": arguments.get("ticket_text"),
+                                },
+                                indent=2,
+                            ),
                         }
                     ],
                 }
 
-            elif tool_name == "resolve_ticket":
+            elif tool_name == "resolve_ticket" or tool_name == "twisterlab_mcp_resolve_ticket":
                 # Route to resolver agent (placeholder)
                 return {
                     "content": [
                         {
                             "type": "text",
-                            "text": json.dumps({
-                                "status": "resolved",
-                                "ticket_id": arguments.get("ticket_id"),
-                                "sop_executed": "network_diagnostic_v1",
-                            }, indent=2),
+                            "text": json.dumps(
+                                {
+                                    "status": "resolved",
+                                    "ticket_id": arguments.get("ticket_id"),
+                                    "sop_executed": "network_diagnostic_v1",
+                                },
+                                indent=2,
+                            ),
                         }
                     ],
                 }
@@ -538,9 +585,7 @@ Document findings and recommend solution.
             while True:
                 try:
                     # Read line from stdin
-                    line = await asyncio.get_event_loop().run_in_executor(
-                        None, sys.stdin.readline
-                    )
+                    line = await asyncio.get_event_loop().run_in_executor(None, sys.stdin.readline)
 
                     if not line:
                         # EOF reached

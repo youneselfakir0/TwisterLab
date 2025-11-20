@@ -4,10 +4,10 @@ TwisterLab API Test Script
 Tests the ticket management endpoints
 """
 
-import requests
-import pytest
 from typing import Optional
 
+import pytest
+import requests
 
 BASE_URL = "http://localhost:8000"
 
@@ -31,14 +31,14 @@ def test_create_ticket() -> Optional[str]:
         "description": "This is a test ticket created via API",
         "priority": "high",
         "category": "software",
-        "requestor_email": "test@example.com"
+        "requestor_email": "test@example.com",
     }
 
     try:
         response = requests.post(
             f"{BASE_URL}/api/v1/tickets/",
             json=ticket_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         if response.status_code == 201:
@@ -46,7 +46,7 @@ def test_create_ticket() -> Optional[str]:
             print("✅ Ticket created successfully")
             print(f"   ID: {ticket['id']}")
             print(f"   Status: {ticket['status']}")
-            return ticket['id']
+            return ticket["id"]
         else:
             print(f"❌ Ticket creation failed: {response.status_code}")
             print(f"   Response: {response.text}")
@@ -93,16 +93,13 @@ def test_list_tickets():
 def _test_update_ticket(ticket_id: str) -> bool:
     """Test updating a ticket"""
     print(f"✏️ Testing ticket update (ID: {ticket_id})...")
-    update_data = {
-        "status": "assigned",
-        "category": "network"
-    }
+    update_data = {"status": "assigned", "category": "network"}
 
     try:
         response = requests.put(
             f"{BASE_URL}/api/v1/tickets/{ticket_id}",
             json=update_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         if response.status_code == 200:

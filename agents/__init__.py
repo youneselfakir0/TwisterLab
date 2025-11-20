@@ -8,12 +8,13 @@ Lazy loading implementation to avoid database imports at startup.
 """
 
 import logging
-from typing import Dict, Type, Any, Optional
+from typing import Any, Dict, Optional, Type
 
 logger = logging.getLogger(__name__)
 
 # Lazy-loaded agents (avoid database imports at startup)
 _LAZY_AGENTS: Dict[str, Type[Any]] = {}
+
 
 def get_agent(name: str) -> Optional[Type[Any]]:
     """
@@ -29,12 +30,15 @@ def get_agent(name: str) -> Optional[Type[Any]]:
         try:
             if name == "desktop_commander":
                 from agents.desktop_commander.desktop_commander_agent import DesktopCommanderAgent
+
                 _LAZY_AGENTS[name] = DesktopCommanderAgent
             elif name == "ticket_classifier":
                 from agents.helpdesk.classifier import TicketClassifierAgent
+
                 _LAZY_AGENTS[name] = TicketClassifierAgent
             elif name == "resolver":
                 from agents.resolver.resolver_agent import ResolverAgent
+
                 _LAZY_AGENTS[name] = ResolverAgent
             else:
                 logger.warning(f"Unknown agent: {name}")
@@ -44,6 +48,7 @@ def get_agent(name: str) -> Optional[Type[Any]]:
             return None
 
     return _LAZY_AGENTS[name]
+
 
 # Core agents (safe to import - no database dependencies)
 from agents.core.backup_agent import BackupAgent

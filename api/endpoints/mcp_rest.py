@@ -83,6 +83,7 @@ class MCPResourceReadRequest(BaseModel):
 
 # Endpoints
 
+
 @router.post("/message", response_model=MCPResponse)
 async def mcp_message(request: MCPRequest) -> MCPResponse:
     """
@@ -188,10 +189,12 @@ async def call_tool(request: MCPToolCallRequest) -> Dict[str, Any]:
     """
     try:
         # Call tool via MCP server
-        result = await mcp_server.handle_tools_call({
-            "name": request.tool,
-            "arguments": request.arguments,
-        })
+        result = await mcp_server.handle_tools_call(
+            {
+                "name": request.tool,
+                "arguments": request.arguments,
+            }
+        )
 
         # Check for errors
         if result.get("isError"):
@@ -241,9 +244,11 @@ async def read_resource(request: MCPResourceReadRequest) -> Dict[str, Any]:
     """
     try:
         # Read resource via MCP server
-        result = await mcp_server.handle_resources_read({
-            "uri": request.uri,
-        })
+        result = await mcp_server.handle_resources_read(
+            {
+                "uri": request.uri,
+            }
+        )
 
         # Check for errors
         if result.get("isError"):

@@ -76,9 +76,7 @@ class EmergencyResponseRequest(BaseModel):
     """Request model for emergency response."""
 
     issue_type: str = Field(..., description="Type of issue detected")
-    severity: str = Field(
-        ..., pattern="^(low|medium|high|critical)$", description="Issue severity"
-    )
+    severity: str = Field(..., pattern="^(low|medium|high|critical)$", description="Issue severity")
     description: Optional[str] = Field(None, description="Issue description")
 
 
@@ -122,9 +120,7 @@ async def get_system_status():
         orchestrator = await get_orchestrator()
         return orchestrator.get_system_status()
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get system status: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to get system status: {str(e)}")
 
 
 @router.get("/agents", response_model=AgentsListResponse)
@@ -139,9 +135,7 @@ async def get_agents_status():
         status = await orchestrator.get_agent_status()
         return {"agents": status.get("agents", {})}
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get agents status: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to get agents status: {str(e)}")
 
 
 @router.get("/agents/{agent_name}", response_model=AgentStatusResponse)
@@ -158,9 +152,7 @@ async def get_agent_status(agent_name: str):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get agent status: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to get agent status: {str(e)}")
 
 
 @router.post("/agents/{agent_name}/execute", response_model=AgentOperationResponse)
@@ -228,14 +220,10 @@ async def trigger_emergency_response(request: EmergencyResponseRequest):
     """
     try:
         orchestrator = await get_orchestrator()
-        result = await orchestrator.trigger_emergency_response(
-            request.issue_type, request.severity
-        )
+        result = await orchestrator.trigger_emergency_response(request.issue_type, request.severity)
         return result
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Emergency response failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Emergency response failed: {str(e)}")
 
 
 @router.post("/start")
@@ -294,9 +282,7 @@ async def get_system_capabilities():
             ],
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get capabilities: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to get capabilities: {str(e)}")
 
 
 # Background task helper
@@ -306,14 +292,10 @@ async def _execute_agent_operation_background(
     """Execute agent operation in background."""
     try:
         orchestrator = await get_orchestrator()
-        result = await orchestrator.execute_agent_operation(
-            agent_name, operation, context
-        )
+        result = await orchestrator.execute_agent_operation(agent_name, operation, context)
 
         # Log completion (in production, this could send notifications)
-        print(
-            f"Background operation completed: {agent_name}:{operation} - Result: {result}"
-        )
+        print(f"Background operation completed: {agent_name}:{operation} - Result: {result}")
 
     except Exception as e:
         # Log error (in production, this could trigger alerts)

@@ -54,9 +54,7 @@ async def test_postgres_connectivity():
     print(f"\n{Colors.BOLD}Testing PostgreSQL (port 5433)...{Colors.ENDC}")
 
     if not os.getenv("POSTGRES_TEST_PASSWORD"):
-        pytest.skip(
-            "POSTGRES_TEST_PASSWORD environment variable not set for staging tests"
-        )
+        pytest.skip("POSTGRES_TEST_PASSWORD environment variable not set for staging tests")
 
     try:
         conn = await asyncpg.connect(
@@ -73,9 +71,7 @@ async def test_postgres_connectivity():
         assert result is not None
 
         # Check tables exist
-        tables = await conn.fetch(
-            "SELECT tablename FROM pg_tables WHERE schemaname='public'"
-        )
+        tables = await conn.fetch("SELECT tablename FROM pg_tables WHERE schemaname='public'")
         table_names = [t["tablename"] for t in tables]
 
         await conn.close()
@@ -98,9 +94,7 @@ async def test_redis_connectivity():
     print(f"\n{Colors.BOLD}Testing Redis (port 6380)...{Colors.ENDC}")
 
     if not os.getenv("REDIS_TEST_PASSWORD"):
-        pytest.skip(
-            "REDIS_TEST_PASSWORD environment variable not set for staging tests"
-        )
+        pytest.skip("REDIS_TEST_PASSWORD environment variable not set for staging tests")
 
     try:
         r = redis.Redis(

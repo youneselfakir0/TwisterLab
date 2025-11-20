@@ -1,6 +1,9 @@
 import asyncio
+
 import httpx
+
 from agents.base.llm_client import OllamaClient
+
 
 async def test():
     # Force l'URL avec l'IP directe
@@ -14,5 +17,6 @@ Category (network/software/hardware/access):"""
     print(f"✓ LLM Response: {result['response'][:200]}")
     print(f"✓ Tokens: {result['tokens']}")
     print(f"✓ Duration: {result['duration_seconds']:.2f}s")
+
 
 asyncio.run(test())

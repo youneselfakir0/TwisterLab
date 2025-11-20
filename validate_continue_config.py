@@ -30,9 +30,7 @@ def validate_continue_config():
             print(f"  - {model['title']} ({model['model']})")
 
         # Validate MCP servers
-        mcp_servers = config.get("experimental", {}).get(
-            "modelContextProtocolServers", []
-        )
+        mcp_servers = config.get("experimental", {}).get("modelContextProtocolServers", [])
         print(f"🔧 {len(mcp_servers)} serveurs MCP configurés:")
         for server in mcp_servers:
             print(f"  - {server['name']}")

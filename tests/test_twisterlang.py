@@ -4,19 +4,19 @@ TwisterLang Test Script
 Test the encoder and decoder functionality
 """
 
-from core.twisterlang_encoder import encode
 from core.twisterlang_decoder import decode
+from core.twisterlang_encoder import encode
 
 
 def test_twisterlang_encoding_decoding():
     """Test TwisterLang encoding and decoding functionality"""
     test_messages = [
-        'system ok',
-        'agent ready',
-        'swarm migration start',
-        'security alert',
-        'monitoring ok',
-        'consensus success'
+        "system ok",
+        "agent ready",
+        "swarm migration start",
+        "security alert",
+        "monitoring ok",
+        "consensus success",
     ]
 
     for msg in test_messages:
@@ -33,14 +33,18 @@ def test_twisterlang_encoding_decoding():
 
         # Verify round-trip (allowing for case variations)
         expected_variants = [
-            'system ok', 'agent ready', 'swarm migration start',
-            'security alert', 'monitoring ok', 'consensus success'
+            "system ok",
+            "agent ready",
+            "swarm migration start",
+            "security alert",
+            "monitoring ok",
+            "consensus success",
         ]
         variants_lower = [v.lower() for v in expected_variants]
 
-        assert (decoded.lower() == msg.lower() or
-                decoded.lower() in variants_lower), \
-            f"Round-trip failed: expected '{msg}', got '{decoded}'"
+        assert (
+            decoded.lower() == msg.lower() or decoded.lower() in variants_lower
+        ), f"Round-trip failed: expected '{msg}', got '{decoded}'"
 
 
 def test_twisterlang_compression():

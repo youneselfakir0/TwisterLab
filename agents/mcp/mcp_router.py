@@ -46,6 +46,7 @@ class MCPRouter:
                     "Desktop-CommanderAgent",
                     "MaestroOrchestratorAgent",
                     "ClassifierAgent",
+                    "MCP-Client",
                 ],
             },
             "tier_2": {
@@ -56,9 +57,7 @@ class MCPRouter:
             "tier_3": {
                 "network": "172.27.0.0/16",
                 "ports": range(9400, 9500),
-                "allowed_agents": [
-                    "MaestroOrchestratorAgent"
-                ],  # Docker daemon + Maestro
+                "allowed_agents": ["MaestroOrchestratorAgent"],  # Docker daemon + Maestro
             },
             "tier_4": {
                 "network": "172.28.0.0/16",
@@ -73,17 +72,17 @@ class MCPRouter:
             "monitoring_mcp": {
                 "endpoint": "http://172.25.0.11:9001",
                 "tier": "tier_1",
-                "allowed_agents": ["MonitoringAgent", "MaestroOrchestratorAgent"],
+                "allowed_agents": ["MonitoringAgent", "MaestroOrchestratorAgent", "MCP-Client"],
             },
             "sync_mcp": {
                 "endpoint": "http://172.25.0.12:9002",
                 "tier": "tier_1",
-                "allowed_agents": ["BackupAgent", "SyncAgent", "MonitoringAgent"],
+                "allowed_agents": ["BackupAgent", "SyncAgent", "MonitoringAgent", "MCP-Client"],
             },
             "backup_mcp": {
                 "endpoint": "http://172.25.0.13:9003",
                 "tier": "tier_1",
-                "allowed_agents": ["BackupAgent"],
+                "allowed_agents": ["BackupAgent", "MCP-Client"],
             },
             "maestro_mcp": {
                 "endpoint": "http://172.25.0.14:9004",
@@ -174,9 +173,7 @@ class MCPRouter:
             return await self._mock_mcp_call(agent_name, mcp_name, operation, params)
 
         except Exception as e:
-            logger.error(
-                f"MCP communication failed: {agent_name} -> {mcp_name}: {str(e)}"
-            )
+            logger.error(f"MCP communication failed: {agent_name} -> {mcp_name}: {str(e)}")
             raise RuntimeError(f"MCP communication failed: {str(e)}")
 
     async def _validate_access(self, agent_name: str, mcp_name: str) -> None:
@@ -207,10 +204,7 @@ class MCPRouter:
         tier = mcp_config["tier"]
         tier_config = self.tier_isolation[tier]
 
-        if (
-            agent_name not in tier_config["allowed_agents"]
-            and "all" not in allowed_agents
-        ):
+        if agent_name not in tier_config["allowed_agents"] and "all" not in allowed_agents:
             raise PermissionError(
                 f"Agent '{agent_name}' not allowed in {tier}. "
                 f"Allowed agents: {tier_config['allowed_agents']}"

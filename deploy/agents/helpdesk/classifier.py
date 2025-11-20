@@ -81,9 +81,7 @@ class TicketClassifierAgent(TwisterAgent):
 
         # Plus besoin de session persistante - on obtient des sessions à la demande
 
-    async def execute(
-        self, task: str, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Exécute la classification d'un ticket.
 
@@ -108,9 +106,7 @@ class TicketClassifierAgent(TwisterAgent):
                 description = task
 
             # Classifier le ticket
-            classification = await self._classify_ticket(
-                ticket_id, subject, description
-            )
+            classification = await self._classify_ticket(ticket_id, subject, description)
 
             logger.info(f"Ticket {ticket_id} classified: {classification}")
 
@@ -126,9 +122,7 @@ class TicketClassifierAgent(TwisterAgent):
             return {
                 "status": "error",
                 "error": str(e),
-                "ticket_id": context.get("ticket_id", "unknown")
-                if context
-                else "unknown",
+                "ticket_id": context.get("ticket_id", "unknown") if context else "unknown",
             }
 
     async def _classify_ticket(

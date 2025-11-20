@@ -70,9 +70,7 @@ class MaestroOrchestratorAgent(BaseAgent):
                     "type": "function",
                     "function": {
                         "name": "route_ticket",
-                        "description": (
-                            "Route a ticket through the automation workflow"
-                        ),
+                        "description": ("Route a ticket through the automation workflow"),
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -171,9 +169,7 @@ class MaestroOrchestratorAgent(BaseAgent):
             "agent_failures": 0,
         }
 
-    async def execute(
-        self, task: str, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Exécute une tâche d'orchestration.
 
@@ -187,20 +183,14 @@ class MaestroOrchestratorAgent(BaseAgent):
         try:
             logger.info("Maestro orchestrating task: %s", task)
             # Extraire les paramètres
-            operation = (
-                context.get("operation", "route_ticket") if context else "route_ticket"
-            )
+            operation = context.get("operation", "route_ticket") if context else "route_ticket"
             if operation == "route_ticket":
                 result = await self.route_ticket(context)
             elif operation == "get_agent_status":
-                include_health = (
-                    context.get("include_health", False) if context else False
-                )
+                include_health = context.get("include_health", False) if context else False
                 result = await self.get_agent_status(include_health)
             elif operation == "rebalance_load":
-                strategy = (
-                    context.get("strategy", "round_robin") if context else "round_robin"
-                )
+                strategy = context.get("strategy", "round_robin") if context else "round_robin"
                 result = await self.rebalance_load(strategy)
             else:
                 result = {"status": "error", "error": f"Unknown operation: {operation}"}
@@ -218,9 +208,7 @@ class MaestroOrchestratorAgent(BaseAgent):
                 "timestamp": datetime.now().isoformat(),
             }
 
-    async def route_ticket(
-        self, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def route_ticket(self, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Route un ticket à travers le workflow d'automatisation.
         """
@@ -245,9 +233,7 @@ class MaestroOrchestratorAgent(BaseAgent):
             logger.info("Routing ticket %s from %s: %s", ticket_id, requestor, subject)
 
             # Étape 1: Classification du ticket
-            classification_result = await self._classify_ticket(
-                ticket_id, subject, description
-            )
+            classification_result = await self._classify_ticket(ticket_id, subject, description)
 
             if classification_result["status"] != "success":
                 # Échec de classification → Escalade humaine
@@ -265,9 +251,7 @@ class MaestroOrchestratorAgent(BaseAgent):
             # Règles de routage
             if priority == TicketPriority.URGENT:
                 # Urgent → Humain immédiatement
-                return await self._escalate_to_human(
-                    ticket_id, "urgent_priority", classification
-                )
+                return await self._escalate_to_human(ticket_id, "urgent_priority", classification)
 
             elif complexity == TicketComplexity.SIMPLE and confidence > 0.8:
                 # Simple + Haute confiance → Résolution automatique
@@ -333,10 +317,7 @@ class MaestroOrchestratorAgent(BaseAgent):
             text = f"{subject} {description}".lower()
 
             # Détection de catégorie
-            if any(
-                word in text
-                for word in ["password", "mot de passe", "login", "connexion"]
-            ):
+            if any(word in text for word in ["password", "mot de passe", "login", "connexion"]):
                 category = "password"
                 priority = "high"
                 complexity = "simple"
@@ -357,17 +338,12 @@ class MaestroOrchestratorAgent(BaseAgent):
                 priority = "medium"
                 complexity = "moderate"
                 confidence = 0.8
-            elif any(
-                word in text
-                for word in ["access", "accès", "permission", "autorisation"]
-            ):
+            elif any(word in text for word in ["access", "accès", "permission", "autorisation"]):
                 category = "access"
                 priority = "high"
                 complexity = "moderate"
                 confidence = 0.7
-            elif any(
-                word in text for word in ["urgent", "urgence", "critical", "critique"]
-            ):
+            elif any(word in text for word in ["urgent", "urgence", "critical", "critique"]):
                 category = "urgent"
                 priority = "urgent"
                 complexity = "complex"
@@ -386,9 +362,7 @@ class MaestroOrchestratorAgent(BaseAgent):
                     "complexity": complexity,
                     "confidence": confidence,
                     "keywords_matched": [],
-                    "suggested_agent": (
-                        "resolver" if complexity == "simple" else "human"
-                    ),
+                    "suggested_agent": ("resolver" if complexity == "simple" else "human"),
                 },
             }
 
@@ -426,9 +400,7 @@ class MaestroOrchestratorAgent(BaseAgent):
 
             context = {"ticket": ticket_data, "classification": classification}
 
-            resolution_result = await resolver.execute(
-                f"Resolve ticket {ticket_id}", context
-            )
+            resolution_result = await resolver.execute(f"Resolve ticket {ticket_id}", context)
 
             if resolution_result["status"] == "success":
                 self.metrics["auto_resolved"] += 1
@@ -447,9 +419,7 @@ class MaestroOrchestratorAgent(BaseAgent):
 
         except Exception as exc:
             logger.error("Error routing to auto resolver: %s", exc)
-            return await self._escalate_to_human(
-                ticket_id, "routing_error", classification
-            )
+            return await self._escalate_to_human(ticket_id, "routing_error", classification)
 
     async def _escalate_to_human(
         self, ticket_id: str, reason: str, classification: Dict[str, Any]

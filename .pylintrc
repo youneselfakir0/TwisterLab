@@ -1,0 +1,24 @@
+[MASTER]
+# Minimal pylintrc for CI: set widely-accepted defaults and disable strict checks
+ignore=venv,env,.venv
+
+[MESSAGES CONTROL]
+# Disable a few rules that are noisy for this repo & tests
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    too-many-arguments,
+    too-many-locals,
+    duplicate-code
+
+[FORMAT]
+# Follow project black settings
+max-line-length=100
+
+[BASIC]
+good-names=i,j,k,e,ex,Run,_,pk
+
+[REPORTS]
+output-format=colorized
+score=no

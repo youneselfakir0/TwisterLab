@@ -6,24 +6,25 @@ Teste :
 - RealResolverAgent avec generate_with_fallback()
 - RealDesktopCommanderAgent avec generate_with_fallback()
 """
+
 import asyncio
-import sys
 import os
+import sys
 from datetime import datetime, timezone
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from agents.real.real_classifier_agent import RealClassifierAgent
-from agents.real.real_resolver_agent import RealResolverAgent
 from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
+from agents.real.real_resolver_agent import RealResolverAgent
 
 
 async def test_classifier_with_failover():
     """Test RealClassifierAgent avec failover automatique"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: RealClassifierAgent avec failover automatique")
-    print("="*70)
+    print("=" * 70)
 
     agent = RealClassifierAgent()
 
@@ -32,13 +33,10 @@ async def test_classifier_with_failover():
         "id": "TEST-001",
         "title": "Cannot connect to WiFi",
         "description": "My laptop cannot detect any WiFi networks since this morning. Other devices work fine.",
-        "user": "test_user@twisterlab.local"
+        "user": "test_user@twisterlab.local",
     }
 
-    context = {
-        "operation": "classify_ticket",
-        "ticket": ticket
-    }
+    context = {"operation": "classify_ticket", "ticket": ticket}
 
     start_time = datetime.now(timezone.utc)
     result = await agent.execute(context)
@@ -50,11 +48,11 @@ async def test_classifier_with_failover():
     print(f"   Status: {result.get('status')}")
 
     # Get classification data (may be nested)
-    classification = result.get('classification', {})
-    category = classification.get('category', result.get('category'))
-    confidence = classification.get('confidence', result.get('confidence', 0))
-    routed_to = classification.get('routed_to_agent', result.get('route_to'))
-    method = classification.get('method', 'unknown')
+    classification = result.get("classification", {})
+    category = classification.get("category", result.get("category"))
+    confidence = classification.get("confidence", result.get("confidence", 0))
+    routed_to = classification.get("routed_to_agent", result.get("route_to"))
+    method = classification.get("method", "unknown")
 
     print(f"   Category: {category}")
     print(f"   Confidence: {confidence:.2f}")
@@ -76,9 +74,9 @@ async def test_classifier_with_failover():
 
 async def test_resolver_with_failover():
     """Test RealResolverAgent avec failover automatique"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: RealResolverAgent avec failover automatique")
-    print("="*70)
+    print("=" * 70)
 
     agent = RealResolverAgent()
 
@@ -89,13 +87,10 @@ async def test_resolver_with_failover():
         "description": "User cannot access internal network shares",
         "category": "network",
         "priority": "high",
-        "user": "test_user@twisterlab.local"
+        "user": "test_user@twisterlab.local",
     }
 
-    context = {
-        "operation": "resolve_ticket",
-        "ticket": ticket
-    }
+    context = {"operation": "resolve_ticket", "ticket": ticket}
 
     start_time = datetime.now(timezone.utc)
     result = await agent.execute(context)
@@ -125,19 +120,16 @@ async def test_resolver_with_failover():
 
 async def test_commander_with_failover():
     """Test RealDesktopCommanderAgent avec failover automatique"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: RealDesktopCommanderAgent avec failover automatique")
-    print("="*70)
+    print("=" * 70)
 
     agent = RealDesktopCommanderAgent()
 
     # Commande safe de test
     safe_command = "ping 8.8.8.8 -n 2"
 
-    context = {
-        "operation": "validate_command",
-        "command": safe_command
-    }
+    context = {"operation": "validate_command", "command": safe_command}
 
     start_time = datetime.now(timezone.utc)
     result = await agent.execute(context)
@@ -160,10 +152,7 @@ async def test_commander_with_failover():
     print(f"\n   Testing unsafe command detection...")
     unsafe_command = "shutdown /s /t 0"
 
-    context_unsafe = {
-        "operation": "validate_command",
-        "command": unsafe_command
-    }
+    context_unsafe = {"operation": "validate_command", "command": unsafe_command}
 
     result_unsafe = await agent.execute(context_unsafe)
 
@@ -197,14 +186,11 @@ async def main():
         results["commander"] = await test_commander_with_failover()
 
         # Résumé final
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("📊 RÉSUMÉ DES TESTS")
-        print("="*70)
+        print("=" * 70)
 
-        all_success = all(
-            result.get("status") == "success"
-            for result in results.values()
-        )
+        all_success = all(result.get("status") == "success" for result in results.values())
 
         print(f"\n   ✅ RealClassifierAgent: {results['classifier']['status'].upper()}")
         print(f"   ✅ RealResolverAgent: {results['resolver']['status'].upper()}")
@@ -224,6 +210,7 @@ async def main():
     except Exception as e:
         print(f"\n❌ ERREUR CRITIQUE: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

@@ -66,6 +66,32 @@ monitoring/
 - Error rates and failure counts
 - Request rates and throughput
 
+## Agent monitoring semantics
+
+- Persistence of failed components: The Monitoring agent persists a small
+    'failed_components' set between health checks. This improves determinism
+    and prevents spurious clearing of earlier-detected failures mid-run.
+- Related-service diagnostics: The MonitoringAgent can perform related
+    service checks when a primary service fails (e.g., database -> cache,
+    api) to discover cascading failures. Use the `investigate_related` flag
+    to enable/disable this behavior.
+    - Default: True
+    - You can also toggle it per run by passing `investigate_related` in the
+        `context` object passed to the agent's `execute` method.
+
+    Example usage:
+
+    ```python
+    agent.execute({
+            "operation": "health_check",
+            "investigate_related": True,
+    })
+    ```
+
+    When `investigate_related` is False the agent only performs the minimal
+    per-service checks and will not issue extra related checks, which can
+    reduce MCP call volume in tight test scenarios.
+
 ### Infrastructure Metrics
 
 - Docker container stats

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target environment' 
+        description: 'Target environment'
         required: true
         default: 'staging'
       apply:
@@ -52,6 +52,7 @@ jobs:
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          log-public-key: true
 
       - name: Copy repo to staging host
         uses: appleboy/scp-action@master
@@ -73,6 +74,10 @@ jobs:
             # Install PowerShell if needed (Linux runners) and run script
             if ! command -v pwsh >/dev/null 2>&1 ; then
               echo 'PowerShell not installed; please ensure pwsh is available on the host' && exit 1
+            fi
+            # Quick connectivity test to validate SSH key and host - exit with non-zero if it fails
+            if ! ssh -o BatchMode=yes -o StrictHostKeyChecking=no -p ${{ secrets.STAGING_SSH_PORT }} ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SSH_HOST }} 'echo ok' >/dev/null 2>&1; then
+              echo 'SSH connectivity TEST FAILED: verify STAGING_SSH_PRIVATE_KEY, STAGING_SSH_HOST, STAGING_SSH_USER, STAGING_SSH_PORT' && exit 1
             fi
             # Build argument list safely on the remote shell
             ARGS="-Environment ${{ github.event.inputs.environment }} -CanaryService '${{ github.event.inputs.canary_service }}'"
@@ -105,14 +110,15 @@ jobs:
       - name: Create rotation issue with logs
         if: always()
         uses: actions/github-script@v7
+        continue-on-error: true
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_ISSUE_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             const path = 'logs';
             let description = 'Rotation logs attached in artifacts. Staging run result summary:\n';
             try {
-              const files = fs.readdirSync(path); 
+              const files = fs.readdirSync(path);
               description += files.join('\n');
             } catch(e) { description += 'No logs found.' }
             await github.rest.issues.create({

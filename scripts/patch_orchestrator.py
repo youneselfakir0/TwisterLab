@@ -1,7 +1,7 @@
 # Patch pour autonomous_orchestrator.py
 # Ce script modifie l'orchestrateur pour charger les agents réels
 
-PATCH_CONTENT = '''
+PATCH_CONTENT = """
 # PATCH: Import real agents instead of standard agents
 from agents.real.real_monitoring_agent import RealMonitoringAgent
 from agents.real.real_backup_agent import RealBackupAgent
@@ -21,7 +21,7 @@ self.agents = {
     "BackupAgent": RealBackupAgent(),
     "MonitoringAgent": RealMonitoringAgent(),
 }
-'''
+"""
 
 print("Patch content for autonomous_orchestrator.py")
 print(PATCH_CONTENT)

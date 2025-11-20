@@ -4,8 +4,8 @@ Distributed agent system for remote desktop management and command execution
 """
 
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 from agents.base import TwisterAgent
 from mcp.client import MCPClient
@@ -139,9 +139,7 @@ class DesktopCommanderAgent(TwisterAgent):
         self.mcp_client = MCPClient()
         self._mcp_started = False
 
-    async def execute(
-        self, task: str, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Exécute une commande de gestion à distance.
 
@@ -160,9 +158,7 @@ class DesktopCommanderAgent(TwisterAgent):
             command = context.get("command") if context else None
             timeout = context.get("timeout", 300) if context else 300
             command_type = (
-                context.get("command_type", "execute_command")
-                if context
-                else "execute_command"
+                context.get("command_type", "execute_command") if context else "execute_command"
             )
 
             if not device_id:
@@ -192,13 +188,9 @@ class DesktopCommanderAgent(TwisterAgent):
                         "error": "package_url is required for deploy_package",
                         "timestamp": datetime.now().isoformat(),
                     }
-                result = await self.deploy_package(
-                    device_id, package_url, install_args
-                )
+                result = await self.deploy_package(device_id, package_url, install_args)
             elif command_type == "get_system_info":
-                info_type = (
-                    context.get("info_type", "all") if context else "all"
-                )
+                info_type = context.get("info_type", "all") if context else "all"
                 result = await self.get_system_info(device_id, info_type)
             else:
                 result = {
@@ -206,10 +198,7 @@ class DesktopCommanderAgent(TwisterAgent):
                     "error": f"Unknown command type: {command_type}",
                 }
 
-            logger.info(
-                f"Desktop command result for device {device_id}: "
-                f"{result['status']}"
-            )
+            logger.info(f"Desktop command result for device {device_id}: " f"{result['status']}")
 
             return {
                 "device_id": device_id,
@@ -223,11 +212,7 @@ class DesktopCommanderAgent(TwisterAgent):
             return {
                 "status": "error",
                 "error": str(e),
-                "device_id": (
-                    context.get("device_id", "unknown")
-                    if context
-                    else "unknown"
-                ),
+                "device_id": (context.get("device_id", "unknown") if context else "unknown"),
                 "timestamp": datetime.now().isoformat(),
             }
 
@@ -252,9 +237,7 @@ class DesktopCommanderAgent(TwisterAgent):
                 self._mcp_started = True
 
             # Exécuter la commande via MCP
-            result = await self.mcp_client.execute_command(
-                device_id, command, timeout
-            )
+            result = await self.mcp_client.execute_command(device_id, command, timeout)
 
             return result
 
@@ -272,9 +255,7 @@ class DesktopCommanderAgent(TwisterAgent):
         Déploie un package logiciel sur un device distant.
         """
         try:
-            logger.info(
-                f"Deploying package {package_url} to device {device_id}"
-            )
+            logger.info(f"Deploying package {package_url} to device {device_id}")
 
             # Démarrer le client MCP si nécessaire
             if not self._mcp_started:
@@ -282,9 +263,7 @@ class DesktopCommanderAgent(TwisterAgent):
                 self._mcp_started = True
 
             # Déployer le package via MCP
-            result = await self.mcp_client.deploy_package(
-                device_id, package_url, install_args
-            )
+            result = await self.mcp_client.deploy_package(device_id, package_url, install_args)
 
             return result
 
@@ -292,9 +271,7 @@ class DesktopCommanderAgent(TwisterAgent):
             logger.error(f"Error deploying package: {e}")
             return {"status": "error", "error": str(e)}
 
-    async def get_system_info(
-        self, device_id: str, info_type: str = "all"
-    ) -> Dict[str, Any]:
+    async def get_system_info(self, device_id: str, info_type: str = "all") -> Dict[str, Any]:
         """
         Récupère les informations système d'un device distant.
         """
@@ -307,9 +284,7 @@ class DesktopCommanderAgent(TwisterAgent):
                 self._mcp_started = True
 
             # Récupérer les informations système via MCP
-            result = await self.mcp_client.get_system_info(
-                device_id, info_type
-            )
+            result = await self.mcp_client.get_system_info(device_id, info_type)
 
             return result
 
@@ -391,10 +366,7 @@ Approximate round trip times in milli-seconds:
     Minimum = 14ms, Maximum = 16ms, Average = 15ms
 """
         else:
-            return (
-                f"Command '{command}' executed successfully at "
-                f"{datetime.now().isoformat()}"
-            )
+            return f"Command '{command}' executed successfully at " f"{datetime.now().isoformat()}"
 
     async def _simulate_package_deployment(
         self, package_url: str, install_args: Optional[str]

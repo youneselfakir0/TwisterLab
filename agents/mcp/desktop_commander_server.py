@@ -8,15 +8,16 @@ Security: Zero-Trust Architecture with command whitelist
 
 import asyncio
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class DeviceStatus(Enum):
     """Status des devices clients"""
+
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
     BUSY = "busy"
@@ -25,6 +26,7 @@ class DeviceStatus(Enum):
 
 class CommandStatus(Enum):
     """Status d'exécution des commandes"""
+
     PENDING = "pending"
     RUNNING = "running"
     SUCCESS = "success"
@@ -62,17 +64,14 @@ class DesktopCommanderMCPServer:
             "whoami": "Get current user",
             "hostname": "Get computer name",
             "ver": "Get Windows version",
-
             # PowerShell Commands (Safe)
             "Get-Service": "Get Windows services",
             "Get-Process": "Get running processes",
             "Get-EventLog": "Get event logs",
             "Test-Connection": "Test network connection",
-
             # File Operations (Read-only)
             "dir": "List directory contents",
             "type": "Display file contents",
-
             # Network Diagnostics
             "arp": "Display ARP cache",
             "route": "Display routing table",
@@ -84,7 +83,7 @@ class DesktopCommanderMCPServer:
         hostname: str,
         ip_address: str,
         os_info: Dict[str, str],
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Enregistre un nouveau client Desktop Commander
@@ -110,7 +109,7 @@ class DesktopCommanderMCPServer:
                 "registered_at": datetime.now().isoformat(),
                 "metadata": metadata or {},
                 "commands_executed": 0,
-                "last_command": None
+                "last_command": None,
             }
 
             logger.info(f"Client registered: {device_id} ({hostname} @ {ip_address})")
@@ -119,15 +118,12 @@ class DesktopCommanderMCPServer:
                 "status": "success",
                 "device_id": device_id,
                 "message": f"Client {hostname} registered successfully",
-                "server_time": datetime.now().isoformat()
+                "server_time": datetime.now().isoformat(),
             }
 
         except Exception as e:
             logger.error(f"Error registering client {device_id}: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def unregister_client(self, device_id: str) -> Dict[str, Any]:
         """Désenregistre un client"""
@@ -137,20 +133,13 @@ class DesktopCommanderMCPServer:
             return {
                 "status": "success",
                 "device_id": device_id,
-                "message": f"Client {client_info['hostname']} unregistered"
+                "message": f"Client {client_info['hostname']} unregistered",
             }
         else:
-            return {
-                "status": "error",
-                "error": f"Client {device_id} not found"
-            }
+            return {"status": "error", "error": f"Client {device_id} not found"}
 
     async def execute_command(
-        self,
-        device_id: str,
-        command: str,
-        timeout: int = 300,
-        user_context: Optional[str] = None
+        self, device_id: str, command: str, timeout: int = 300, user_context: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Exécute une commande sur un client distant
@@ -170,7 +159,7 @@ class DesktopCommanderMCPServer:
                 return {
                     "status": CommandStatus.FAILED.value,
                     "error": f"Client {device_id} not connected",
-                    "device_id": device_id
+                    "device_id": device_id,
                 }
 
             client = self.connected_clients[device_id]
@@ -180,7 +169,7 @@ class DesktopCommanderMCPServer:
                 return {
                     "status": CommandStatus.FAILED.value,
                     "error": f"Client {device_id} is {client['status']}",
-                    "device_id": device_id
+                    "device_id": device_id,
                 }
 
             # Valider la commande contre la whitelist
@@ -192,7 +181,7 @@ class DesktopCommanderMCPServer:
                     "status": CommandStatus.DENIED.value,
                     "error": f"Command not in whitelist: {command.split()[0]}",
                     "allowed_commands": list(self.command_whitelist.keys()),
-                    "device_id": device_id
+                    "device_id": device_id,
                 }
 
             # Valider le timeout
@@ -206,11 +195,7 @@ class DesktopCommanderMCPServer:
 
             # TODO: Implémentation réelle via protocole MCP
             # Pour l'instant, simulation
-            execution_result = await self._simulate_command_execution(
-                device_id,
-                command,
-                timeout
-            )
+            execution_result = await self._simulate_command_execution(device_id, command, timeout)
 
             # Mettre à jour le client
             client["status"] = DeviceStatus.CONNECTED.value
@@ -219,15 +204,19 @@ class DesktopCommanderMCPServer:
             client["last_command"] = {
                 "command": command,
                 "timestamp": datetime.now().isoformat(),
-                "status": execution_result["status"]
+                "status": execution_result["status"],
             }
 
             # Logger la commande
             self._log_command(
                 device_id,
                 command,
-                CommandStatus.SUCCESS if execution_result["status"] == "success" else CommandStatus.FAILED,
-                user_context
+                (
+                    CommandStatus.SUCCESS
+                    if execution_result["status"] == "success"
+                    else CommandStatus.FAILED
+                ),
+                user_context,
             )
 
             return execution_result
@@ -239,11 +228,7 @@ class DesktopCommanderMCPServer:
             if device_id in self.connected_clients:
                 self.connected_clients[device_id]["status"] = DeviceStatus.ERROR.value
 
-            return {
-                "status": CommandStatus.FAILED.value,
-                "error": str(e),
-                "device_id": device_id
-            }
+            return {"status": CommandStatus.FAILED.value, "error": str(e), "device_id": device_id}
 
     def _is_command_allowed(self, command: str) -> bool:
         """
@@ -266,10 +251,7 @@ class DesktopCommanderMCPServer:
         return False
 
     async def _simulate_command_execution(
-        self,
-        device_id: str,
-        command: str,
-        timeout: int
+        self, device_id: str, command: str, timeout: int
     ) -> Dict[str, Any]:
         """
         Simulation de l'exécution d'une commande
@@ -318,15 +300,11 @@ Ping statistics for 8.8.8.8:
             "output": output.strip(),
             "execution_time": 2.5,
             "timeout": timeout,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
     def _log_command(
-        self,
-        device_id: str,
-        command: str,
-        status: CommandStatus,
-        user_context: Optional[str]
+        self, device_id: str, command: str, status: CommandStatus, user_context: Optional[str]
     ):
         """Enregistre une commande dans l'historique"""
         log_entry = {
@@ -334,7 +312,7 @@ Ping statistics for 8.8.8.8:
             "device_id": device_id,
             "command": command,
             "status": status.value,
-            "user_context": user_context
+            "user_context": user_context,
         }
 
         self.command_history.append(log_entry)
@@ -346,53 +324,39 @@ Ping statistics for 8.8.8.8:
     async def get_client_status(self, device_id: str) -> Dict[str, Any]:
         """Récupère le statut d'un client"""
         if device_id not in self.connected_clients:
-            return {
-                "status": "not_found",
-                "device_id": device_id
-            }
+            return {"status": "not_found", "device_id": device_id}
 
         client = self.connected_clients[device_id]
-        return {
-            "status": "success",
-            "client": client
-        }
+        return {"status": "success", "client": client}
 
     async def list_clients(self) -> Dict[str, Any]:
         """Liste tous les clients connectés"""
         return {
             "status": "success",
             "total_clients": len(self.connected_clients),
-            "clients": list(self.connected_clients.values())
+            "clients": list(self.connected_clients.values()),
         }
 
     async def get_command_history(
-        self,
-        device_id: Optional[str] = None,
-        limit: int = 100
+        self, device_id: Optional[str] = None, limit: int = 100
     ) -> Dict[str, Any]:
         """Récupère l'historique des commandes"""
         history = self.command_history
 
         # Filtrer par device_id si spécifié
         if device_id:
-            history = [
-                cmd for cmd in history
-                if cmd["device_id"] == device_id
-            ]
+            history = [cmd for cmd in history if cmd["device_id"] == device_id]
 
         # Limiter le nombre de résultats
         history = history[-limit:]
 
-        return {
-            "status": "success",
-            "total_commands": len(history),
-            "commands": history
-        }
+        return {"status": "success", "total_commands": len(history), "commands": history}
 
     async def healthcheck(self) -> Dict[str, Any]:
         """Vérification de santé du serveur"""
         connected_count = sum(
-            1 for client in self.connected_clients.values()
+            1
+            for client in self.connected_clients.values()
             if client["status"] == DeviceStatus.CONNECTED.value
         )
 
@@ -402,7 +366,7 @@ Ping statistics for 8.8.8.8:
             "total_clients": len(self.connected_clients),
             "connected_clients": connected_count,
             "command_history_size": len(self.command_history),
-            "whitelist_commands": len(self.command_whitelist)
+            "whitelist_commands": len(self.command_whitelist),
         }
 
 

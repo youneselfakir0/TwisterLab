@@ -4,26 +4,27 @@ TwisterLab CLI - Command-line interface for managing TwisterLab agents.
 Built with Typer for CLI and Rich for beautiful terminal output.
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 from typing import Optional
+
 import typer
+from rich import print as rprint
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
 from rich.syntax import Syntax
-from rich import print as rprint
+from rich.table import Table
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agents.base import HelpdeskAgent, ClassifierAgent, DesktopCommanderAgent
+from agents.base import ClassifierAgent, DesktopCommanderAgent, HelpdeskAgent
 
 app = typer.Typer(
     name="twisterlab",
     help="TwisterLab CLI - Manage AI agents for IT Helpdesk automation",
-    add_completion=False
+    add_completion=False,
 )
 console = Console()
 
@@ -40,18 +41,22 @@ SUPPORTED_FORMATS = ["microsoft", "langchain", "semantic-kernel", "openai"]
 @app.command()
 def version():
     """Show TwisterLab version."""
-    console.print(Panel.fit(
-        "[bold cyan]TwisterLab[/bold cyan] [green]v1.0.0[/green]\n"
-        "AI-Powered IT Helpdesk Automation Platform",
-        title="Version",
-        border_style="cyan"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold cyan]TwisterLab[/bold cyan] [green]v1.0.0[/green]\n"
+            "AI-Powered IT Helpdesk Automation Platform",
+            title="Version",
+            border_style="cyan",
+        )
+    )
 
 
 @app.command("list-agents")
 def list_agents():
     """List all available TwisterLab agents."""
-    table = Table(title="📋 Available TwisterLab Agents", show_header=True, header_style="bold magenta")
+    table = Table(
+        title="📋 Available TwisterLab Agents", show_header=True, header_style="bold magenta"
+    )
 
     table.add_column("Agent Name", style="cyan", no_wrap=True)
     table.add_column("Display Name", style="green")
@@ -60,12 +65,7 @@ def list_agents():
 
     for agent_name, agent_class in AGENTS.items():
         agent = agent_class()
-        table.add_row(
-            agent_name,
-            agent.display_name,
-            agent.role,
-            str(len(agent.tools))
-        )
+        table.add_row(agent_name, agent.display_name, agent.role, str(len(agent.tools)))
 
     console.print(table)
     console.print(f"\n[dim]Total agents: {len(AGENTS)}[/dim]")
@@ -74,26 +74,18 @@ def list_agents():
 @app.command("export-agent")
 def export_agent(
     agent_name: str = typer.Argument(
-        ...,
-        help="Agent name (e.g., helpdesk-resolver, classifier, desktop-commander)"
+        ..., help="Agent name (e.g., helpdesk-resolver, classifier, desktop-commander)"
     ),
     format: str = typer.Option(
         "microsoft",
         "--format",
         "-f",
-        help="Export format: microsoft | langchain | semantic-kernel | openai"
+        help="Export format: microsoft | langchain | semantic-kernel | openai",
     ),
     output: Optional[Path] = typer.Option(
-        None,
-        "--output",
-        "-o",
-        help="Output file path (default: print to stdout)"
+        None, "--output", "-o", help="Output file path (default: print to stdout)"
     ),
-    pretty: bool = typer.Option(
-        True,
-        "--pretty/--no-pretty",
-        help="Pretty-print JSON output"
-    )
+    pretty: bool = typer.Option(True, "--pretty/--no-pretty", help="Pretty-print JSON output"),
 ):
     """
     Export agent schema in standard format for interoperability.
@@ -140,7 +132,7 @@ def export_agent(
         if output:
             # Write to file
             output.parent.mkdir(parents=True, exist_ok=True)
-            output.write_text(json_output, encoding='utf-8')
+            output.write_text(json_output, encoding="utf-8")
             console.print(f"[green]✓[/green] Exported to [cyan]{output}[/cyan]")
 
             # Show summary
@@ -169,12 +161,7 @@ def export_agent(
 
 
 @app.command("show-agent")
-def show_agent(
-    agent_name: str = typer.Argument(
-        ...,
-        help="Agent name to display details"
-    )
-):
+def show_agent(agent_name: str = typer.Argument(..., help="Agent name to display details")):
     """Show detailed information about an agent."""
     if agent_name not in AGENTS:
         console.print(f"[red]Error:[/red] Unknown agent '{agent_name}'", style="bold")
@@ -198,12 +185,9 @@ def show_agent(
 [bold yellow]Instructions:[/bold yellow]
 {agent.instructions[:200]}..."""
 
-        console.print(Panel(
-            info_text,
-            title=f"🤖 {agent.display_name}",
-            border_style="cyan",
-            expand=False
-        ))
+        console.print(
+            Panel(info_text, title=f"🤖 {agent.display_name}", border_style="cyan", expand=False)
+        )
 
         # Tools table
         if agent.tools:
@@ -215,7 +199,7 @@ def show_agent(
                 func = tool.get("function", {})
                 table.add_row(
                     func.get("name", "unknown"),
-                    func.get("description", "No description")[:60] + "..."
+                    func.get("description", "No description")[:60] + "...",
                 )
 
             console.print("\n")
@@ -234,16 +218,10 @@ def show_agent(
 
 @app.command("validate-schema")
 def validate_schema(
-    schema_file: Path = typer.Argument(
-        ...,
-        help="Path to schema JSON file to validate"
-    ),
+    schema_file: Path = typer.Argument(..., help="Path to schema JSON file to validate"),
     format: str = typer.Option(
-        "microsoft",
-        "--format",
-        "-f",
-        help="Schema format to validate against"
-    )
+        "microsoft", "--format", "-f", help="Schema format to validate against"
+    ),
 ):
     """Validate an exported agent schema file."""
     if not schema_file.exists():
@@ -252,7 +230,7 @@ def validate_schema(
 
     try:
         # Load schema
-        with open(schema_file, 'r', encoding='utf-8') as f:
+        with open(schema_file, "r", encoding="utf-8") as f:
             schema = json.load(f)
 
         # Basic validation
@@ -260,7 +238,7 @@ def validate_schema(
             "microsoft": ["id", "object", "name", "model", "instructions", "tools"],
             "openai": ["id", "object", "name", "model", "instructions", "tools"],
             "langchain": ["name", "description", "llm", "tools"],
-            "semantic-kernel": ["name", "description", "functions", "settings"]
+            "semantic-kernel": ["name", "description", "functions", "settings"],
         }
 
         format = format.lower()
@@ -293,7 +271,9 @@ def validate_schema(
 @app.command()
 def formats():
     """List supported export formats and their status."""
-    table = Table(title="📋 Supported Export Formats", show_header=True, header_style="bold magenta")
+    table = Table(
+        title="📋 Supported Export Formats", show_header=True, header_style="bold magenta"
+    )
 
     table.add_column("Format", style="cyan", no_wrap=True)
     table.add_column("Status", style="white")

@@ -115,9 +115,7 @@ class HelpdeskResolverAgent(TwisterAgent):
 
         # Plus besoin de session persistante - on obtient des sessions à la demande
 
-    async def execute(
-        self, task: str, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Exécute la résolution d'un ticket IT.
 
@@ -170,9 +168,7 @@ class HelpdeskResolverAgent(TwisterAgent):
             return {
                 "status": "error",
                 "error": str(e),
-                "ticket_id": context.get("ticket_id", "unknown")
-                if context
-                else "unknown",
+                "ticket_id": context.get("ticket_id", "unknown") if context else "unknown",
             }
 
     async def _find_appropriate_sop(
@@ -255,14 +251,10 @@ class HelpdeskResolverAgent(TwisterAgent):
             return {
                 "status": "error",
                 "error": str(e),
-                "steps_executed": executed_steps
-                if "executed_steps" in locals()
-                else [],
+                "steps_executed": executed_steps if "executed_steps" in locals() else [],
             }
 
-    async def _execute_step(
-        self, step: str, ticket_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _execute_step(self, step: str, ticket_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Exécute une étape individuelle du SOP.
 

@@ -252,9 +252,7 @@ class DesktopCommanderAgent(TwisterAgent):
             },
         ]
 
-    async def execute(
-        self, task: str, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Main execution method.
 
@@ -366,13 +364,9 @@ class DesktopCommanderAgent(TwisterAgent):
             audit_id = self._generate_audit_id(device_id, command)
 
             # Step 6: Execute command via MCP
-            logger.info(
-                f"[{self.name}] Executing {command} on {device_id} (audit: {audit_id})"
-            )
+            logger.info(f"[{self.name}] Executing {command} on {device_id} (audit: {audit_id})")
 
-            execution_result = await self._execute_via_mcp(
-                device_id, command, parameters, timeout
-            )
+            execution_result = await self._execute_via_mcp(device_id, command, parameters, timeout)
 
             # Step 7: Log to audit trail
             await self._log_audit(
@@ -534,9 +528,7 @@ class DesktopCommanderAgent(TwisterAgent):
 
             # Update command status
             self.active_commands[command_id]["status"] = result["status"]
-            self.active_commands[command_id]["completed_at"] = datetime.now(
-                timezone.utc
-            )
+            self.active_commands[command_id]["completed_at"] = datetime.now(timezone.utc)
 
             return result
 

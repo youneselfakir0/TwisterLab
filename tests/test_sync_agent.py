@@ -12,14 +12,11 @@ License: Apache 2.0
 import asyncio
 import json
 from datetime import datetime, timezone
+
 import pytest
 
-from agents.real.real_sync_agent import RealSyncAgent
-from agents.support.sync_agent import (
-    SyncStatus,
-    MockRedisClient
-)
-
+from agents.support.sync_agent import SyncAgent as RealSyncAgent
+from agents.support.sync_agent import MockRedisClient, SyncStatus
 
 # ============================================================================
 # SYNC AGENT TESTS
@@ -31,7 +28,7 @@ class TestSyncAgent:
 
     def test_sync_agent_initialization(self):
         """Test SyncAgent initializes correctly"""
-        agent = RealRealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         assert agent.name == "sync-agent"
         assert agent.display_name == "Data Synchronization Agent"
@@ -41,7 +38,7 @@ class TestSyncAgent:
 
     def test_sync_tools_defined(self):
         """Test sync tools are properly defined"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         tool_names = [tool["function"]["name"] for tool in agent.tools]
 
@@ -55,7 +52,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_ensure_redis_connection(self):
         """Test Redis connection establishment"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         result = await agent._ensure_redis_connection()
 
@@ -66,7 +63,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_sync_sops(self):
         """Test SOP synchronization"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         result = await agent.execute("Sync SOPs", {"operation": "sync_sops"})
 
@@ -79,7 +76,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_sync_devices(self):
         """Test device synchronization"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         result = await agent.execute("Sync devices", {"operation": "sync_devices"})
 
@@ -90,7 +87,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_sync_agent_state(self):
         """Test agent state synchronization"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         result = await agent.execute(
             "Sync agent state",
@@ -104,7 +101,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_sync_all(self):
         """Test full system synchronization"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         result = await agent.execute("Sync all", {"operation": "sync_all"})
 
@@ -117,7 +114,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_sync_all_updates_stats(self):
         """Test sync updates statistics"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         initial_count = agent.sync_stats["total_syncs"]
 
@@ -130,7 +127,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_invalidate_cache(self):
         """Test cache invalidation"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # First sync some data
         await agent.execute("Sync SOPs", {"operation": "sync_sops"})
@@ -148,7 +145,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_invalidate_cache_with_wildcard(self):
         """Test cache invalidation with wildcard pattern"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Sync multiple data types
         await agent.execute("Sync all", {"operation": "sync_all"})
@@ -164,7 +161,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_verify_consistency_after_sync(self):
         """Test consistency verification after sync"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Sync data first
         await agent.execute("Sync all", {"operation": "sync_all"})
@@ -182,7 +179,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_verify_consistency_detects_missing(self):
         """Test consistency verification detects missing cache entries"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Don't sync, just verify
         result = await agent.execute(
@@ -196,7 +193,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_sync_state_tracking(self):
         """Test sync state is tracked"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Initial state
         assert agent.sync_state["sops_last_sync"] is None
@@ -209,7 +206,7 @@ class TestSyncAgent:
 
     def test_get_sync_stats(self):
         """Test getting sync statistics"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         stats = agent.get_sync_stats()
 
@@ -222,7 +219,7 @@ class TestSyncAgent:
 
     def test_health_check(self):
         """Test agent health check"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         health = agent.health_check()
 
@@ -234,7 +231,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_health_check_after_connection(self):
         """Test health check after Redis connection"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Connect to Redis
         await agent._ensure_redis_connection()
@@ -247,7 +244,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_unknown_operation(self):
         """Test handling of unknown operation"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         result = await agent.execute(
             "Unknown task",
@@ -260,7 +257,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_sync_duration_tracking(self):
         """Test sync duration is tracked"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         result = await agent.execute("Sync all", {"operation": "sync_all"})
 
@@ -271,7 +268,7 @@ class TestSyncAgent:
     @pytest.mark.asyncio
     async def test_multiple_syncs(self):
         """Test multiple sync operations"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Perform multiple syncs
         for i in range(3):
@@ -371,7 +368,7 @@ class TestSyncIntegration:
     @pytest.mark.asyncio
     async def test_full_sync_workflow(self):
         """Test complete sync workflow"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Step 1: Full sync
         sync_result = await agent.execute("Sync all", {"operation": "sync_all"})
@@ -391,7 +388,7 @@ class TestSyncIntegration:
     @pytest.mark.asyncio
     async def test_sync_invalidate_resync(self):
         """Test sync → invalidate → resync cycle"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Sync SOPs
         sync1 = await agent.execute("Sync SOPs", {"operation": "sync_sops"})
@@ -411,7 +408,7 @@ class TestSyncIntegration:
     @pytest.mark.asyncio
     async def test_concurrent_syncs(self):
         """Test multiple concurrent sync operations"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Run multiple syncs concurrently
         tasks = [
@@ -428,7 +425,7 @@ class TestSyncIntegration:
     @pytest.mark.asyncio
     async def test_sync_stats_accumulation(self):
         """Test sync statistics accumulate correctly"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Perform multiple operations
         await agent.execute("Sync SOPs", {"operation": "sync_sops"})
@@ -444,7 +441,7 @@ class TestSyncIntegration:
     @pytest.mark.asyncio
     async def test_cache_lifecycle(self):
         """Test complete cache lifecycle"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # 1. Sync data to cache
         await agent.execute("Sync all", {"operation": "sync_all"})
@@ -467,7 +464,7 @@ class TestSyncIntegration:
     @pytest.mark.asyncio
     async def test_sync_state_persistence(self):
         """Test sync state persists across operations"""
-        agent = RealSyncAgent\(\)
+        agent = RealSyncAgent()
 
         # Sync different data types
         await agent.execute("Sync SOPs", {"operation": "sync_sops"})

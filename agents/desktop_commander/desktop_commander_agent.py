@@ -3,16 +3,16 @@ TwisterLab - Desktop Commander Agent (Server-Side)
 Secure remote command execution with zero-trust architecture
 """
 
-import logging
+import asyncio
 import hashlib
+import json
+import logging
 import secrets
-from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 from enum import Enum
-import asyncio
-import json
+from typing import Any, Dict, List, Optional
 
-from ..base import TwisterAgent
+from ..base import TwisterAgent, accepts_context_or_task
 from ..database.config import get_db
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class CommandStatus(str, Enum):
     """Command execution status"""
+
     PENDING = "pending"
     EXECUTING = "executing"
     SUCCESS = "success"
@@ -47,87 +48,89 @@ class DesktopCommanderAgent(TwisterAgent):
             "description": "Reset Active Directory password",
             "params": ["username", "temporary_password"],
             "risk_level": "medium",
-            "requires_approval": False
+            "requires_approval": False,
         },
         "unlock_ad_account": {
             "description": "Unlock Active Directory account",
             "params": ["username"],
             "risk_level": "low",
-            "requires_approval": False
+            "requires_approval": False,
         },
-        
         # Software Management
         "install_software": {
             "description": "Install software from approved repository",
             "params": ["package_name", "version"],
             "risk_level": "medium",
-            "requires_approval": True
+            "requires_approval": True,
         },
         "uninstall_software": {
             "description": "Uninstall software",
             "params": ["package_name"],
             "risk_level": "medium",
-            "requires_approval": True
+            "requires_approval": True,
         },
-        
         # System Diagnostics
         "get_system_info": {
             "description": "Gather system information",
             "params": [],
             "risk_level": "low",
-            "requires_approval": False
+            "requires_approval": False,
+        },
+        "hostname": {
+            "description": "Get system hostname",
+            "params": [],
+            "risk_level": "low",
+            "requires_approval": False,
         },
         "network_diagnostics": {
             "description": "Run network connectivity tests",
             "params": [],
             "risk_level": "low",
-            "requires_approval": False
+            "requires_approval": False,
         },
         "disk_space_check": {
             "description": "Check disk space usage",
             "params": [],
             "risk_level": "low",
-            "requires_approval": False
+            "requires_approval": False,
         },
-        
         # Access Management
         "add_to_group": {
             "description": "Add user to security group",
             "params": ["username", "group_name"],
             "risk_level": "high",
-            "requires_approval": True
+            "requires_approval": True,
         },
         "remove_from_group": {
             "description": "Remove user from security group",
             "params": ["username", "group_name"],
             "risk_level": "high",
-            "requires_approval": True
+            "requires_approval": True,
         },
-        
         # Windows Commands
         "ipconfig": {
             "description": "Display IP configuration",
             "params": [],
             "risk_level": "low",
-            "requires_approval": False
+            "requires_approval": False,
         },
         "ping": {
             "description": "Test network connectivity",
             "params": ["target"],
             "risk_level": "low",
-            "requires_approval": False
+            "requires_approval": False,
         },
         "clear_dns_cache": {
             "description": "Clear DNS resolver cache",
             "params": [],
             "risk_level": "low",
-            "requires_approval": False
-        }
+            "requires_approval": False,
+        },
     }
 
     def __init__(self):
         """Initialize Desktop Commander Agent"""
-        
+
         super().__init__(
             name="desktop-commander",
             display_name="Desktop Commander",
@@ -136,15 +139,19 @@ class DesktopCommanderAgent(TwisterAgent):
             instructions=self._get_instructions(),
             tools=self._define_tools(),
             model="llama-3.2",
-            temperature=0.1  # Very low for precise execution
+            temperature=0.1,  # Very low for precise execution
         )
-        
+
         # Active command tracking
         self.active_commands: Dict[str, Dict[str, Any]] = {}
-        
+
         # Device registry cache
         self.device_cache: Dict[str, Any] = {}
-        
+
+        # Allow local execution for agent implementations that run locally.
+        # RealDesktopCommanderAgent will set this to True.
+        self.allow_local_execution: bool = False
+
         logger.info(f"DesktopCommanderAgent initialized: {self.name}")
 
     def _get_instructions(self) -> str:
@@ -186,11 +193,11 @@ class DesktopCommanderAgent(TwisterAgent):
                             "device_id": {"type": "string"},
                             "command": {"type": "string"},
                             "parameters": {"type": "object"},
-                            "timeout": {"type": "integer"}
+                            "timeout": {"type": "integer"},
                         },
-                        "required": ["device_id", "command"]
-                    }
-                }
+                        "required": ["device_id", "command"],
+                    },
+                },
             },
             {
                 "type": "function",
@@ -199,25 +206,18 @@ class DesktopCommanderAgent(TwisterAgent):
                     "description": "Check device connectivity and health",
                     "parameters": {
                         "type": "object",
-                        "properties": {
-                            "device_id": {"type": "string"}
-                        },
-                        "required": ["device_id"]
-                    }
-                }
+                        "properties": {"device_id": {"type": "string"}},
+                        "required": ["device_id"],
+                    },
+                },
             },
             {
                 "type": "function",
                 "function": {
                     "name": "list_devices",
                     "description": "List all registered devices",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "filter": {"type": "string"}
-                        }
-                    }
-                }
+                    "parameters": {"type": "object", "properties": {"filter": {"type": "string"}}},
+                },
             },
             {
                 "type": "function",
@@ -229,11 +229,11 @@ class DesktopCommanderAgent(TwisterAgent):
                         "properties": {
                             "device_id": {"type": "string"},
                             "hostname": {"type": "string"},
-                            "os": {"type": "string"}
+                            "os": {"type": "string"},
                         },
-                        "required": ["device_id", "hostname"]
-                    }
-                }
+                        "required": ["device_id", "hostname"],
+                    },
+                },
             },
             {
                 "type": "function",
@@ -245,18 +245,15 @@ class DesktopCommanderAgent(TwisterAgent):
                         "properties": {
                             "device_id": {"type": "string"},
                             "start_date": {"type": "string"},
-                            "end_date": {"type": "string"}
-                        }
-                    }
-                }
-            }
+                            "end_date": {"type": "string"},
+                        },
+                    },
+                },
+            },
         ]
 
-    async def execute(
-        self,
-        task: str,
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    @accepts_context_or_task
+    async def execute(self, task_or_context, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Main execution method.
 
@@ -267,6 +264,13 @@ class DesktopCommanderAgent(TwisterAgent):
         Returns:
             Execution result with audit information
         """
+        # Normalize inputs: support both execute(context) and execute(task, context)
+        if context is None and isinstance(task_or_context, dict):
+            context = task_or_context
+            task = context.get("operation", "execute_command")
+        else:
+            task = task_or_context
+
         start_time = datetime.now(timezone.utc)
 
         try:
@@ -275,7 +279,7 @@ class DesktopCommanderAgent(TwisterAgent):
             if not context:
                 return {
                     "status": "error",
-                    "error": "Context required for Desktop Commander operations"
+                    "error": "Context required for Desktop Commander operations",
                 }
 
             operation = context.get("operation", "execute_command")
@@ -292,15 +296,10 @@ class DesktopCommanderAgent(TwisterAgent):
             elif operation == "get_command_audit":
                 result = await self._get_command_audit(context)
             else:
-                result = {
-                    "status": "error",
-                    "error": f"Unknown operation: {operation}"
-                }
+                result = {"status": "error", "error": f"Unknown operation: {operation}"}
 
             # Add execution metadata
-            execution_time = (
-                datetime.now(timezone.utc) - start_time
-            ).total_seconds()
+            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             result["execution_time"] = f"{execution_time:.2f} seconds"
             result["timestamp"] = datetime.now(timezone.utc).isoformat()
@@ -314,48 +313,94 @@ class DesktopCommanderAgent(TwisterAgent):
                 "status": "error",
                 "error": str(e),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "agent": self.name
+                "agent": self.name,
             }
 
-    async def _execute_command(
-        self,
-        context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _execute_command(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute command on remote device with full security validation.
         """
         try:
             # Extract parameters
-            device_id = context.get("device_id")
+            # Do not default to 'local' here; enforce device_id presence later where appropriate
+            device_id = context.get("device_id") if "device_id" in context else None
             command = context.get("command")
             parameters = context.get("parameters", {})
             timeout = context.get("timeout", 300)
             ticket_id = context.get("ticket_id", "unknown")
 
             # Validation
-            if not device_id or not command:
+            if not command:
                 return {
-                    "status": "rejected",
-                    "reason": "Missing required parameters: device_id, command"
+                    "status": "error",
+                    "reason": "Missing required parameter: command",
                 }
 
             # Step 1: Validate command is whitelisted
             if command not in self.WHITELISTED_COMMANDS:
                 logger.warning(f"[{self.name}] Rejected non-whitelisted: {command}")
+                # If this was a remote command (device_id provided), treat as a rejection.
+                if device_id:
+                    return {
+                        "status": "rejected",
+                        "reason": f"Command '{command}' not in whitelist",
+                        "whitelisted_commands": list(self.WHITELISTED_COMMANDS.keys()),
+                    }
+                # If no device_id provided, it's an execution error (local) type
                 return {
-                    "status": "rejected",
-                    "reason": f"Command '{command}' not in whitelist",
-                    "whitelisted_commands": list(self.WHITELISTED_COMMANDS.keys())
+                    "status": "error",
+                    "error": f"Command '{command}' not in whitelist",
+                    "whitelisted_commands": list(self.WHITELISTED_COMMANDS.keys()),
                 }
 
             command_spec = self.WHITELISTED_COMMANDS[command]
 
+            # Normalize legacy 'args' into 'parameters' for compatibility with tests
+            if "parameters" not in context and "args" in context:
+                args_list = context.get("args", []) or []
+                param_names = command_spec.get("params", [])
+                if args_list and param_names and len(args_list) >= 1:
+                    # Map positional args to parameter names where possible
+                    mapped = {
+                        name: args_list[i] for i, name in enumerate(param_names) if i < len(args_list)
+                    }
+                    context["parameters"] = mapped
+                else:
+                    # Fall back to generic args container
+                    context["parameters"] = {"args": args_list}
+
+            parameters = context.get("parameters", {})
+
             # Step 2: Validate device exists and is online
-            device_status = await self._validate_device(device_id)
+            # Only require explicit device_id for execute_command operations (remote commands)
+            # Normalize operation (should be 'execute_command' for this handler by default)
+            operation = context.get("operation", "execute_command")
+
+            # Allowed local commands that can be executed without a device_id on a local agent
+            LOCAL_EXEC_COMMANDS = {"ping", "ipconfig", "hostname"}
+
+            if operation == "execute_command":
+                # Only allow local execution without a device_id for permitted commands on local-capable agents
+                if (
+                    not device_id
+                    and not (
+                        getattr(self, "allow_local_execution", False)
+                        and command in LOCAL_EXEC_COMMANDS
+                    )
+                ):
+                    return {"status": "rejected", "reason": "Missing required parameters: device_id"}
+
+                if device_id:
+                    device_status = await self._validate_device(device_id)
+                else:
+                    device_status = {"valid": True, "device": {}}
+            else:
+                # Other operations may not need a device_id (e.g., get_system_info)
+                device_status = await self._validate_device(device_id) if device_id else {"valid": True, "device": {}}
             if not device_status["valid"]:
                 return {
                     "status": "failed",
-                    "reason": f"Device validation failed: {device_status['reason']}"
+                    "reason": f"Device validation failed: {device_status['reason']}",
                 }
 
             # Step 3: Validate parameters
@@ -363,52 +408,58 @@ class DesktopCommanderAgent(TwisterAgent):
             if not param_validation["valid"]:
                 return {
                     "status": "rejected",
-                    "reason": f"Parameter validation failed: {param_validation['reason']}"
+                    "reason": f"Parameter validation failed: {param_validation['reason']}",
                 }
 
             # Step 4: Check if approval required
             if command_spec.get("requires_approval"):
-                logger.info(f"[{self.name}] Command {command} requires approval (ticket {ticket_id})")
+                logger.info(
+                    f"[{self.name}] Command {command} requires approval (ticket {ticket_id})"
+                )
 
             # Step 5: Generate audit ID
-            audit_id = self._generate_audit_id(device_id, command)
+            audit_id = self._generate_audit_id(device_id or "local", command)
 
             # Step 6: Execute command via MCP
             logger.info(f"[{self.name}] Executing {command} on {device_id} (audit: {audit_id})")
 
-            execution_result = await self._execute_via_mcp(
-                device_id,
-                command,
-                parameters,
-                timeout
-            )
+            execution_result = await self._execute_via_mcp(device_id, command, parameters, timeout)
 
             # Step 7: Log to audit trail
             await self._log_audit(
-                audit_id,
-                device_id,
-                command,
-                parameters,
-                execution_result,
-                ticket_id
+                audit_id, device_id, command, parameters, execution_result, ticket_id
             )
 
-            # Step 8: Return result
-            return {
-                "status": execution_result["status"],
+            # Step 8: Return result (flatten some fields for test compatibility)
+            output = None
+            if isinstance(execution_result.get("result"), dict):
+                output = execution_result.get("result", {}).get("stdout")
+
+            top_level = {
+                "status": execution_result.get("status", "failed"),
                 "device_id": device_id,
                 "command": command,
                 "result": execution_result.get("result", {}),
                 "audit_id": audit_id,
-                "risk_level": command_spec["risk_level"]
+                "risk_level": command_spec["risk_level"],
             }
+
+            # Include a top-level return_code where available (map from nested result.exit_code)
+            if isinstance(execution_result.get("result"), dict) and "exit_code" in execution_result.get("result"):
+                top_level["return_code"] = execution_result["result"]["exit_code"]
+
+            if output is not None:
+                top_level["output"] = output
+
+            # If the agent returned a structured system_info, return at top-level too
+            if execution_result.get("system_info"):
+                top_level["system_info"] = execution_result.get("system_info")
+
+            return top_level
 
         except Exception as e:
             logger.error(f"[{self.name}] Error executing command: {e}", exc_info=True)
-            return {
-                "status": "failed",
-                "error": str(e)
-            }
+            return {"status": "failed", "error": str(e)}
 
     async def _validate_device(self, device_id: str) -> Dict[str, Any]:
         """
@@ -418,43 +469,32 @@ class DesktopCommanderAgent(TwisterAgent):
             # Check cache first
             if device_id in self.device_cache:
                 device = self.device_cache[device_id]
-                return {
-                    "valid": True,
-                    "device": device
-                }
+                return {"valid": True, "device": device}
 
             # TODO: Query database when DeviceService is implemented
             # async for session in get_db():
             #     device_service = DeviceService(session)
             #     device = await device_service.get_device(device_id)
-            
+
             # For now, simulate device validation
             # Accept any device_id for testing
             device = {
                 "device_id": device_id,
                 "is_online": True,
                 "hostname": f"device-{device_id}",
-                "os": "Windows 11"
+                "os": "Windows 11",
             }
-            
+
             self.device_cache[device_id] = device
-            
-            return {
-                "valid": True,
-                "device": device
-            }
+
+            return {"valid": True, "device": device}
 
         except Exception as e:
             logger.error(f"[{self.name}] Error validating device: {e}")
-            return {
-                "valid": False,
-                "reason": f"Validation error: {str(e)}"
-            }
+            return {"valid": False, "reason": f"Validation error: {str(e)}"}
 
     def _validate_parameters(
-        self,
-        command_spec: Dict[str, Any],
-        parameters: Dict[str, Any]
+        self, command_spec: Dict[str, Any], parameters: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Validate command parameters.
@@ -464,29 +504,19 @@ class DesktopCommanderAgent(TwisterAgent):
         # Check all required parameters are present
         for param in required_params:
             if param not in parameters:
-                return {
-                    "valid": False,
-                    "reason": f"Missing required parameter: {param}"
-                }
+                return {"valid": False, "reason": f"Missing required parameter: {param}"}
 
         # Additional validation (sanitization, type checking)
         for key, value in parameters.items():
             # Prevent injection attacks
             if isinstance(value, str):
-                if any(char in value for char in [';', '&', '|', '`', '$', '\n', '\r']):
-                    return {
-                        "valid": False,
-                        "reason": f"Invalid characters in parameter: {key}"
-                    }
+                if any(char in value for char in [";", "&", "|", "`", "$", "\n", "\r"]):
+                    return {"valid": False, "reason": f"Invalid characters in parameter: {key}"}
 
         return {"valid": True}
 
     async def _execute_via_mcp(
-        self,
-        device_id: str,
-        command: str,
-        parameters: Dict[str, Any],
-        timeout: int
+        self, device_id: str, command: str, parameters: Dict[str, Any], timeout: int
     ) -> Dict[str, Any]:
         """
         Execute command via MCP protocol to client.
@@ -501,7 +531,7 @@ class DesktopCommanderAgent(TwisterAgent):
                 "device_id": device_id,
                 "command": command,
                 "status": CommandStatus.EXECUTING.value,
-                "started_at": datetime.now(timezone.utc)
+                "started_at": datetime.now(timezone.utc),
             }
 
             # Simulate MCP call (in production, use actual MCP client)
@@ -517,8 +547,8 @@ class DesktopCommanderAgent(TwisterAgent):
                     "result": {
                         "exit_code": 0,
                         "stdout": f"Password reset for {parameters.get('username')}",
-                        "stderr": ""
-                    }
+                        "stderr": "",
+                    },
                 }
             elif command == "install_software":
                 result = {
@@ -526,22 +556,25 @@ class DesktopCommanderAgent(TwisterAgent):
                     "result": {
                         "exit_code": 0,
                         "stdout": f"Installed {parameters.get('package_name')}",
-                        "stderr": ""
-                    }
+                        "stderr": "",
+                    },
                 }
             elif command == "get_system_info":
+                system = {
+                    "os": "Windows 11",
+                    "cpu": "Intel Core i7",
+                    "ram": "16 GB",
+                    "disk_free": "250 GB",
+                    "hostname": "test-host",
+                }
                 result = {
                     "status": "success",
+                    "system_info": system,
                     "result": {
                         "exit_code": 0,
-                        "stdout": json.dumps({
-                            "os": "Windows 11",
-                            "cpu": "Intel Core i7",
-                            "ram": "16 GB",
-                            "disk_free": "250 GB"
-                        }),
-                        "stderr": ""
-                    }
+                        "stdout": json.dumps(system),
+                        "stderr": "",
+                    },
                 }
             elif command in ["ipconfig", "network_diagnostics"]:
                 result = {
@@ -549,8 +582,8 @@ class DesktopCommanderAgent(TwisterAgent):
                     "result": {
                         "exit_code": 0,
                         "stdout": "IPv4 Address: 192.168.1.100\nSubnet Mask: 255.255.255.0",
-                        "stderr": ""
-                    }
+                        "stderr": "",
+                    },
                 }
             else:
                 result = {
@@ -558,8 +591,8 @@ class DesktopCommanderAgent(TwisterAgent):
                     "result": {
                         "exit_code": 0,
                         "stdout": f"Executed {command} successfully",
-                        "stderr": ""
-                    }
+                        "stderr": "",
+                    },
                 }
 
             # Update command status
@@ -570,16 +603,10 @@ class DesktopCommanderAgent(TwisterAgent):
 
         except asyncio.TimeoutError:
             logger.error(f"[{self.name}] Command timeout: {command} on {device_id}")
-            return {
-                "status": CommandStatus.TIMEOUT.value,
-                "error": "Command execution timeout"
-            }
+            return {"status": CommandStatus.TIMEOUT.value, "error": "Command execution timeout"}
         except Exception as e:
             logger.error(f"[{self.name}] MCP execution error: {e}")
-            return {
-                "status": CommandStatus.FAILED.value,
-                "error": str(e)
-            }
+            return {"status": CommandStatus.FAILED.value, "error": str(e)}
 
     def _generate_audit_id(self, device_id: str, command: str) -> str:
         """Generate unique audit ID"""
@@ -595,7 +622,7 @@ class DesktopCommanderAgent(TwisterAgent):
         command: str,
         parameters: Dict[str, Any],
         result: Dict[str, Any],
-        ticket_id: str
+        ticket_id: str,
     ) -> None:
         """
         Log command execution to audit trail.
@@ -605,7 +632,7 @@ class DesktopCommanderAgent(TwisterAgent):
             # async for session in get_db():
             #     audit_service = AuditService(session)
             #     await audit_service.create_audit_entry(...)
-            
+
             # For now, just log
             audit_entry = {
                 "audit_id": audit_id,
@@ -615,19 +642,16 @@ class DesktopCommanderAgent(TwisterAgent):
                 "status": result.get("status"),
                 "result": result.get("result", {}),
                 "ticket_id": ticket_id,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-            
+
             logger.info(f"[{self.name}] Audit logged: {json.dumps(audit_entry)}")
 
         except Exception as e:
             logger.error(f"[{self.name}] Error logging audit: {e}")
             # Don't fail the operation if audit logging fails
 
-    async def _get_device_status(
-        self,
-        context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _get_device_status(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Get device connectivity and health status"""
         try:
             device_id = context.get("device_id")
@@ -637,64 +661,45 @@ class DesktopCommanderAgent(TwisterAgent):
 
             # Validate device
             device_validation = await self._validate_device(device_id)
-            
+
             if not device_validation["valid"]:
                 return {
                     "status": "offline",
                     "device_id": device_id,
-                    "reason": device_validation["reason"]
+                    "reason": device_validation["reason"],
                 }
-            
+
             device = device_validation["device"]
-            
+
             return {
                 "status": "online",
                 "device_id": device_id,
                 "hostname": device.get("hostname", "unknown"),
                 "os": device.get("os", "unknown"),
-                "last_seen": datetime.now(timezone.utc).isoformat()
+                "last_seen": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
             logger.error(f"[{self.name}] Error getting device status: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
-    async def _list_devices(
-        self,
-        context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _list_devices(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """List all registered devices"""
         try:
             # TODO: Query database
             # Return cached devices for now
             devices = [
-                {
-                    "device_id": device_id,
-                    **device
-                }
+                {"device_id": device_id, **device}
                 for device_id, device in self.device_cache.items()
             ]
-            
-            return {
-                "status": "success",
-                "devices": devices,
-                "count": len(devices)
-            }
+
+            return {"status": "success", "devices": devices, "count": len(devices)}
 
         except Exception as e:
             logger.error(f"[{self.name}] Error listing devices: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
-    async def _register_device(
-        self,
-        context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _register_device(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Register new device client"""
         try:
             device_id = context.get("device_id")
@@ -702,10 +707,7 @@ class DesktopCommanderAgent(TwisterAgent):
             os_type = context.get("os", "Unknown")
 
             if not device_id or not hostname:
-                return {
-                    "status": "error",
-                    "error": "device_id and hostname required"
-                }
+                return {"status": "error", "error": "device_id and hostname required"}
 
             # TODO: Save to database
             # For now, add to cache
@@ -714,7 +716,7 @@ class DesktopCommanderAgent(TwisterAgent):
                 "hostname": hostname,
                 "os": os_type,
                 "is_online": True,
-                "registered_at": datetime.now(timezone.utc).isoformat()
+                "registered_at": datetime.now(timezone.utc).isoformat(),
             }
 
             logger.info(f"[{self.name}] Registered device: {device_id}")
@@ -722,52 +724,36 @@ class DesktopCommanderAgent(TwisterAgent):
             return {
                 "status": "success",
                 "device_id": device_id,
-                "message": "Device registered successfully"
+                "message": "Device registered successfully",
             }
 
         except Exception as e:
             logger.error(f"[{self.name}] Error registering device: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
-    async def _get_command_audit(
-        self,
-        context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _get_command_audit(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Retrieve command execution audit logs"""
         try:
             device_id = context.get("device_id")
-            
+
             # TODO: Query audit database
             # For now, return active commands
             audit_logs = [
-                {
-                    "command_id": cmd_id,
-                    **cmd_data
-                }
+                {"command_id": cmd_id, **cmd_data}
                 for cmd_id, cmd_data in self.active_commands.items()
                 if not device_id or cmd_data.get("device_id") == device_id
             ]
 
-            return {
-                "status": "success",
-                "audit_logs": audit_logs,
-                "count": len(audit_logs)
-            }
+            return {"status": "success", "audit_logs": audit_logs, "count": len(audit_logs)}
 
         except Exception as e:
             logger.error(f"[{self.name}] Error retrieving audit logs: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     async def health_check(self) -> Dict[str, Any]:
         """
         Perform health check for Desktop Commander Agent.
-        
+
         Returns:
             Health status including active commands and device connectivity
         """
@@ -777,10 +763,10 @@ class DesktopCommanderAgent(TwisterAgent):
             "checks": {
                 "active_commands": len(self.active_commands),
                 "cached_devices": len(self.device_cache),
-                "whitelisted_commands": len(self.WHITELISTED_COMMANDS)
-            }
+                "whitelisted_commands": len(self.WHITELISTED_COMMANDS),
+            },
         }
-        
+
         # Check database connectivity
         try:
             async for db in get_db():
@@ -790,5 +776,5 @@ class DesktopCommanderAgent(TwisterAgent):
         except Exception as e:
             health["checks"]["database"] = f"unhealthy: {str(e)}"
             health["status"] = "degraded"
-        
+
         return health

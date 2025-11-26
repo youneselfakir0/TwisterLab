@@ -1,0 +1,35 @@
+name: Docker Lint
+
+on:
+  push:
+    paths:
+      - '**/Dockerfile*'
+  pull_request:
+    paths:
+      - '**/Dockerfile*'
+
+jobs:
+  hadolint:
+    name: Lint Dockerfiles
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+
+      - name: Lint API Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile.api
+          failure-threshold: warning
+
+      - name: Lint MCP Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile.mcp
+          failure-threshold: warning

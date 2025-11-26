@@ -1,0 +1,20 @@
+[tool]
+name = "twisterlab"
+version = "0.1.0"
+description = "TwisterLab: A multi-agent AI infrastructure."
+authors = ["Your Name <youremail@example.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.95.0"
+uvicorn = "^0.22.0"
+pydantic = "^2.0.0"
+sqlalchemy = "^2.0.0"
+psycopg2 = "^2.9.0"
+redis = "^4.0.0"
+prometheus_fastapi_instrumentator = "^0.10.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

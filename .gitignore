@@ -1,0 +1,10 @@
+# Environment
+.env
+
+# Local DB / caches
+*.db
+*.log
+/reports
+
+# K8s secrets placeholders
+/k8s/base/secrets.yaml

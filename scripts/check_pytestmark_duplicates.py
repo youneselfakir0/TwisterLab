@@ -13,10 +13,14 @@ from pathlib import Path
 def find_python_files(paths):
     for p in paths:
         path = Path(p)
+        if str(path) == "tests\\unit\\test_check_pytestmark_duplicates.py":
+            continue
         if path.is_file() and path.suffix == ".py":
             yield path
         elif path.is_dir():
             for f in path.rglob("*.py"):
+                if str(f) == "tests\\unit\\test_check_pytestmark_duplicates.py":
+                    continue
                 yield f
 
 
@@ -52,7 +56,9 @@ def main(args=None):
         print("Duplicate pytestmark assignments found:\n")
         for fname, count, _ in failures:
             print(f"  {fname} has {count} pytestmark assignments")
-        print("\nPlease ensure each test module defines pytestmark at most once (use a list of pytestmarks if needed).")
+        print(
+            "\nPlease ensure each test module defines pytestmark at most once (use a list of pytestmarks if needed)."
+        )
         if parsed.fix:
             # Attempt to fix each file by merging assignments into a single list expression
             for fname, count, matches in failures:

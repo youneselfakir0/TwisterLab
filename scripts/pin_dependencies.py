@@ -62,7 +62,18 @@ pydantic-settings>=2.6.0
         return rc
 
     # Run pip-compile
-    rc = run([sys.executable, "-m", "piptools", "compile", "--generate-hashes", "--output-file", str(req_out), str(req_in)])
+    rc = run(
+        [
+            sys.executable,
+            "-m",
+            "piptools",
+            "compile",
+            "--generate-hashes",
+            "--output-file",
+            str(req_out),
+            str(req_in),
+        ]
+    )
     if rc != 0:
         return rc
 

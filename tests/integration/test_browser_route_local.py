@@ -13,8 +13,8 @@ spec_agent = importlib.util.spec_from_file_location(
     / "real"
     / "browser_screenshot_agent.py",
 )
-agent_mod = importlib.util.module_from_spec(spec_agent)
-spec_agent.loader.exec_module(agent_mod)
+agent_mod = importlib.util.module_from_spec(spec_agent)  # type: ignore
+spec_agent.loader.exec_module(agent_mod)  # type: ignore
 BrowserScreenshotAgent = agent_mod.BrowserScreenshotAgent
 
 

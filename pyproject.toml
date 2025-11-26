@@ -1,4 +1,4 @@
-[tool]
+[tool.poetry]
 name = "twisterlab"
 version = "0.1.0"
 description = "TwisterLab: A multi-agent AI infrastructure."
@@ -7,13 +7,19 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.95.0"
+fastapi = "^0.122.0"
 uvicorn = "^0.22.0"
 pydantic = "^2.0.0"
 sqlalchemy = "^2.0.0"
 psycopg2 = "^2.9.0"
 redis = "^4.0.0"
-prometheus_fastapi_instrumentator = "^0.10.0"
+prometheus_fastapi_instrumentator = "^7.1.0"
+alembic = "^1.13.2"
+opentelemetry-api = "^1.26.0"
+opentelemetry-sdk = "^1.26.0"
+opentelemetry-instrumentation = "^0.47b0"
+opentelemetry-instrumentation-fastapi = "^0.47b0"
+opentelemetry-exporter-jaeger = "^1.15.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

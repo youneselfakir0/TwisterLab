@@ -4,10 +4,16 @@ from fastapi import FastAPI
 from fastapi import Response as FastAPIResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
+from ..tracing import configure_tracer
 from .routes import agents, browser, mcp, system
 
+configure_tracer("twisterlab-api")
+
 app = FastAPI()
+
+FastAPIInstrumentor.instrument_app(app)
 
 app.add_middleware(
     CORSMiddleware,

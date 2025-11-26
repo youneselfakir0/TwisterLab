@@ -5,8 +5,8 @@ import os
 try:
     # Prefer the internal twisterlab implementation if present
     from twisterlab.utils.secret_manager import (
-        read_secret_file as _read_secret_file,
-    )  # type: ignore
+        read_secret_file as _read_secret_file,  # type: ignore
+    )
 except Exception:
 
     def _read_secret_file(name: str, default: str | None = None) -> str | None:

@@ -1,9 +1,10 @@
-from typing import Generator
+from typing import AsyncGenerator
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database.session import get_db
 
 
-def get_database() -> Generator[Session, None, None]:
-    yield from get_db()
+async def get_database() -> AsyncGenerator[AsyncSession, None]:
+    async for db in get_db():
+        yield db

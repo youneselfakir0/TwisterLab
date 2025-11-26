@@ -1,5 +1,8 @@
 import subprocess
 import sys
+from typing import Any, List
+
+pytestmark: List[Any] = []
 
 
 def test_check_pytestmark_duplicates_fixes(tmp_path):

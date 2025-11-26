@@ -4,8 +4,8 @@ Update dependencies to latest stable versions with compatibility checks
 """
 import subprocess
 import sys
-from pathlib import Path
 import time
+from pathlib import Path
 
 
 def run_command(cmd: list[str]) -> tuple[int, str, str]:
@@ -71,7 +71,9 @@ def update_dependencies() -> bool:
 
     # 8. Run tests
     print("\n🧪 Running tests to verify compatibility...")
-    test_code, test_out, test_err = run_command([sys.executable, "-m", "pytest", "tests/", "-v"])
+    test_code, test_out, test_err = run_command(
+        [sys.executable, "-m", "pytest", "tests/", "-v"]
+    )
 
     if test_code != 0:
         print("\n❌ Tests failed after update!")

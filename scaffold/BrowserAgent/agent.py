@@ -1,5 +1,6 @@
-from twisterlab.agents.core import TwisterAgent
-from twisterlang.codec import build_message, validate_message, encode_message_to_base64
+from twisterlab.agents.core import TwisterAgent  # type: ignore
+from twisterlang.codec import build_message, encode_message_to_base64, validate_message
+
 
 class BrowserAgent(TwisterAgent):
     def __init__(self, agent_id: str):

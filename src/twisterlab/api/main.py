@@ -1,113 +1,130 @@
-import logging
-import sys
 from pathlib import Path
-from typing import Any, Dict
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi import Response as FastAPIResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-# Add project root to Python path to allow importing agents package
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Optional instrumentation (OpenTelemetry) - import lazily and gracefully
+try:
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    FastAPIInstrumentor = None
 
-# Import routers from the new modular structure
-from api.routes import agents, system  # noqa: E402
+from .routes import agents, browser, mcp, system
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create DB tables if they are not present.
+    # Import models module to ensure ORM models are registered with Base
+    import twisterlab.database.models.agent  # noqa: F401
+    from twisterlab.database.session import Base, engine
+
+    # Create tables using an appropriate sync/async path depending on engine type
+    try:
+        if hasattr(engine, "begin"):
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+        else:
+            bind_engine = getattr(engine, "sync_engine", engine)
+            Base.metadata.create_all(bind=bind_engine)
+    except Exception:
+        try:
+            import logging
+
+            logging.getLogger(__name__).exception("Failed to initialize DB tables")
+        except Exception:
+            pass
+    # Register monitoring metrics in a guarded way
+    try:
+        from twisterlab.monitoring import register_with_app
+
+        register_with_app(app)
+    except Exception:
+        pass
+    # Integrate Prometheus Instrumentator in a guarded manner
+    try:
+        from prometheus_fastapi_instrumentator import Instrumentator
+
+        if not getattr(app.state, "_instrumentator_attached", False):
+            instr = Instrumentator()
+            instr.instrument(app)
+            app.state._instrumentator_attached = True
+    except Exception:
+        pass
+    # If instrumentator is not available, fall back to exposing /metrics using prometheus_client.
+    try:
+        if FastAPIInstrumentor is not None:
+            try:
+                FastAPIInstrumentor.instrument_app(app)
+            except Exception:
+                pass
+
+        from fastapi import Response as FastAPIResponse
+        from prometheus_client import CONTENT_TYPE_LATEST  # type: ignore
+        from prometheus_client import generate_latest
+
+        if not any(getattr(route, "path", None) == "/metrics" for route in app.router.routes):
+
+            def _metrics_view():
+                payload = generate_latest()
+                return FastAPIResponse(content=payload, media_type=CONTENT_TYPE_LATEST)
+
+            app.add_api_route("/metrics", _metrics_view, methods=["GET"])
+    except Exception:
+        pass
+    # yield control back to FastAPI for runtime
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-logger = logging.getLogger(__name__)
 
-# Create the main FastAPI app instance
-app = FastAPI(
-    title="TwisterLab Autonomous Agents API v2",
-    description="API for the TwisterLab v2 'Living IT System' ecosystem.",
-    version="2.0.0",
-)
-
-# Include the routers from the separate modules
-app.include_router(system.router)
-app.include_router(agents.router)
-try:
-    from api.routes import auth
-
-    app.include_router(auth.router)
-    logger.info("Auth routes (/auth/*) included in API main app")
-except Exception:
-    logger.warning("Auth routes could not be included (possibly missing dependencies)")
-
-try:
-    from api.auth_hybrid import router as auth_hybrid_router
-
-    app.include_router(auth_hybrid_router, prefix="/auth")
-    logger.info("Hybrid auth routes included (/auth/*)")
-except Exception:
-    logger.warning("Hybrid auth routes not included (missing optional deps)")
-try:
-    # Include MCP routes (real agents) so tests and external clients can call /v1/mcp/tools/*
-    from agents.api.routes_mcp_real import router as mcp_real_router
-
-    logger.info(f"MCP router imported successfully, routes: {len(mcp_real_router.routes)}")
-
-    # Mount the real MCP routes under the REST API prefix so they are available
-    # as '/v1/mcp/tools/<tool>' which is the conventional API expected by clients.
-    app.include_router(mcp_real_router)  # MCP tools router (already has /v1/mcp/tools prefix)
-    logger.info("MCP routes (/v1/mcp/tools) included in API main app")
-except Exception as e:
-    logger.warning(f"Could not include MCP routes: {e}")
-    import traceback
-
-    logger.warning(f"Traceback: {traceback.format_exc()}")
-
-try:
-    # Include REST wrapper for MCP (v1) for backward compatibility
-    from api.endpoints.mcp_rest import router as mcp_rest_router
-
-    app.include_router(mcp_rest_router)
-    logger.info("MCP REST wrapper routes (/v1/mcp) included in API main app")
-except Exception as e:
-    logger.warning(f"Could not include MCP REST router: {e}")
-
-logger.info("FastAPI application created and routers included.")
-logger.info("System router loaded with endpoints: /health, /token, /metrics")
-logger.info("Agents router loaded with endpoints: /api/v1/autonomous/agents/*")
+app.include_router(system.router, prefix="/api/v1/system", tags=["system"])
+app.include_router(agents.router, prefix="/api/v1/agents", tags=["agents"])
+app.include_router(mcp.router, prefix="/api/v1/mcp", tags=["mcp"])
+app.include_router(browser.router, prefix="/api/v1/browser", tags=["browser"])
 
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "TwisterLab API v2"}
+    return {"message": "Welcome to TwisterLab API"}
 
 
-async def execute_monitoring_agent(payload: Dict[str, Any]):
-    """Helper used by tests and integration to execute the MonitoringAgent.
-
-    This is intentionally small and can be mocked by tests.
-    """
-    from agents.real.real_monitoring_agent import RealMonitoringAgent
-
-    agent = RealMonitoringAgent()
-    # Normalize payload shape
-    if isinstance(payload, dict):
-        context = payload
-    else:
-        context = {"operation": "check_health"}
-    return await agent.execute(context)
+# Mount the simple UI (if present). Support both the package-relative path (src/twisterlab/ui/browser)
+# and a more generic src/ui/browser path used in other environments.
+pkg_ui = Path(__file__).resolve().parents[1] / "ui" / "browser"
+generic_ui = Path(__file__).resolve().parents[2] / "ui" / "browser"
+STATIC_UI = pkg_ui if pkg_ui.exists() else generic_ui
+if STATIC_UI.exists():
+    app.mount("/ui", StaticFiles(directory=str(STATIC_UI), html=True), name="ui")
 
 
-# Main entry point for running the server directly
-if __name__ == "__main__":
-    import uvicorn
-
+# Ensure /metrics exists even if optional prometheus instrumentator is not installed.
+# This is a lightweight runtime handler that attempts to use prometheus_client if available
+# but otherwise returns a simple text body. Adding the route at module import time makes it
+# available during TestClient initialization and in the container runtime prior to startup.
+def _metrics_view():
     try:
-        logger.info("Starting TwisterLab API v2 server...")
+        from prometheus_client import CONTENT_TYPE_LATEST  # type: ignore
+        from prometheus_client import generate_latest
 
-        # The agent registry is automatically initialized on first import,
-        # which happens when the routers are imported.
+        payload = generate_latest()
+        return FastAPIResponse(content=payload, media_type=CONTENT_TYPE_LATEST)
+    except Exception:
+        # Fallback minimal text for tests/CI when prometheus_client isn't present
+        return FastAPIResponse(
+            content=b"# metrics unavailable\n", media_type="text/plain"
+        )
 
-        uvicorn.run(app, host="0.0.0.0", port=8000)
 
-    except Exception as e:
-        logger.error(f"❌ Failed to start API server: {e}")
-        import traceback
-
-        logger.error(traceback.format_exc())
-        raise
+if not any(getattr(route, "path", None) == "/metrics" for route in app.router.routes):
+    app.add_api_route("/metrics", _metrics_view, methods=["GET"])

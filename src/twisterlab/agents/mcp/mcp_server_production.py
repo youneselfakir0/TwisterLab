@@ -45,7 +45,7 @@ class JsonRpcError(BaseModel):
 # JSON-RPC endpoint
 @app.post("/api/v1/mcp/execute")
 async def execute_method(request: JsonRpcRequest):
-    logger.info(f"Received request: {request.json()}")
+    logger.info("Received request: %s", request.model_dump())
 
     # Example of handling different methods
     if request.method == "example_method":
@@ -59,7 +59,7 @@ async def execute_method(request: JsonRpcRequest):
         id=request.id,
     )
     logger.error(f"Method not found: {request.method}")
-    raise HTTPException(status_code=404, detail=error_response.json())
+    raise HTTPException(status_code=404, detail=error_response.model_dump())
 
 
 # Health check endpoint

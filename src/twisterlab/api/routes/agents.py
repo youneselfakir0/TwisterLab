@@ -1,38 +1,28 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from twisterlab.api.dependencies import get_database
 from twisterlab.api.schemas.index import AgentCreate, AgentResponse, AgentUpdate
-from twisterlab.database.crud_agents import create_agent as db_create_agent
-from twisterlab.database.crud_agents import delete_agent as db_delete_agent
-from twisterlab.database.crud_agents import get_agent as db_get_agent
-from twisterlab.database.crud_agents import get_agents as db_get_agents
-from twisterlab.database.crud_agents import update_agent as db_update_agent
-from twisterlab.database.models.agent import Agent as AgentModel
+from twisterlab.api.deps import get_agent_repo
+from twisterlab.storage.base import AgentRepo
 
 router = APIRouter()
 
 
 @router.post("/", response_model=AgentResponse, status_code=201)
-async def create_agent(
-    agent: AgentCreate, db: AsyncSession = Depends(get_database)
-):
-    # avoid creating a duplicate agent with the same name
-    # simple fallback check using model import to avoid circular references
-    result = await db.execute(select(AgentModel).filter(AgentModel.name == agent.name))
-    existing = result.scalars().first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Agent already exists")
-    agent_obj = await db_create_agent(
-        db, name=agent.name, description=agent.description
-    )
-    return agent_obj
+async def create_agent(agent: AgentCreate, repo: AgentRepo = Depends(get_agent_repo)):
+    # Avoid creating duplicate agent with the same name - best-effort check for SQL backend
+    if hasattr(repo, "list_agents"):
+        existing_list = await repo.list_agents(partition_key=agent.tenantId or "default")
+        for existing in existing_list:
+            if existing.get("name") == agent.name:
+                raise HTTPException(status_code=400, detail="Agent already exists")
+    agent_dict = agent.model_dump()
+    created = await repo.create_agent(agent_dict)
+    return created
 
 
 @router.get("/{agent_id}", response_model=AgentResponse)
-async def get_agent(agent_id: int, db: AsyncSession = Depends(get_database)):
-    agent_obj = await db_get_agent(db, agent_id)
+async def get_agent(agent_id: str, tenantId: str | None = None, repo: AgentRepo = Depends(get_agent_repo)):
+    agent_obj = await repo.get_agent(agent_id, partition_key=tenantId)
     if not agent_obj:
         raise HTTPException(status_code=404, detail="Agent not found")
     return agent_obj
@@ -40,26 +30,23 @@ async def get_agent(agent_id: int, db: AsyncSession = Depends(get_database)):
 
 @router.put("/{agent_id}", response_model=AgentResponse)
 async def update_agent(
-    agent_id: int,
-    agent_update: AgentUpdate,
-    db: AsyncSession = Depends(get_database),
+    agent_id: str, agent_update: AgentUpdate, tenantId: str | None = None, repo: AgentRepo = Depends(get_agent_repo)
 ):
-    agent_obj = await db_update_agent(
-        db, agent_id, name=agent_update.name, description=agent_update.description
-    )
+    patch = {k: v for k, v in agent_update.model_dump().items() if v is not None}
+    agent_obj = await repo.update_agent(agent_id, partition_key=tenantId, patch=patch)
     if not agent_obj:
         raise HTTPException(status_code=404, detail="Agent not found")
     return agent_obj
 
 
 @router.delete("/{agent_id}")
-async def delete_agent(agent_id: int, db: AsyncSession = Depends(get_database)):
-    success = await db_delete_agent(db, agent_id)
+async def delete_agent(agent_id: str, tenantId: str | None = None, repo: AgentRepo = Depends(get_agent_repo)):
+    success = await repo.delete_agent(agent_id, partition_key=tenantId)
     if not success:
         raise HTTPException(status_code=404, detail="Agent not found")
     return Response(status_code=204)
 
 
 @router.get("/", response_model=list[AgentResponse])
-async def list_agents(db: AsyncSession = Depends(get_database)):
-    return await db_get_agents(db)
+async def list_agents(tenantId: str | None = None, repo: AgentRepo = Depends(get_agent_repo)):
+    return await repo.list_agents(partition_key=tenantId or "default")

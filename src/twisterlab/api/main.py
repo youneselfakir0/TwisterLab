@@ -1,19 +1,84 @@
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi import Response as FastAPIResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
-from ..tracing import configure_tracer
+# Optional instrumentation (OpenTelemetry) - import lazily and gracefully
+try:
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    FastAPIInstrumentor = None
+
 from .routes import agents, browser, mcp, system
 
-configure_tracer("twisterlab-api")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create DB tables if they are not present.
+    # Import models module to ensure ORM models are registered with Base
+    import twisterlab.database.models.agent  # noqa: F401
+    from twisterlab.database.session import Base, engine
 
-app = FastAPI()
+    # Create tables using an appropriate sync/async path depending on engine type
+    try:
+        if hasattr(engine, "begin"):
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+        else:
+            bind_engine = getattr(engine, "sync_engine", engine)
+            Base.metadata.create_all(bind=bind_engine)
+    except Exception:
+        try:
+            import logging
 
-FastAPIInstrumentor.instrument_app(app)
+            logging.getLogger(__name__).exception("Failed to initialize DB tables")
+        except Exception:
+            pass
+    # Register monitoring metrics in a guarded way
+    try:
+        from twisterlab.monitoring import register_with_app
+
+        register_with_app(app)
+    except Exception:
+        pass
+    # Integrate Prometheus Instrumentator in a guarded manner
+    try:
+        from prometheus_fastapi_instrumentator import Instrumentator
+
+        if not getattr(app.state, "_instrumentator_attached", False):
+            instr = Instrumentator()
+            instr.instrument(app)
+            app.state._instrumentator_attached = True
+    except Exception:
+        pass
+    # If instrumentator is not available, fall back to exposing /metrics using prometheus_client.
+    try:
+        if FastAPIInstrumentor is not None:
+            try:
+                FastAPIInstrumentor.instrument_app(app)
+            except Exception:
+                pass
+
+        from fastapi import Response as FastAPIResponse
+        from prometheus_client import CONTENT_TYPE_LATEST  # type: ignore
+        from prometheus_client import generate_latest
+
+        if not any(getattr(route, "path", None) == "/metrics" for route in app.router.routes):
+
+            def _metrics_view():
+                payload = generate_latest()
+                return FastAPIResponse(content=payload, media_type=CONTENT_TYPE_LATEST)
+
+            app.add_api_route("/metrics", _metrics_view, methods=["GET"])
+    except Exception:
+        pass
+    # yield control back to FastAPI for runtime
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -63,48 +128,3 @@ def _metrics_view():
 
 if not any(getattr(route, "path", None) == "/metrics" for route in app.router.routes):
     app.add_api_route("/metrics", _metrics_view, methods=["GET"])
-
-
-@app.on_event("startup")
-async def startup():
-    # Create DB tables if they are not present.
-    # Import models module to ensure ORM models are registered with Base
-    import twisterlab.database.models.agent  # noqa: F401
-    from twisterlab.database.session import Base, engine
-
-    Base.metadata.create_all(bind=engine)
-    # Register monitoring metrics in a guarded way
-    try:
-        from twisterlab.monitoring import register_with_app
-
-        register_with_app(app)
-    except Exception:
-        pass
-    # Integrate Prometheus Instrumentator in a guarded manner
-    try:
-        from prometheus_fastapi_instrumentator import Instrumentator
-
-        if not getattr(app.state, "_instrumentator_attached", False):
-            instr = Instrumentator()
-            instr.instrument(app)
-            app.state._instrumentator_attached = True
-    except Exception:
-        # Instrumentator is optional; ignore if not installed
-        pass
-    # If instrumentator is not available, fall back to exposing /metrics using prometheus_client.
-    try:
-        from fastapi import Response as FastAPIResponse
-        from prometheus_client import CONTENT_TYPE_LATEST  # type: ignore
-        from prometheus_client import generate_latest
-
-        if not any(
-            getattr(route, "path", None) == "/metrics" for route in app.router.routes
-        ):
-
-            def _metrics_view():
-                payload = generate_latest()
-                return FastAPIResponse(content=payload, media_type=CONTENT_TYPE_LATEST)
-
-            app.add_api_route("/metrics", _metrics_view, methods=["GET"])
-    except Exception:
-        pass

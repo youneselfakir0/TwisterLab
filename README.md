@@ -1,5 +1,7 @@
 # TwisterLab Project
 
+[![Codecov](https://codecov.io/gh/OWNER/REPO/branch/main/graph/badge.svg?token=REPLACE_TOKEN)](https://codecov.io/gh/OWNER/REPO)
+
 TwisterLab is a cloud-native, multi-agent AI infrastructure designed to facilitate complex tasks through autonomous agents. Built on a robust architecture using Python and FastAPI, TwisterLab leverages the Model Context Protocol (MCP) and a custom communication language, TwisterLang, to ensure efficient inter-agent communication and scalability.
 
 ## Key Features
@@ -35,6 +37,8 @@ git clone <repository-url>
 cd TwisterLab
 pip install -r requirements.txt
 ```
+
+Note: The SQL storage backend uses an async engine (SQLAlchemy Async); when running locally or in CI, set DATABASE_URL to use `sqlite+aiosqlite:///tests.sqlite3` or another async database driver like `postgresql+asyncpg://` for full compatibility.
 
 ### Development helpers
 

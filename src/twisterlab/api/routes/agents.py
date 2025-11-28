@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 
 from twisterlab.api.schemas.index import AgentCreate, AgentResponse, AgentUpdate
-from twisterlab.api.deps import get_agent_repo
+from twisterlab.api.dependencies import get_agent_repo
 from twisterlab.storage.base import AgentRepo
 
 router = APIRouter()

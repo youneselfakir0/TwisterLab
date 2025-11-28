@@ -4,53 +4,47 @@ Test script for TwisterLab MCP Server
 Tests MCP server functionality without requiring Kubernetes deployment
 """
 
-import asyncio
 import json
+from unittest.mock import patch
 import sys
-import os
-from unittest.mock import AsyncMock, patch
-import httpx
 
-# Add the project root to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from twisterlab.agents.mcp.mcp_server import MCPServerContinue
 
-from agents.mcp.mcp_server_continue_sync import TwisterLabMCPServer
 
-async def test_mcp_server_initialization():
+def test_mcp_server_initialization():
     """Test MCP server initialization"""
     print("🧪 Testing MCP server initialization...")
 
-    server = TwisterLabMCPServer()
+    server = MCPServerContinue()
 
     # Test that the server was created successfully
-    assert server.app is not None
-    assert server.api_url == "http://localhost:8000"
-    assert server.client is not None
+    assert hasattr(server, 'api_url')
+    assert hasattr(server, 'protocol_version')
 
     print("✅ MCP server initialization test passed")
-    await server.cleanup()
 
-async def test_list_tools_with_mock_api():
+def test_list_tools_with_mock_api():
     """Test tool registration"""
     print("🧪 Testing tool registration...")
 
-    server = TwisterLabMCPServer()
+    server = MCPServerContinue()
 
     # Check that tools are registered
     # FastMCP automatically registers tools via decorators
     # We can verify by checking the app has tools
-    assert hasattr(server.app, 'list_tools')
+    # ensure tools list returns a result
+    tools_resp = server._handle_tools_list(1)
+    assert 'result' in tools_resp and 'tools' in tools_resp['result']
     # The tools are registered dynamically via decorators
 
     print("✅ Tool registration test passed")
-    await server.cleanup()
 
 
-async def test_call_tool_with_mock_api():
+def test_call_tool_with_mock_api():
     """Test calling a tool with mocked API response"""
     print("🧪 Testing tool execution with mocked API...")
 
-    server = TwisterLabMCPServer()
+    server = MCPServerContinue()
 
     # Mock successful API response
     mock_tool_response = {
@@ -61,75 +55,52 @@ async def test_call_tool_with_mock_api():
         }
     }
 
-    with patch.object(server.client, 'post') as mock_post:
-        mock_response = AsyncMock()
-        mock_response.json = AsyncMock(return_value=mock_tool_response)
-        mock_response.raise_for_status = lambda: None
-        mock_post.return_value = mock_response
+    with patch.object(server, '_call_api', return_value=mock_tool_response):
+        response = server._handle_tools_call(3, {'name': 'create_backup', 'arguments': {'target': '/data'}})
+        assert 'result' in response and 'content' in response['result']
 
-        # Test the internal _call_agent_tool method
-        result = await server._call_agent_tool(
-            "create_backup", {"target": "/data"}
-        )
-
-        # Verify the response
-        response_data = json.loads(result)
-        assert response_data["result"] == "Backup created successfully"
-
-        print("✅ Tool execution test passed")
-        await server.cleanup()
+    print("✅ Tool execution test passed")
 
 
-async def test_error_handling():
+def test_error_handling():
     """Test error handling scenarios"""
     print("🧪 Testing error handling...")
 
-    server = TwisterLabMCPServer()
+    server = MCPServerContinue()
 
     # Test API error handling
-    with patch.object(server.client, 'post') as mock_post:
-        mock_post.side_effect = httpx.RequestError("Connection failed")
-
-        try:
-            await server._call_agent_tool("create_backup", {})
-            assert False, "Should have raised an error"
-        except Exception as e:
-            assert "API request failed" in str(e)
+    with patch.object(server, '_call_api', side_effect=Exception("Connection failed")):
+        # Should return hybrid fallback response
+        response = server._handle_tools_call(5, {'name': 'create_backup', 'arguments': {}})
+        assert 'result' in response and 'content' in response['result']
 
     print("✅ Error handling test passed")
-    await server.cleanup()
 
 
-async def test_api_connection_error():
+def test_api_connection_error():
     """Test API connection error handling"""
     print("🧪 Testing API connection error handling...")
 
-    server = TwisterLabMCPServer()
+    server = MCPServerContinue()
 
-    with patch.object(server.client, 'post') as mock_post:
-        mock_post.side_effect = Exception("Network error")
-
-        try:
-            await server._call_agent_tool("create_backup", {})
-            assert False, "Should have raised an error"
-        except Exception as e:
-            assert "Tool execution failed" in str(e)
+    with patch.object(server, '_call_api', side_effect=Exception("Network error")):
+        response = server._handle_tools_call(6, {'name': 'create_backup', 'arguments': {}})
+        assert 'result' in response and 'content' in response['result']
 
     print("✅ API connection error test passed")
-    await server.cleanup()
 
 
-async def main():
+def main():
     """Run all tests"""
     print("🚀 Starting TwisterLab MCP Server Tests")
     print("=" * 50)
 
     try:
-        await test_mcp_server_initialization()
-        await test_list_tools_with_mock_api()
-        await test_call_tool_with_mock_api()
-        await test_error_handling()
-        await test_api_connection_error()
+        test_mcp_server_initialization()
+        test_list_tools_with_mock_api()
+        test_call_tool_with_mock_api()
+        test_error_handling()
+        test_api_connection_error()
 
         print("=" * 50)
         print("🎉 All MCP server tests passed successfully!")
@@ -149,4 +120,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

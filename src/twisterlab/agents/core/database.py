@@ -9,7 +9,7 @@ from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from agents.core.models import Base
+from twisterlab.agents.core.models import Base
 
 logger = logging.getLogger(__name__)
 

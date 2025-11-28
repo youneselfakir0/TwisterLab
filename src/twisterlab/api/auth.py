@@ -28,7 +28,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
-from agents.auth.azure_ad_auth import AzureADAuth
+from twisterlab.agents.auth.azure_ad_auth import AzureADAuth
 
 logger = logging.getLogger(__name__)
 

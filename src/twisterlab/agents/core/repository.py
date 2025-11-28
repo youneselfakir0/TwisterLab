@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agents.core.models import AgentLog, SystemMetrics, Ticket, TicketPriority, TicketStatus
+from .models import AgentLog, SystemMetrics, Ticket, TicketPriority, TicketStatus
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,54 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3.12
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.7.0
+    hooks:
+      - id: ruff
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-all]
+        args: [--ignore-missing-imports]
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+
+  - repo: local
+    hooks:
+      - id: check-pytestmark-duplicates
+        name: Check duplicate pytestmark assignments
+        entry: scripts/check_pytestmark_duplicates.py
+        language: python
+        pass_filenames: false
+        files: ^tests/.*\.py$
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.1.0
+    hooks:
+      - id: hadolint
+        args: ["--failure-threshold=warning"]

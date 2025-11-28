@@ -1,222 +1,118 @@
-# 🚀 TwisterLab - Infrastructure IA Multi-Agent Cloud-Native
+# TwisterLab Project
 
-> **Instructions pour Copilot/Continue** : Consultez [`.copilot/instructions.md`](.copilot/instructions.md) pour comprendre l'organisation, les règles et les bonnes pratiques du projet.
+[![Codecov](https://codecov.io/gh/OWNER/REPO/branch/main/graph/badge.svg?token=REPLACE_TOKEN)](https://codecov.io/gh/OWNER/REPO)
 
-TwisterLab est une infrastructure IA multi-agent cloud-native orchestrée sur **Kubernetes**, incluant monitoring avancé (Prometheus/Grafana), agents autonomes MCP, et une API FastAPI complète.
+TwisterLab is a cloud-native, multi-agent AI infrastructure designed to facilitate complex tasks through autonomous agents. Built on a robust architecture using Python and FastAPI, TwisterLab leverages the Model Context Protocol (MCP) and a custom communication language, TwisterLang, to ensure efficient inter-agent communication and scalability.
 
-## 🎯 Vue d'ensemble
+## Key Features
 
-- **Architecture** : Python 3.x + Kubernetes (k3s/minikube/cluster cloud)
-- **Composants** : API FastAPI, agents MCP, PostgreSQL, Redis, monitoring complet
-- **Orchestration** : Déploiement K8s natif avec auto-scaling et health checks
-- **Monitoring** : Prometheus + Grafana avec dashboards prédéfinis
+- **Autonomous Agents**: A suite of agents that collaborate to perform tasks such as monitoring, backups, and incident resolution.
+- **Cloud-Native Architecture**: Fully designed for deployment on Kubernetes, with a focus on CI/CD practices and automation.
+- **Structured Communication**: Utilizes TwisterLang for standardized, compressed, and observable communications between agents.
+- **Flexible Deployment**: Supports real, hybrid, and mock modes for development and testing, ensuring versatility in various environments.
 
-## 📁 Organisation du dépôt
+## Technology Stack
 
+- **Backend**: Python 3.11+, FastAPI, Pydantic v2, SQLAlchemy v2
+- **Database**: PostgreSQL, Redis
+- **Orchestration**: Kubernetes (k3s), Docker
+- **Monitoring**: Prometheus, Grafana
+
+## Project Structure
+
+- **src/twisterlab/api**: Contains the FastAPI application and its routes.
+- **src/twisterlab/agents**: Houses the autonomous agents and their logic.
+- **src/twisterlab/twisterlang**: Implements the TwisterLang protocol and its utilities.
+- **k8s/**: Contains Kubernetes manifests for deployment and monitoring.
+- **docs/**: Documentation for the project and its components.
+- **tests/**: Unit tests for various components of the project.
+- **scripts/**: Utility scripts for scaffolding and logging.
+
+## Getting Started
+
+To get started with TwisterLab, clone the repository and install the required dependencies:
+
+```bash
+git clone <repository-url>
+cd TwisterLab
+pip install -r requirements.txt
 ```
-/
-├── k8s/                   # 🏗️ Manifests K8s, scripts de déploiement
-│   ├── base/              # Namespace, PVC, secrets/config
-│   ├── deployments/       # API, agents, redis, postgres, mcp
-│   ├── monitoring/        # Prometheus, Grafana, dashboards
-│   ├── ingress/           # Exposition API/grafana (NGINX Ingress)
-│   └── scripts/           # Deploy/destroy Bash/PowerShell
-├── src/
-│   └── twisterlab/        # 🏭 Code source production uniquement
-│       ├── api/           # API FastAPI principale
-│       ├── agents/        # Agents MCP et logique métier
-│       └── core/          # Composants core (twisterlang, etc.)
-├── docs/                  # 📚 Guides, tutoriels, migration Swarm→K8s
-├── archive/               # 📦 Legacy/tests obsolètes (jamais supprimés)
-├── .github/               # 🔄 CI/CD workflows (test, build, deploy)
-├── .copilot/              # 🤖 Instructions pour Copilot/Continue
-├── pyproject.toml         # ⚙️ Configuration Python (Poetry/pip)
-├── .gitignore             # 🚫 Fichiers à ignorer
-└── README.md              # 📖 Ce fichier (toujours à jour)
+
+Note: The SQL storage backend uses an async engine (SQLAlchemy Async); when running locally or in CI, set DATABASE_URL to use `sqlite+aiosqlite:///tests.sqlite3` or another async database driver like `postgresql+asyncpg://` for full compatibility.
+
+### Development helpers
+
+Security scan (detect-secrets + gitleaks):
+1) Activate venv: `& C:/TwisterLab/venv/Scripts/Activate.ps1`
+2) Run the helper: `python scripts/scan_secrets.py`
+
+Web UI (Browser Agent remote control):
+1) Start the API server: `python -m uvicorn src.twisterlab.api.main:app --reload --port 8000`
+2) Open the UI in your browser: `http://localhost:8000/ui/index.html`
+
+### Running Playwright e2e tests locally
+
+If you'd like to run the Playwright end-to-end UI tests locally:
+
+1. Build and run the API container or start the API with uvicorn (recommended to match CI):
+
+```bash
+docker build -t twisterlab-api:latest -f Dockerfile.api .
+docker run -d --name twisterlab-api-e2e -p 8000:8000 twisterlab-api:latest
+# or run locally:
+#   PYTHONPATH=src python -m uvicorn twisterlab.api.main:app --reload --port 8000
 ```
 
-### Philosophie "Prod / Archive"
-- **`src/twisterlab/`** : **UNIQUEMENT** le code production validé
-- **`archive/`** : Tout le reste (tests, démos, legacy) - **jamais supprimé sans backup**
-- **Règle** : À chaque modif, nettoyer et archiver ce qui n'est pas prod
+1. Install test requirements and Playwright browsers (cross-platform):
 
-## 🚀 Démarrage rapide (Kubernetes)
+On Linux/macOS or WSL:
 
-### Prérequis
-- **Kubernetes** opérationnel (k3s, minikube, cluster cloud)
-- **kubectl** configuré
-- **Docker** pour builder les images
-- **NGINX Ingress Controller** :
-  ```bash
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/cloud/deploy.yaml
-  ```
+```bash
+pip install -r requirements.txt
+python -m playwright install --with-deps chromium
+```
 
-### Déploiement complet
+On Windows PowerShell:
 
-#### Windows (PowerShell)
 ```powershell
-cd k8s\scripts
-.\deploy-k8s.ps1 -Action deploy
+python -m pip install -r requirements.txt
+python -m playwright install --with-deps chromium
 ```
 
-#### Linux/Mac (Bash)
+1. Run the tests (the E2E tests are only enabled when E2E=1):
+
+On Linux/macOS:
+
 ```bash
-cd k8s/scripts
-chmod +x deploy-k8s.sh
-./deploy-k8s.sh
+E2E=1 pytest -q -m e2e
 ```
 
-### Vérification du déploiement
+On Windows PowerShell:
+
+```powershell
+$env:E2E = '1'
+pytest -q -m e2e
+```
+
+Artifacts (screenshots & traces) will be saved under the `artifacts/` directory when tests fail.
+
+
+### Running the Application
+
+You can run the FastAPI application locally using:
+
 ```bash
-# Status de tous les pods
-kubectl get pods -n twisterlab
-
-# Services exposés
-kubectl get ingress -n twisterlab
+python -m uvicorn src.twisterlab.api.main:app --reload --port 8000
 ```
 
-## 🌐 Services exposés
+### Deployment
 
-| Service | URL externe | Description | Status |
-|---------|-------------|-------------|--------|
-| **API** | `api.twisterlab.local` | API FastAPI principale | ✅ Prod |
-| **Grafana** | `grafana.twisterlab.local` | Dashboards monitoring | ✅ Prod |
-| **Prometheus** | `prometheus.twisterlab.local` | Métriques système | ✅ Prod |
-| **MCP Orchestrator** | Interne | Coordination agents | ✅ Prod |
-| **PostgreSQL** | Interne | Base de données | ✅ Prod |
-| **Redis** | Interne | Cache distribué | ✅ Prod |
+TwisterLab can be deployed on Kubernetes using the provided manifests in the `k8s/deployments` directory. Ensure that your Kubernetes cluster is set up and configured before deploying.
 
-## 🔧 Opérations courantes
+## Contributing
 
-### Monitoring du déploiement
-```bash
-# Status complet
-.\deploy-k8s.ps1 -Action status
+Contributions are welcome! Please read the [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests.
 
-# Logs d'un composant
-.\deploy-k8s.ps1 -Action logs -Component api
-```
+## License
 
-### Développement local
-```bash
-# Port-forwarding API
-kubectl port-forward -n twisterlab svc/twisterlab-api 8000:8000
-
-# Port-forwarding Grafana
-kubectl port-forward -n twisterlab svc/grafana 3000:3000
-```
-
-### Mise à jour d'un service
-```bash
-# Reconstruire et déployer l'API
-docker build -t twisterlab-api:latest -f Dockerfile.api .
-kubectl set image deployment/twisterlab-api api=twisterlab-api:latest -n twisterlab
-```
-
-### Destruction complète
-```bash
-.\deploy-k8s.ps1 -Action destroy
-```
-
-## 🤖 Intégration MCP + Continue IDE
-
-Après déploiement, configurez VS Code Continue :
-
-```json
-{
-  "mcpServers": {
-    "twisterlab-mcp": {
-      "command": "kubectl",
-      "args": [
-        "exec",
-        "-n", "twisterlab",
-        "deployment/twisterlab-api",
-        "-c", "api",
-        "--",
-        "python",
-        "/app/agents/mcp/mcp_server_continue_sync.py"
-      ],
-      "env": {
-        "PYTHONPATH": "/app",
-        "API_URL": "http://twisterlab-api.twisterlab.svc.cluster.local:8000"
-      }
-    }
-  }
-}
-```
-
-## 📊 Monitoring & Observabilité
-
-- **Prometheus** : Métriques automatiques sur tous les services
-- **Grafana** : Dashboards prédéfinis pour API, agents, infrastructure
-- **Health checks** : Probes K8s sur tous les déploiements
-- **Auto-scaling** : HPA sur l'API (2-10 replicas selon CPU/mémoire)
-
-### Accès aux métriques
-```bash
-# Dashboard Grafana
-open http://grafana.twisterlab.local
-
-# Interface Prometheus
-open http://prometheus.twisterlab.local
-```
-
-## 🔒 Sécurité & Secrets
-
-- **Aucune donnée sensible** dans le dépôt
-- **Secrets K8s** : Tous les mots de passe dans `/k8s/base/secrets.yaml`
-- **Gitignore strict** : Clés privées, backups, .env automatiquement ignorés
-
-## 📚 Documentation
-
-- **[Guide de migration Swarm→K8s](docs/MIGRATION_SWARM_K8S.md)** : Contexte infrastructure
-- **[Instructions Copilot](.copilot/instructions.md)** : Règles pour IA/dev
-- **[Architecture V2](docs/ARCHITECTURE_V2_VISION.md)** : Vision technique complète
-- **[Onboarding](docs/ONBOARDING.md)** : Guide pour nouveaux contributeurs
-
-## 🚨 Troubleshooting
-
-### Pods en CrashLoopBackOff
-```bash
-kubectl describe pod <pod-name> -n twisterlab
-kubectl logs <pod-name> -n twisterlab --previous
-```
-
-### Images non trouvées
-```bash
-# Reconstruire les images
-docker build -t twisterlab-api:latest -f Dockerfile.api .
-kubectl rollout restart deployment/twisterlab-api -n twisterlab
-```
-
-### Ingress inaccessible
-```bash
-kubectl get ingress -n twisterlab
-kubectl describe ingress twisterlab-ingress -n twisterlab
-```
-
-## 🔄 Évolution du projet
-
-### Pour ajouter un nouvel agent/service :
-1. Code dans `src/twisterlab/agents/`
-2. Manifest K8s dans `k8s/deployments/`
-3. Healthcheck + readinessProbe
-4. Documentation dans `docs/`
-5. Intégration monitoring (Prometheus + Grafana)
-
-### Politique de commits :
-- `"K8S: ajout agent X"` - Nouvelles fonctionnalités
-- `"ARCHIVE: move test X"` - Nettoyage/refactoring
-- `"DOCS: update guide Y"` - Documentation
-- `"FIX: resolve issue Z"` - Corrections
-
-## 🤝 Contribution
-
-1. Lire les [instructions Copilot](.copilot/instructions.md)
-2. Respecter l'arborescence prod/archive
-3. Tester sur K8s avant commit
-4. Documenter les changements
-
----
-
-**Migration Swarm→K8s terminée le 22 novembre 2025** | **Status** : ✅ Production-ready
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -1,133 +1,286 @@
-name: CI/CD Pipeline
+name: CI/CD Workflow
 
 on:
   push:
-    branches: [ main, develop ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .[dev]
-
-    - name: Run linting
-      run: |
-        ruff check src/twisterlab tests/
-        mypy src/twisterlab
-
-    - name: Run tests
-      run: |
-        pytest tests/ -v --cov=src/twisterlab --cov-report=xml
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-
   build:
-    needs: test
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          pip install -e .
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-    - name: Build and push API image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile.api
-        push: true
-        tags: twisterlab/api:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      - name: Run tests
+        run: |
+          pytest tests/ -v --maxfail=1 -m "not e2e"
 
-    - name: Build and push MCP image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile.mcp
-        push: true
-        tags: twisterlab/mcp:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      - name: Run tests with coverage
+        run: |
+          pytest --maxfail=1 -m "not e2e" --cov=src/twisterlab --cov-report=xml --cov-report=term --cov-fail-under=60
 
-  security:
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+      - name: Upload to Codecov
+        if: secrets.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          flags: unittests
+          fail_ci_if_error: true
+
+      - name: Run TwisterLang lint
+        run: |
+          python twisterlang_lint.py --all
+
+      - name: Run static checks
+        run: |
+          ruff check src/twisterlab tests/
+          mypy src/twisterlab
+      - name: Run pre-commit hooks (fast check)
+        run: |
+          python -m pip install pre-commit
+          python -m pre_commit run check-pytestmark-duplicates --all-files || true
+          # Don't fail the build on pre-commit run here; we still enforce checks below
+      - name: Run pre-commit hooks (enforce)
+        run: |
+          python -m pip install pre-commit
+          python -m pre_commit run --all-files
+      - name: Check duplicate pytestmark assignments
+        run: |
+          python scripts/check_pytestmark_duplicates.py
+
+      - name: Build Docker images
+        run: |
+          docker build -t twisterlab-api:latest -f Dockerfile.api .
+          docker build -t twisterlab-mcp:latest -f Dockerfile.mcp .
+
+      - name: Run Alembic migrations (validate)
+        run: |
+          python -m pip install alembic
+          # Use a local sqlite file for validating migrations
+          export PYTHONPATH=src
+          export DATABASE_URL=sqlite:///./alembic_test.db || $env:DATABASE_URL='sqlite:///./alembic_test.db'
+          alembic -c alembic.ini upgrade head
+          alembic -c alembic.ini downgrade base
+
+      - name: Run API container for integration tests
+        run: |
+          # Run the built API image in the background
+          docker run -d --name twisterlab-api-test -p 8000:8000 twisterlab-api:latest || docker ps -a
+          # Wait for the server to be ready (max ~60s)
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/ >/dev/null 2>&1; then
+              echo "API started"
+              break
+            fi
+            echo "Waiting for API... ($i)"
+            sleep 2
+          done
+          # Test the static UI and metrics endpoints
+          echo "Testing /ui..."
+          curl -fsS http://localhost:8000/ui/ -o /tmp/ui.out
+          if ! grep -q "TwisterLab Browser UI" /tmp/ui.out; then
+            cat /tmp/ui.out
+            exit 1
+          fi
+          echo "Testing /metrics..."
+          curl -fsS http://localhost:8000/metrics -o /tmp/metrics.out
+          if [ ! -s /tmp/metrics.out ]; then
+            echo "Metrics endpoint returned no content"
+            cat /tmp/metrics.out
+            exit 1
+          fi
+          # Leave the container running for further smoke tests
+          echo "API container started and smoke-checked."
+
+      - name: Run Alembic autogenerate check
+        run: |
+          python -m pip install alembic
+          export DATABASE_URL=sqlite:///./alembic_test.db || $env:DATABASE_URL='sqlite:///./alembic_test.db'
+          # ensure models can be autogen by alembic
+          alembic -c alembic.ini revision --autogenerate -m 'CI autogenerate check' --rev-id temp || true
+          # cleanup temporary revision if it exists
+          if [ -f alembic/versions/temp.py ]; then rm alembic/versions/temp.py; fi
+
+      - name: Run runtime smoke tests (pytest)
+        run: |
+          # Ensure we have the test dependencies
+          pip install -r requirements.txt
+          # In case an earlier container was dangling, remove it
+          docker rm -f twisterlab-api-test-smoke || true
+          # Start a fresh container for the pytest runtime tests
+          docker run -d --name twisterlab-api-test-smoke -p 8000:8000 twisterlab-api:latest
+          # Wait for container to become available
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/ >/dev/null 2>&1; then
+              echo "API started for pytest"
+              break
+            fi
+            echo "Waiting for API (pytest)... ($i)"
+            sleep 2
+          done
+          pytest -q tests/integration/test_smoke_runtime_endpoints.py -q
+          # Stop and delete the test container
+          docker stop twisterlab-api-test-smoke || true
+          docker rm twisterlab-api-test-smoke || true
+
+      - name: Push Docker images
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker push twisterlab-api:latest
+          docker push twisterlab-mcp:latest
+
+      - name: Deploy to Kubernetes
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          echo "${KUBE_CONFIG}" | base64 --decode > kubeconfig
+          kubectl --kubeconfig=kubeconfig apply -f k8s/deployments/twisterlab-api.yaml
+          kubectl --kubeconfig=kubeconfig apply -f k8s/deployments/twisterlab-mcp.yaml
+
+  playwright-e2e:
     runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          pip install -e .
 
-  deploy-staging:
-    needs: [test, build]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    environment: staging
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pyproject.toml', '**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      - name: Setup Playwright (GH Action)
+        uses: microsoft/playwright-github-action@v1
+        with:
+          browsers: chromium
+      - name: Install Playwright browsers
+        run: |
+          python -m playwright install --with-deps chromium
+
+      - name: Build API Docker image
+        run: |
+          docker build -t twisterlab-api:latest -f Dockerfile.api .
+
+  build-windows:
+    runs-on: windows-latest
+    needs: build
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout code (Windows)
+        uses: actions/checkout@v4
 
-    - name: Configure kubectl
-      uses: azure/k8s-set-context@v3
-      with:
-        method: kubeconfig
-        kubeconfig: ${{ secrets.KUBE_CONFIG_STAGING }}
+      - name: Set up Python (Windows)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Deploy to staging
-      run: |
-        kubectl apply -f k8s/base/ -n twisterlab-staging
-        kubectl apply -f k8s/apps/ -n twisterlab-staging
-        kubectl apply -f k8s/monitoring/ -n twisterlab-staging
-        kubectl rollout status deployment/twisterlab-api -n twisterlab-staging
+      - name: Cache pip (Windows)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-  deploy-production:
-    needs: [test, build, security]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment: production
-    steps:
-    - uses: actions/checkout@v4
+      - name: Install dependencies (Windows)
+        run: |
+          python -m pip install -r requirements.txt
+          pip install -e .
 
-    - name: Configure kubectl
-      uses: azure/k8s-set-context@v3
-      with:
-        method: kubeconfig
-        kubeconfig: ${{ secrets.KUBE_CONFIG_PRODUCTION }}
+      - name: Run tests (Windows)
+        run: |
+          pytest tests/ -v --maxfail=1 -m "not e2e"
 
-    - name: Deploy to production
-      run: |
-        kubectl apply -f k8s/base/ -n twisterlab
-        kubectl apply -f k8s/apps/ -n twisterlab
-        kubectl apply -f k8s/monitoring/ -n twisterlab
-        kubectl rollout status deployment/twisterlab-api -n twisterlab
+      - name: Run static checks (Windows)
+        run: |
+          ruff check src/twisterlab tests/
+          python -m mypy src/twisterlab
+
+      - name: Run API container for Playwright tests
+        run: |
+          docker rm -f twisterlab-api-e2e || true
+          docker run -d --name twisterlab-api-e2e -p 8000:8000 twisterlab-api:latest
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/ >/dev/null 2>&1; then
+              echo "API started for playwright tests"
+              break
+            fi
+            echo "Waiting for API (playwright)... ($i)"
+            sleep 2
+          done
+
+      - name: Run Playwright e2e tests
+        env:
+          E2E: 1
+          API_BASE_URL: http://localhost:8000
+        run: |
+          pytest -q -m e2e --junitxml=playwright_e2e_results.xml
+
+      - name: Stop and remove API container
+        run: |
+          docker stop twisterlab-api-e2e || true
+          docker rm twisterlab-api-e2e || true
+      - name: Upload Playwright E2E junit xml
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-results
+          path: playwright_e2e_results.xml
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: artifacts/

@@ -25,6 +25,14 @@ build/
 *.log
 /reports
 coverage.xml
+ .coverage
+ .pytest_cache/
+ .mypy_cache/
+ .venv
+ pip-wheel-metadata/
+ *.egg-info/
+ *.orig
+ .DS_Store
 
 # Editor and OS files
 .vscode/

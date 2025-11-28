@@ -1,10 +1,12 @@
-fastapi
-uvicorn
-pydantic
+fastapi==0.122.0
+uvicorn==0.22.0
+pydantic==2.1.1
 sqlalchemy
 asyncpg
 redis
 prometheus-fastapi-instrumentator
+starlette==0.27.3
+httpx==0.24.1
 pytest
 pytest-asyncio
 ruff

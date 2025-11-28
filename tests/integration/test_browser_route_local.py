@@ -2,7 +2,7 @@ import importlib.util
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 
 spec_agent = importlib.util.spec_from_file_location(
     "browser_agent_mod",
@@ -13,8 +13,8 @@ spec_agent = importlib.util.spec_from_file_location(
     / "real"
     / "browser_screenshot_agent.py",
 )
-agent_mod = importlib.util.module_from_spec(spec_agent)  # type: ignore
-spec_agent.loader.exec_module(agent_mod)  # type: ignore
+agent_mod = importlib.util.module_from_spec(spec_agent)
+spec_agent.loader.exec_module(agent_mod)
 BrowserScreenshotAgent = agent_mod.BrowserScreenshotAgent
 
 

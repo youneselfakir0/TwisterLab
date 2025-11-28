@@ -320,7 +320,7 @@ from twisterlab.agents.mcp.mcp_server import MCPServerContinue
             Configuration result with instructions
         """
         try:
-            from twisterlab.agents.real.BrowserAgent import BrowserAgent
+            from twisterlab.agents.real.browser_agent import BrowserAgent
 
             agent = BrowserAgent()
             tool_name = config.get("tool_name", "web_automation")
@@ -505,7 +505,7 @@ from twisterlab.agents.mcp.mcp_server import MCPServerContinue
                     },
                     {
                         "name": "BrowserAgent",
-                        "module": "twisterlab.agents.real.BrowserAgent",
+                        "module": "twisterlab.agents.real.browser_agent",
                         "description": "Web browser automation and tool configuration (Playwright-based)",
                         "status": "operational",
                     },
@@ -725,7 +725,7 @@ from twisterlab.agents.mcp.mcp_server import MCPServerContinue
                     },
                     {
                         "name": "BrowserAgent",
-                        "module": "twisterlab.agents.real.BrowserAgent",
+                        "module": "twisterlab.agents.real.browser_agent",
                         "description": "Web browser automation and tool configuration",
                         "status": "operational",
                     },

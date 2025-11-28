@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 from twisterlab.agents.base.unified_agent import UnifiedAgentBase
-from twisterlab.agents.real.BrowserAgent import BrowserAgent  # Nouvelle importation
+from twisterlab.agents.real.browser_agent import BrowserAgent  # Nouvelle importation
 from twisterlab.agents.real.real_backup_agent import RealBackupAgent
 
 # Importe les classes d'agents v2 que nous avons refactorisées

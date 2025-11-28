@@ -1,10 +1,41 @@
 # Environment
 .env
 
+# Virtual envs and Python artifacts
+venv/
+.venv/
+ENV/
+env/
+venv.bak/
+Lib/
+Include/
+Lib/site-packages/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+*.eggs/
+dist/
+build/
+
 # Local DB / caches
 *.db
 *.log
 /reports
+coverage.xml
+
+# Editor and OS files
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# Temporary files, uploads and runtime caches
+.tmp*
+tmp/
+artifacts/
 
 # K8s secrets placeholders
 /k8s/base/secrets.yaml

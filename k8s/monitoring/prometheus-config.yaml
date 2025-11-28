@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'twisterlab-api'
+    static_configs:
+      - targets: ['twisterlab-api:8000']
+
+  - job_name: 'twisterlab-mcp'
+    static_configs:
+      - targets: ['twisterlab-mcp:8001']

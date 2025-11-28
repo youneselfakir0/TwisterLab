@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: twisterlab-api
+  labels:
+    app: twisterlab
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: twisterlab
+      component: api
+  template:
+    metadata:
+      labels:
+        app: twisterlab
+        component: api
+    spec:
+      containers:
+        - name: twisterlab-api
+          image: twisterlab-api:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: twisterlab-secrets
+                  key: database_url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: twisterlab-secrets
+                  key: redis_url
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      imagePullSecrets:
+        - name: regcred

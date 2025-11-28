@@ -4,7 +4,7 @@ This file re-exports the shared metrics from the top-level `agents.metrics` modu
 and provides helper functions for recording Ollama-specific metrics.
 """
 
-from agents.metrics import (
+from twisterlab.agents.metrics import (
     ollama_requests_total,
     ollama_request_duration_seconds,
     ollama_failover_total,

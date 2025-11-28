@@ -1,16 +1,18 @@
 from typing import Any, Dict
 
-from agents.base.unified_agent import UnifiedAgentBase
-from agents.real.BrowserAgent import BrowserAgent  # Nouvelle importation
-from agents.real.real_backup_agent import RealBackupAgent
+from twisterlab.agents.base.unified_agent import UnifiedAgentBase
+from twisterlab.agents.real.browser_agent import BrowserAgent  # Nouvelle importation
+from twisterlab.agents.real.real_backup_agent import RealBackupAgent
 
 # Importe les classes d'agents v2 que nous avons refactorisées
-from agents.real.real_classifier_agent import RealClassifierAgent
-from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
-from agents.real.real_maestro_agent import RealMaestroAgent
-from agents.real.real_monitoring_agent import RealMonitoringAgent
-from agents.real.real_resolver_agent import RealResolverAgent
-from agents.real.real_sync_agent import RealSyncAgent
+from twisterlab.agents.real.real_classifier_agent import RealClassifierAgent
+from twisterlab.agents.real.real_desktop_commander_agent import (
+    RealDesktopCommanderAgent,
+)
+from twisterlab.agents.real.real_maestro_agent import RealMaestroAgent
+from twisterlab.agents.real.real_monitoring_agent import RealMonitoringAgent
+from twisterlab.agents.real.real_resolver_agent import RealResolverAgent
+from twisterlab.agents.real.real_sync_agent import RealSyncAgent
 
 
 class AgentRegistry:

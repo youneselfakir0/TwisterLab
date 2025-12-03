@@ -1,49 +1,177 @@
-# Environment
-.env
+# ================================================# Environment
+
+# 🌀 TwisterLab - Professional .gitignore.env
+
+# ================================================
 
 # Virtual envs and Python artifacts
-venv/
-.venv/
-ENV/
-env/
-venv.bak/
-Lib/
-Include/
-Lib/site-packages/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.egg-info/
-*.egg
-*.eggs/
-dist/
-build/
 
-# Local DB / caches
-*.db
-*.log
+# -------------------- Python --------------------venv/
+
+__pycache__/.venv/
+
+*.py[cod]ENV/
+
+*$py.classenv/
+
+*.sovenv.bak/
+
+.PythonLib/
+
+build/Include/
+
+develop-eggs/Lib/site-packages/
+
+dist/__pycache__/
+
+downloads/*.pyc
+
+eggs/*.pyo
+
+.eggs/*.pyd
+
+lib/*.egg-info/
+
+lib64/*.egg
+
+parts/*.eggs/
+
+sdist/dist/
+
+var/build/
+
+wheels/
+
+*.egg-info/# Local DB / caches
+
+.installed.cfg*.db
+
+*.egg*.log
+
 /reports
-coverage.xml
- .coverage
- .pytest_cache/
- .mypy_cache/
- .venv
- pip-wheel-metadata/
- *.egg-info/
- *.orig
- .DS_Store
 
-# Editor and OS files
-.vscode/
+# -------------------- Virtual Environments --------------------coverage.xml
+
+.env .coverage
+
+.venv/ .pytest_cache/
+
+venv/ .mypy_cache/
+
+ENV/ .venv
+
+env.bak/ pip-wheel-metadata/
+
+venv.bak/ *.egg-info/
+
+.venv*/ *.orig
+
+Include/ .DS_Store
+
+Lib/
+
+Scripts/# Editor and OS files
+
+pyvenv.cfg.vscode/
+
 .idea/
+
+# -------------------- IDE & Editors --------------------Thumbs.db
+
+.idea/desktop.ini
+
+.vscode/
+
+*.swp# Temporary files, uploads and runtime caches
+
+*.swo.tmp*
+
+*~tmp/
+
+.projectartifacts/
+
+.pydevproject
+
+.settings/# K8s secrets placeholders
+
+*.sublime-project/k8s/base/secrets.yaml
+
+*.sublime-workspace
+
+# -------------------- Testing --------------------
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+pytest_cache/
+reports/
+
+# -------------------- Type Checking --------------------
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# -------------------- Linting --------------------
+.ruff_cache/
+
+# -------------------- Database --------------------
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+alembic.db
+
+# -------------------- Logs --------------------
+*.log
+logs/
+
+# -------------------- Secrets (NEVER COMMIT) --------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+.secrets/
+*secret*.yaml
+!.secrets.baseline
+
+# -------------------- Docker --------------------
+docker-compose.override.yml
+
+# -------------------- Kubernetes --------------------
+kubeconfig
+*.kubeconfig
+.kube/
+deploy/k8s/**/secrets.yaml
+
+# -------------------- OS Generated --------------------
+.DS_Store
 Thumbs.db
 desktop.ini
 
-# Temporary files, uploads and runtime caches
-.tmp*
+# -------------------- Temporary Files --------------------
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+.tmp/
 tmp/
-artifacts/
+.tmp.driveupload/
 
-# K8s secrets placeholders
-/k8s/base/secrets.yaml
+# -------------------- Misc --------------------
+*.pid
+.cache/
+node_modules/

@@ -1,0 +1,213 @@
+# ================================================
+# 🛡️ TwisterLab - Security & Compliance
+# ================================================
+# Automated security scanning and compliance checks
+
+name: "🛡️ Security"
+
+on:
+  schedule:
+    - cron: "0 2 * * *"  # Daily at 2 AM
+  push:
+    branches: [main]
+    paths:
+      - "requirements*.txt"
+      - "pyproject.toml"
+      - "deploy/docker/**"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  security-events: write
+  contents: read
+
+jobs:
+  # ============================================
+  # Dependency Scanning
+  # ============================================
+  dependencies:
+    name: "📦 Dependency Scan"
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Safety Check
+        run: |
+          pip install safety
+          safety check -r requirements.txt --full-report || true
+
+      - name: pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt || true
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: "TwisterLab"
+          path: "."
+          format: "SARIF"
+          out: "dependency-check"
+        continue-on-error: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: dependency-check/dependency-check-report.sarif
+        if: always()
+        continue-on-error: true
+
+  # ============================================
+  # Container Scanning
+  # ============================================
+  containers:
+    name: "🐳 Container Scan"
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        dockerfile: [Dockerfile.api, Dockerfile.mcp]
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Image
+        run: |
+          docker build -f deploy/docker/${{ matrix.dockerfile }} -t scan-target:latest .
+
+      - name: Trivy Vulnerability Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "scan-target:latest"
+          format: "sarif"
+          output: "trivy-${{ matrix.dockerfile }}.sarif"
+          severity: "CRITICAL,HIGH"
+
+      - name: Upload Trivy Results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-${{ matrix.dockerfile }}.sarif"
+
+      - name: Grype Scan
+        uses: anchore/scan-action@v3
+        with:
+          image: "scan-target:latest"
+          fail-build: false
+
+  # ============================================
+  # SAST - Static Application Security Testing
+  # ============================================
+  sast:
+    name: "🔍 SAST"
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Semgrep Scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/python
+            p/security-audit
+            p/secrets
+            p/owasp-top-ten
+
+      - name: Bandit Security Scan
+        run: |
+          pip install bandit
+          bandit -r src/twisterlab -f sarif -o bandit.sarif || true
+
+      - name: Upload Bandit Results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit.sarif
+        if: always()
+
+  # ============================================
+  # Secret Detection
+  # ============================================
+  secrets:
+    name: "🔐 Secret Scan"
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================
+  # Infrastructure as Code Scanning
+  # ============================================
+  iac:
+    name: "🏗️ IaC Scan"
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: deploy/k8s/
+          framework: kubernetes
+          output_format: sarif
+          output_file_path: checkov.sarif
+          soft_fail: true
+
+      - name: Upload Checkov Results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: checkov.sarif
+        if: always()
+
+      - name: Kubesec Scan
+        run: |
+          curl -sSX POST --data-binary @deploy/k8s/base/deployment.yaml \
+            https://v2.kubesec.io/scan || true
+
+  # ============================================
+  # Compliance Report
+  # ============================================
+  compliance:
+    name: "📋 Compliance Report"
+    runs-on: ubuntu-latest
+    needs: [dependencies, containers, sast, secrets, iac]
+    if: always()
+    
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "# 🛡️ Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scan | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependencies | ${{ needs.dependencies.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Containers | ${{ needs.containers.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SAST | ${{ needs.sast.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secrets | ${{ needs.secrets.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| IaC | ${{ needs.iac.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY

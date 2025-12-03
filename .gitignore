@@ -1,114 +1,225 @@
-# ================================================# Environment
+# Python# ================================================# Environment
 
-# 🌀 TwisterLab - Professional .gitignore.env
+__pycache__/
 
-# ================================================
+*.py[cod]# 🌀 TwisterLab - Professional .gitignore.env
 
-# Virtual envs and Python artifacts
+*$py.class
 
-# -------------------- Python --------------------venv/
+*.so# ================================================
 
-__pycache__/.venv/
+.Python
 
-*.py[cod]ENV/
+build/# Virtual envs and Python artifacts
 
-*$py.classenv/
+develop-eggs/
 
-*.sovenv.bak/
+dist/# -------------------- Python --------------------venv/
 
-.PythonLib/
+downloads/
 
-build/Include/
+eggs/__pycache__/.venv/
 
-develop-eggs/Lib/site-packages/
+.eggs/
 
-dist/__pycache__/
+lib/*.py[cod]ENV/
 
-downloads/*.pyc
+lib64/
 
-eggs/*.pyo
+parts/*$py.classenv/
 
-.eggs/*.pyd
+sdist/
 
-lib/*.egg-info/
-
-lib64/*.egg
-
-parts/*.eggs/
-
-sdist/dist/
-
-var/build/
+var/*.sovenv.bak/
 
 wheels/
 
-*.egg-info/# Local DB / caches
+*.egg-info/.PythonLib/
 
-.installed.cfg*.db
+.installed.cfg
 
-*.egg*.log
+*.eggbuild/Include/
 
-/reports
 
-# -------------------- Virtual Environments --------------------coverage.xml
 
-.env .coverage
+# Virtual environmentsdevelop-eggs/Lib/site-packages/
 
-.venv/ .pytest_cache/
+.env
 
-venv/ .mypy_cache/
+.venv/dist/__pycache__/
 
-ENV/ .venv
+venv/
 
-env.bak/ pip-wheel-metadata/
+ENV/downloads/*.pyc
 
-venv.bak/ *.egg-info/
+env.bak/
 
-.venv*/ *.orig
+venv.bak/eggs/*.pyo
 
-Include/ .DS_Store
+Include/
 
-Lib/
+Lib/.eggs/*.pyd
 
-Scripts/# Editor and OS files
+Scripts/
 
-pyvenv.cfg.vscode/
+lib/*.egg-info/
 
-.idea/
+# IDE
 
-# -------------------- IDE & Editors --------------------Thumbs.db
-
-.idea/desktop.ini
+.idea/lib64/*.egg
 
 .vscode/
 
-*.swp# Temporary files, uploads and runtime caches
+*.swpparts/*.eggs/
 
-*.swo.tmp*
+*.swo
 
-*~tmp/
+*~sdist/dist/
+
+.project
+
+.pydevprojectvar/build/
+
+.settings/
+
+wheels/
+
+# Testing
+
+.tox/*.egg-info/# Local DB / caches
+
+.nox/
+
+.coverage.installed.cfg*.db
+
+.coverage.*
+
+htmlcov/*.egg*.log
+
+.pytest_cache/
+
+.hypothesis//reports
+
+coverage.xml
+
+*.cover# -------------------- Virtual Environments --------------------coverage.xml
+
+nosetests.xml
+
+.env .coverage
+
+# Type checking
+
+.mypy_cache/.venv/ .pytest_cache/
+
+.dmypy.json
+
+dmypy.jsonvenv/ .mypy_cache/
+
+
+
+# LintingENV/ .venv
+
+.ruff_cache/
+
+env.bak/ pip-wheel-metadata/
+
+# Jupyter
+
+.ipynb_checkpoints/venv.bak/ *.egg-info/
+
+
+
+# Secrets.venv*/ *.orig
+
+.env
+
+.env.localInclude/ .DS_Store
+
+.env.*.local
+
+*.pemLib/
+
+*.key
+
+secrets/Scripts/# Editor and OS files
+
+.secrets/
+
+pyvenv.cfg.vscode/
+
+# Database
+
+*.db.idea/
+
+*.sqlite3
+
+*.sqlite# -------------------- IDE & Editors --------------------Thumbs.db
+
+
+
+# Logs.idea/desktop.ini
+
+*.log
+
+logs/.vscode/
+
+
+
+# OS*.swp# Temporary files, uploads and runtime caches
+
+.DS_Store
+
+Thumbs.db*.swo.tmp*
+
+
+
+# Docker*~tmp/
+
+.docker/
 
 .projectartifacts/
 
-.pydevproject
+# Kubernetes
 
-.settings/# K8s secrets placeholders
+*.kubeconfig.pydevproject
 
-*.sublime-project/k8s/base/secrets.yaml
+
+
+# Build artifacts.settings/# K8s secrets placeholders
+
+*.pyc
+
+*.pyo*.sublime-project/k8s/base/secrets.yaml
+
+*.pyd
 
 *.sublime-workspace
 
-# -------------------- Testing --------------------
-.tox/
+# Reports
+
+reports/# -------------------- Testing --------------------
+
+coverage/.tox/
+
 .nox/
-.coverage
-.coverage.*
-htmlcov/
-.pytest_cache/
-nosetests.xml
+
+# Temporary.coverage
+
+tmp/.coverage.*
+
+temp/htmlcov/
+
+*.tmp.pytest_cache/
+
+*.baknosetests.xml
+
 coverage.xml
-*.cover
-*.py,cover
+
+# Node (if any)*.cover
+
+node_modules/*.py,cover
+
 .hypothesis/
 pytest_cache/
 reports/

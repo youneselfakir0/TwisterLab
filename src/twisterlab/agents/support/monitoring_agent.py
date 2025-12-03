@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 import psutil  # type: ignore
 
-from agents.base import TwisterAgent, accepts_context_or_task
+from ..base import TwisterAgent, accepts_context_or_task
 
 logger = logging.getLogger(__name__)
 

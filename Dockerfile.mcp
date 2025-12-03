@@ -1,39 +1,19 @@
-# Build stage
-FROM python:3.11-slim as builder
-
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Production stage
 FROM python:3.11-slim
 
+# Set the working directory
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Copy the requirements file
+COPY requirements.txt .
 
-# Copy MCP server
-COPY mcp_server_production.py .
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy agents
-COPY src/twisterlab/agents/ ./agents/
-COPY src/twisterlab/core/ ./core/
+# Copy the source code
+COPY src/twisterlab /app/src/twisterlab
 
-# Create non-root user
-RUN useradd --create-home --shell /bin/bash app \
-    && chown -R app:app /app
-USER app
+# Expose the port the app runs on
+EXPOSE 8000
 
-EXPOSE 8080
-
-CMD ["python", "mcp_server_production.py"]
+# Command to run the MCP server
+CMD ["python", "src/twisterlab/agents/mcp/mcp_server_production.py"]

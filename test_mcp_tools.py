@@ -1,19 +1,12 @@
-import sys
-sys.path.append('src')
-import importlib.util
+from twisterlab.agents.mcp.mcp_server import MCPServerContinue as mcp_server
 import json
-
-# Charger le module MCP
-spec = importlib.util.spec_from_file_location('mcp_server', 'src/twisterlab/agents/mcp/mcp_server_continue_sync.py')
-mcp_server = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(mcp_server)
 
 def test_mcp_tools():
     """Test all MCP tools"""
     print("🧪 Testing MCP Tools")
     print("=" * 50)
 
-    server = mcp_server.MCPServerContinue()
+    server = mcp_server()
 
     # Test 1: Tools list
     print("\n1. Testing tools/list...")

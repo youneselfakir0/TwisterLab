@@ -1,35 +1,41 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
-[project]
+[tool.poetry]
 name = "twisterlab"
-version = "1.0.0"
-authors = [
-  { name="TwisterLab Team", email="contact@twisterlab.io" },
-]
-description = "TwisterLab core application and agents."
-readme = "README.md"
-requires-python = ">=3.8"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
-dependencies = [
-    "mcp>=1.0.0",
-    "httpx>=0.25.0",
-    "fastapi>=0.100.0",
-    "uvicorn>=0.20.0",
-    "pydantic>=2.0.0",
-    "sqlalchemy>=2.0.0",
-    "alembic>=1.12.0",
-    "redis>=4.5.0",
-    "psycopg2-binary>=2.9.0",
-    "python-multipart>=0.0.6",
-    "jinja2>=3.1.0",
-]
+version = "0.1.0"
+description = "TwisterLab: A multi-agent AI infrastructure."
+authors = ["Your Name <youremail@example.com>"]
+license = "MIT"
 
-[project.urls]
-"Homepage" = "https://github.com/twisterlab/twisterlab"
-"Bug Tracker" = "https://github.com/twisterlab/twisterlab/issues"
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.122.0"
+uvicorn = "^0.22.0"
+pydantic = "^2.0.0"
+sqlalchemy = "^2.0.0"
+psycopg2 = "^2.9.0"
+redis = "^4.0.0"
+prometheus_fastapi_instrumentator = "^7.1.0"
+alembic = "^1.13.2"
+opentelemetry-api = "^1.26.0"
+opentelemetry-sdk = "^1.26.0"
+opentelemetry-instrumentation = "^0.47b0"
+opentelemetry-instrumentation-fastapi = "^0.47b0"
+opentelemetry-exporter-jaeger = "^1.15.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 88
+extend-exclude = [".venv"]
+
+[tool.mypy]
+python_version = 3.11
+ignore_missing_imports = true
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+

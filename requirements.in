@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic
+sqlalchemy
+asyncpg
+redis
+prometheus-fastapi-instrumentator
+pytest
+pytest-asyncio
+ruff
+mypy
+twisted
+playwright
+python-dotenv
+requests

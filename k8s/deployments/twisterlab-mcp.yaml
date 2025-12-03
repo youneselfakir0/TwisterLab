@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: twisterlab-mcp
+  labels:
+    app: twisterlab-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: twisterlab-mcp
+  template:
+    metadata:
+      labels:
+        app: twisterlab-mcp
+    spec:
+      containers:
+        - name: twisterlab-mcp
+          image: twisterlab-mcp:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MCP_SERVER_HOST
+              value: "0.0.0.0"
+            - name: MCP_SERVER_PORT
+              value: "8000"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      imagePullSecrets:
+        - name: regcred

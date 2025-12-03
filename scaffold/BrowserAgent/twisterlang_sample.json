@@ -1,0 +1,12 @@
+{
+  "tool_name": "browser_scraper",
+  "target_url": "https://example.com",
+  "llm_backend": "ollama",
+  "args": {
+    "tool_name": "scrape_home",
+    "target_url": "https://example.com",
+    "llm_backend": "ollama"
+  },
+  "twisterlang_version": "1.0",
+  "correlation_id": "12345-abcde"
+}

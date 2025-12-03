@@ -16,7 +16,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from agents.base import TwisterAgent, accepts_context_or_task
+from ..base import TwisterAgent, accepts_context_or_task
 
 # Configure logging
 logging.basicConfig(

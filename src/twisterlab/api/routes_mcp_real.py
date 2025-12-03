@@ -13,17 +13,17 @@ from pydantic import BaseModel, Field, validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import database layer
-from agents.core.database import get_db_session
-from agents.core.models import TicketPriority
-from agents.core.repository import AgentLogRepository, SystemMetricsRepository, TicketRepository
-from agents.real.real_backup_agent import RealBackupAgent
 
 # Import real agents
-from agents.real.real_classifier_agent import RealClassifierAgent
-from agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
-from agents.real.real_monitoring_agent import RealMonitoringAgent
-from agents.real.real_resolver_agent import RealResolverAgent
-from agents.real.real_sync_agent import RealSyncAgent
+from twisterlab.agents.core.database import get_db_session
+from twisterlab.agents.core.models import TicketPriority
+from twisterlab.agents.core.repository import AgentLogRepository, SystemMetricsRepository, TicketRepository
+from twisterlab.agents.real.real_backup_agent import RealBackupAgent
+from twisterlab.agents.real.real_classifier_agent import RealClassifierAgent
+from twisterlab.agents.real.real_desktop_commander_agent import RealDesktopCommanderAgent
+from twisterlab.agents.real.real_monitoring_agent import RealMonitoringAgent
+from twisterlab.agents.real.real_resolver_agent import RealResolverAgent
+from twisterlab.agents.real.real_sync_agent import RealSyncAgent
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -64,12 +64,12 @@ async def list_autonomous_agents() -> MCPResponse:
         agents_data = {
             "version": "2.0.0",
             "total": 7,
-            "base_class": "agents.base.TwisterAgent",
+            "base_class": "twisterlab.agents.base.TwisterAgent",
             "agents": [
                 {
                     "name": "RealMonitoringAgent",
-                    "module": "agents.real.real_monitoring_agent",
-                    "file": "agents/real/real_monitoring_agent.py",
+                    "module": "twisterlab.agents.real.real_monitoring_agent",
+                    "file": "src/twisterlab/agents/real/real_monitoring_agent.py",
                     "mcp_tool": "monitor_system_health",
                     "description": "System health monitoring (CPU, RAM, disk, Docker services)",
                     "capabilities": [
@@ -82,8 +82,8 @@ async def list_autonomous_agents() -> MCPResponse:
                 },
                 {
                     "name": "RealBackupAgent",
-                    "module": "agents.real.real_backup_agent",
-                    "file": "agents/real/real_backup_agent.py",
+                    "module": "twisterlab.agents.real.real_backup_agent",
+                    "file": "src/twisterlab/agents/real/real_backup_agent.py",
                     "mcp_tool": "create_backup",
                     "description": "Automated backups with disaster recovery (PostgreSQL, Redis, configs)",
                     "capabilities": [
@@ -96,8 +96,8 @@ async def list_autonomous_agents() -> MCPResponse:
                 },
                 {
                     "name": "RealSyncAgent",
-                    "module": "agents.real.real_sync_agent",
-                    "file": "agents/real/real_sync_agent.py",
+                    "module": "twisterlab.agents.real.real_sync_agent",
+                    "file": "src/twisterlab/agents/real/real_sync_agent.py",
                     "mcp_tool": "sync_cache_db",
                     "description": "Cache/Database synchronization (Redis ↔ PostgreSQL)",
                     "capabilities": ["redis_sync", "postgres_sync", "conflict_resolution"],
@@ -105,8 +105,8 @@ async def list_autonomous_agents() -> MCPResponse:
                 },
                 {
                     "name": "RealClassifierAgent",
-                    "module": "agents.real.real_classifier_agent",
-                    "file": "agents/real/real_classifier_agent.py",
+                    "module": "twisterlab.agents.real.real_classifier_agent",
+                    "file": "src/twisterlab/agents/real/real_classifier_agent.py",
                     "mcp_tool": "classify_ticket",
                     "description": "Ticket classification using Ollama LLM (llama3.2:1b)",
                     "capabilities": [
@@ -119,8 +119,8 @@ async def list_autonomous_agents() -> MCPResponse:
                 },
                 {
                     "name": "RealResolverAgent",
-                    "module": "agents.real.real_resolver_agent",
-                    "file": "agents/real/real_resolver_agent.py",
+                    "module": "twisterlab.agents.real.real_resolver_agent",
+                    "file": "src/twisterlab/agents/real/real_resolver_agent.py",
                     "mcp_tool": "resolve_ticket",
                     "description": "SOP-based ticket resolution (network, hardware, software, account, email)",
                     "capabilities": ["sop_execution", "troubleshooting", "guided_resolution"],
@@ -128,8 +128,8 @@ async def list_autonomous_agents() -> MCPResponse:
                 },
                 {
                     "name": "RealDesktopCommanderAgent",
-                    "module": "agents.real.real_desktop_commander_agent",
-                    "file": "agents/real/real_desktop_commander_agent.py",
+                    "module": "twisterlab.agents.real.real_desktop_commander_agent",
+                    "file": "src/twisterlab/agents/real/real_desktop_commander_agent.py",
                     "mcp_tool": "execute_command",
                     "description": "Remote system command execution (PowerShell, Bash, SSH)",
                     "capabilities": [
@@ -143,8 +143,8 @@ async def list_autonomous_agents() -> MCPResponse:
                 },
                 {
                     "name": "RealMaestroAgent",
-                    "module": "agents.real.real_maestro_agent",
-                    "file": "agents/real/real_maestro_agent.py",
+                    "module": "twisterlab.agents.real.real_maestro_agent",
+                    "file": "src/twisterlab/agents/real/real_maestro_agent.py",
                     "mcp_tool": None,
                     "description": "Workflow orchestration and load balancing (agent coordination)",
                     "capabilities": [

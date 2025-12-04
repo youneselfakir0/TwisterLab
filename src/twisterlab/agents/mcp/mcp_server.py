@@ -119,9 +119,40 @@ class MCPServerContinue:
 
     def _handle_tools_list(self, request_id: int) -> Dict:
         tools = [
-            {"name": "twisterlab_mcp_list_autonomous_agents", "description": "List all autonomous agents", "inputSchema": {"type": "object", "properties": {}}},
-            {"name": "monitor_system_health", "description": "Monitor system health status", "inputSchema": {"type": "object", "properties": {}}},
-            {"name": "get_agent_status", "description": "Get status of a specific agent", "inputSchema": {"type": "object", "properties": {"agent_id": {"type": "string"}}}},
+            # Agent Management
+            {"name": "twisterlab_mcp_list_autonomous_agents", "description": "List all autonomous agents registered in TwisterLab", "inputSchema": {"type": "object", "properties": {}}},
+            {"name": "get_agent_status", "description": "Get detailed status of a specific agent", "inputSchema": {"type": "object", "properties": {"agent_id": {"type": "string", "description": "The agent ID to query"}}}},
+            {"name": "create_agent", "description": "Create a new autonomous agent", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}, "type": {"type": "string", "enum": ["chat", "code", "browser", "system"]}, "config": {"type": "object"}}, "required": ["name", "type"]}},
+            {"name": "delete_agent", "description": "Delete an agent by ID", "inputSchema": {"type": "object", "properties": {"agent_id": {"type": "string"}}, "required": ["agent_id"]}},
+            {"name": "execute_agent", "description": "Execute an agent with given input", "inputSchema": {"type": "object", "properties": {"agent_id": {"type": "string"}, "input": {"type": "string"}, "context": {"type": "object"}}, "required": ["agent_id", "input"]}},
+            
+            # System Monitoring
+            {"name": "monitor_system_health", "description": "Get comprehensive system health status including CPU, memory, disk, and services", "inputSchema": {"type": "object", "properties": {}}},
+            {"name": "check_service_status", "description": "Check status of a specific service", "inputSchema": {"type": "object", "properties": {"service_name": {"type": "string", "description": "Service name (api, redis, postgres, grafana, prometheus)"}}, "required": ["service_name"]}},
+            {"name": "get_system_metrics", "description": "Get current system metrics (CPU, RAM, Disk usage)", "inputSchema": {"type": "object", "properties": {}}},
+            {"name": "get_docker_containers", "description": "List all Docker containers and their status", "inputSchema": {"type": "object", "properties": {}}},
+            
+            # LLM Integration (Cortex)
+            {"name": "query_llm", "description": "Query the LLM on Cortex server", "inputSchema": {"type": "object", "properties": {"prompt": {"type": "string"}, "model": {"type": "string", "default": "llama3.2:1b"}, "temperature": {"type": "number", "default": 0.7}}, "required": ["prompt"]}},
+            {"name": "list_available_models", "description": "List all available LLM models on Cortex", "inputSchema": {"type": "object", "properties": {}}},
+            
+            # Database Operations
+            {"name": "query_database", "description": "Execute a read-only SQL query on the database", "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}, "params": {"type": "array"}}, "required": ["query"]}},
+            {"name": "get_database_stats", "description": "Get database statistics and connection info", "inputSchema": {"type": "object", "properties": {}}},
+            
+            # Cache Operations
+            {"name": "get_cache_stats", "description": "Get Redis cache statistics", "inputSchema": {"type": "object", "properties": {}}},
+            {"name": "cache_get", "description": "Get a value from Redis cache", "inputSchema": {"type": "object", "properties": {"key": {"type": "string"}}, "required": ["key"]}},
+            {"name": "cache_set", "description": "Set a value in Redis cache", "inputSchema": {"type": "object", "properties": {"key": {"type": "string"}, "value": {"type": "string"}, "ttl": {"type": "integer", "description": "Time to live in seconds"}}, "required": ["key", "value"]}},
+            
+            # Logs & Debugging
+            {"name": "get_recent_logs", "description": "Get recent logs from a service", "inputSchema": {"type": "object", "properties": {"service": {"type": "string"}, "lines": {"type": "integer", "default": 50}}, "required": ["service"]}},
+            {"name": "search_logs", "description": "Search logs for a pattern", "inputSchema": {"type": "object", "properties": {"pattern": {"type": "string"}, "service": {"type": "string"}, "since": {"type": "string", "description": "Time duration like 1h, 30m, 1d"}}, "required": ["pattern"]}},
+            
+            # API Operations
+            {"name": "api_health_check", "description": "Check TwisterLab API health", "inputSchema": {"type": "object", "properties": {}}},
+            {"name": "get_api_endpoints", "description": "List all available API endpoints", "inputSchema": {"type": "object", "properties": {}}},
+            {"name": "call_api_endpoint", "description": "Call a specific API endpoint", "inputSchema": {"type": "object", "properties": {"method": {"type": "string", "enum": ["GET", "POST", "PUT", "DELETE"]}, "endpoint": {"type": "string"}, "body": {"type": "object"}}, "required": ["method", "endpoint"]}},
         ]
         return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": tools}}
 

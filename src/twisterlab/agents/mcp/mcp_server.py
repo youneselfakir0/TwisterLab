@@ -61,6 +61,11 @@ class MCPServerContinue:
         params = request.get("params", {})
         request_id = request.get("id")
 
+        # Handle notifications (no id) - don't respond
+        if request_id is None and method not in ["initialize"]:
+            logger.info(f"Notification: {method} (no response needed)")
+            return None
+
         logger.info(f"Request: {method} (id={request_id})")
 
         try:
@@ -114,8 +119,9 @@ class MCPServerContinue:
 
     def _handle_tools_list(self, request_id: int) -> Dict:
         tools = [
-            {"name": "twisterlab_mcp_list_autonomous_agents", "description": "List...", "inputSchema": {"type": "object"}},
-            {"name": "monitor_system_health", "description": "RealMonitoringAgent", "inputSchema": {"type": "object"}},
+            {"name": "twisterlab_mcp_list_autonomous_agents", "description": "List all autonomous agents", "inputSchema": {"type": "object", "properties": {}}},
+            {"name": "monitor_system_health", "description": "Monitor system health status", "inputSchema": {"type": "object", "properties": {}}},
+            {"name": "get_agent_status", "description": "Get status of a specific agent", "inputSchema": {"type": "object", "properties": {"agent_id": {"type": "string"}}}},
         ]
         return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": tools}}
 
@@ -143,6 +149,28 @@ class MCPServerContinue:
             "result": {"content": [{"type": "text", "text": json.dumps(result)}]},
         }
 
+    def _handle_resources_list(self, request_id: int) -> Dict:
+        """Return empty resources list"""
+        return {"jsonrpc": "2.0", "id": request_id, "result": {"resources": []}}
+
+    def _handle_resources_read(self, request_id: int, params: Dict) -> Dict:
+        """Handle resource read - return empty for now"""
+        uri = params.get("uri", "")
+        return {"jsonrpc": "2.0", "id": request_id, "result": {"contents": [{"uri": uri, "text": ""}]}}
+
+    def _handle_resources_templates_list(self, request_id: int) -> Dict:
+        """Return empty resource templates list"""
+        return {"jsonrpc": "2.0", "id": request_id, "result": {"resourceTemplates": []}}
+
+    def _handle_prompts_list(self, request_id: int) -> Dict:
+        """Return empty prompts list"""
+        return {"jsonrpc": "2.0", "id": request_id, "result": {"prompts": []}}
+
+    def _handle_prompts_get(self, request_id: int, params: Dict) -> Dict:
+        """Handle prompt get"""
+        name = params.get("name", "")
+        return {"jsonrpc": "2.0", "id": request_id, "result": {"description": f"Prompt: {name}", "messages": []}}
+
     def _get_mock_response(self, tool_name: str, arguments: Dict) -> Dict:
         return {"status": "ok", "tool": tool_name, "data": {}}
 
@@ -150,6 +178,9 @@ class MCPServerContinue:
         return {"status": "success", "mode": "HYBRID", "tool": tool_name}
 
     def _error_response(self, request_id: int, code: int, message: str) -> Dict:
+        # Ensure id is never null in error responses
+        if request_id is None:
+            request_id = 0
         return {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": message}}
 
     def _call_api(self, tool_name: str, arguments: Dict) -> Dict:

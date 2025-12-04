@@ -1,0 +1,120 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'twisterlab'
+    env: 'production'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+
+  # TwisterLab API metrics
+  - job_name: 'twisterlab-api'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - twisterlab
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: twisterlab-api
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: '${1}:8000'
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+    metrics_path: /metrics
+    scheme: http
+
+  # TwisterLab MCP Server metrics
+  - job_name: 'twisterlab-mcp'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - twisterlab
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: twisterlab-mcp
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: '${1}:5000'
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+    metrics_path: /metrics
+    scheme: http
+
+  # Redis metrics (via redis_exporter)
+  - job_name: 'redis'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - twisterlab
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: redis
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: '${1}:9121'
+    metrics_path: /metrics
+
+  # PostgreSQL metrics (via postgres_exporter)
+  - job_name: 'postgresql'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - twisterlab
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        regex: postgresql
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: '${1}:9187'
+    metrics_path: /metrics
+
+  # Node exporter for infrastructure metrics
+  - job_name: 'node-exporter'
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_node_name]
+        target_label: node
+      - source_labels: [__address__]
+        regex: '(.+):10250'
+        replacement: '${1}:9100'
+        target_label: __address__
+    metrics_path: /metrics
+
+  # Fallback static config for non-K8s environments
+  - job_name: 'twisterlab-api-static'
+    static_configs:
+      - targets: ['twisterlab-api:8000']
+        labels:
+          env: 'docker'
+    metrics_path: /metrics
+
+  - job_name: 'twisterlab-mcp-static'
+    static_configs:
+      - targets: ['twisterlab-mcp:5000']
+        labels:
+          env: 'docker'
+    metrics_path: /metrics

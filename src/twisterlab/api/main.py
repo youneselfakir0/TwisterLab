@@ -78,7 +78,60 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(lifespan=lifespan)
+# OpenAPI metadata for documentation
+OPENAPI_TAGS = [
+    {
+        "name": "system",
+        "description": "System health, metrics and configuration endpoints",
+    },
+    {
+        "name": "agents",
+        "description": "Agent management: create, list, update, and delete agents",
+    },
+    {
+        "name": "mcp",
+        "description": "Model Context Protocol (MCP) server integration",
+    },
+    {
+        "name": "browser",
+        "description": "Browser automation and screenshot capabilities",
+    },
+]
+
+app = FastAPI(
+    title="TwisterLab API",
+    description="""
+## TwisterLab - Multi-Agent Orchestration Platform
+
+TwisterLab provides a unified API for managing and orchestrating AI agents.
+
+### Features
+- **Agent Management**: Register, monitor, and control multiple AI agents
+- **MCP Integration**: Model Context Protocol server for IDE integration
+- **Browser Automation**: Web scraping and screenshot capabilities
+- **System Monitoring**: Health checks, metrics, and observability
+
+### Authentication
+Currently, the API is open. Future versions will support API keys and OAuth.
+
+### Rate Limiting
+No rate limits are currently enforced.
+    """,
+    version="2.1.0",
+    openapi_tags=OPENAPI_TAGS,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    contact={
+        "name": "TwisterLab Team",
+        "url": "https://github.com/youneselfakir0/Twisterlab",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,0 +1,41 @@
+# Dockerfile for TwisterLab Unified MCP Server
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app:/app/src
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for caching
+COPY requirements.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code
+COPY src/ ./src/
+
+# Create non-root user
+RUN useradd -m -u 1000 twisterlab && chown -R twisterlab:twisterlab /app
+USER twisterlab
+
+# Health check endpoint
+EXPOSE 8080
+
+# Environment variables for services
+ENV CORTEX_ENDPOINT=http://192.168.0.20:11434
+ENV REDIS_URL=redis://redis:6379
+ENV DATABASE_URL=postgresql://twisterlab:twisterlab@postgres:5432/twisterlab_prod
+ENV MCP_LOG_LEVEL=INFO
+ENV PORT=8080
+
+# Run the unified MCP HTTP server
+CMD ["python", "-m", "twisterlab.agents.mcp.http_server"]

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/model-context-protocol/main/schema/claude_desktop_config.json",
+  "_comment": "Claude Desktop Configuration for TwisterLab MCP Server",
+  "_instructions": "Copy this file to: Windows: %APPDATA%\\Claude\\claude_desktop_config.json, Mac: ~/Library/Application Support/Claude/claude_desktop_config.json",
+  
+  "mcpServers": {
+    "twisterlab": {
+      "_comment": "TwisterLab MCP Server - HTTP proxy via npx",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic-ai/mcp-proxy@latest",
+        "--url",
+        "http://192.168.0.30:30080/mcp"
+      ],
+      "env": {
+        "MCP_LOG_LEVEL": "INFO"
+      }
+    },
+    
+    "twisterlab-direct": {
+      "_comment": "Direct HTTP connection (requires Claude Desktop with HTTP transport support)",
+      "disabled": true,
+      "transport": {
+        "type": "http",
+        "url": "http://192.168.0.30:30080/mcp"
+      }
+    }
+  },
+  
+  "_tools_available": {
+    "monitoring": [
+      "monitoring_health_check - Check health of all TwisterLab services",
+      "monitoring_get_system_metrics - Get system metrics (CPU, memory, disk)",
+      "monitoring_list_containers - List all Docker containers",
+      "monitoring_get_container_logs - Get logs from a Docker container",
+      "monitoring_get_cache_stats - Get Redis cache statistics",
+      "monitoring_get_llm_status - Check Cortex LLM server status",
+      "monitoring_list_models - List available LLM models"
+    ],
+    "maestro": [
+      "maestro_chat - Send a message to the LLM",
+      "maestro_generate - Generate text completion",
+      "maestro_orchestrate - Parse TwisterLang command",
+      "maestro_list_agents - List all available agents",
+      "maestro_analyze - Analyze data or code using LLM"
+    ],
+    "database": [
+      "database_execute_query - Execute SQL query (SELECT only)",
+      "database_list_tables - List all tables",
+      "database_describe_table - Get table schema",
+      "database_db_health - Check database health"
+    ],
+    "cache": [
+      "cache_cache_get - Get value from cache",
+      "cache_cache_set - Set value in cache",
+      "cache_cache_delete - Delete key from cache",
+      "cache_cache_keys - List cache keys",
+      "cache_cache_stats - Get cache statistics"
+    ]
+  },
+  
+  "_network": {
+    "edgeserver": "192.168.0.30 (K3s cluster)",
+    "cortex": "192.168.0.20 (Ollama LLM server)",
+    "mcp_port": 30080,
+    "api_port": 30000,
+    "grafana_port": 30300
+  }
+}

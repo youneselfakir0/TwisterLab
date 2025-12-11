@@ -30,10 +30,8 @@ COPY pyproject.toml poetry.lock ./
 # Install Poetry
 RUN pip install poetry
 
-# Install dependencies (Poetry 2.x syntax)
-RUN poetry install --no-root --without dev
-
-# Copy the application code
+    # Install dependencies (no dev group exists in pyproject.toml)
+    RUN poetry install --no-root --only main# Copy the application code
 COPY ./src/twisterlab /app/src/twisterlab
 
 # Expose the API port

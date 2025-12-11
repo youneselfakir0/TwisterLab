@@ -12,6 +12,9 @@ from twisterlab.agents.real.real_desktop_commander_agent import (
 from twisterlab.agents.real.real_maestro_agent import RealMaestroAgent
 from twisterlab.agents.real.real_monitoring_agent import RealMonitoringAgent
 from twisterlab.agents.real.real_resolver_agent import RealResolverAgent
+from twisterlab.agents.real.real_sentiment_analyzer_agent import (
+    SentimentAnalyzerAgent,
+)
 from twisterlab.agents.real.real_sync_agent import RealSyncAgent
 
 
@@ -41,6 +44,7 @@ class AgentRegistry:
         desktop_commander = RealDesktopCommanderAgent()
         maestro = RealMaestroAgent(agent_registry=self)
         browser = BrowserAgent()  # Nouvelle instanciation
+        sentiment_analyzer = SentimentAnalyzerAgent()  # Sentiment analysis agent
 
         self._agents = {
             classifier.name.lower(): classifier,
@@ -51,6 +55,7 @@ class AgentRegistry:
             desktop_commander.name.lower(): desktop_commander,
             maestro.name.lower(): maestro,
             browser.name.lower(): browser,
+            sentiment_analyzer.name.lower(): sentiment_analyzer,
         }
         print(f"Agent Registry initialized with {len(self._agents)} agents.")
 

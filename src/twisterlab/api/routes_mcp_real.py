@@ -28,6 +28,9 @@ from twisterlab.agents.real.real_desktop_commander_agent import (
 )
 from twisterlab.agents.real.real_monitoring_agent import RealMonitoringAgent
 from twisterlab.agents.real.real_resolver_agent import RealResolverAgent
+from twisterlab.agents.real.real_sentiment_analyzer_agent import (
+    SentimentAnalyzerAgent,
+)
 from twisterlab.agents.real.real_sync_agent import RealSyncAgent
 
 # Configure logging
@@ -62,7 +65,7 @@ class MCPResponse(BaseModel):
 @router.get("/list_autonomous_agents", response_model=MCPResponse)
 async def list_autonomous_agents() -> MCPResponse:
     """
-    List all 7 real autonomous agents with metadata.
+    List all 8 real autonomous agents with metadata.
 
     Returns:
         MCPResponse with agent registry data
@@ -70,7 +73,7 @@ async def list_autonomous_agents() -> MCPResponse:
     try:
         agents_data = {
             "version": "2.0.0",
-            "total": 7,
+            "total": 8,
             "base_class": "twisterlab.agents.base.TwisterAgent",
             "agents": [
                 {
@@ -176,6 +179,21 @@ async def list_autonomous_agents() -> MCPResponse:
                     ],
                     "status": "operational",
                 },
+                {
+                    "name": "SentimentAnalyzerAgent",
+                    "module": "twisterlab.agents.real.real_sentiment_analyzer_agent",
+                    "file": "src/twisterlab/agents/real/real_sentiment_analyzer_agent.py",
+                    "mcp_tool": "analyze_sentiment",
+                    "description": "Text sentiment analysis with multilingual support (EN, FR, ES, DE)",
+                    "capabilities": [
+                        "sentiment_detection",
+                        "confidence_scoring",
+                        "keyword_extraction",
+                        "multilingual_support",
+                    ],
+                    "supported_languages": ["en", "fr", "es", "de"],
+                    "status": "operational",
+                },
             ],
             "infrastructure": {
                 "database": "PostgreSQL 16",
@@ -188,7 +206,7 @@ async def list_autonomous_agents() -> MCPResponse:
             "mcp_protocol": "2024-11-05",
         }
 
-        logger.info("list_autonomous_agents called - returning 7 agents")
+        logger.info("list_autonomous_agents called - returning 8 agents")
         return MCPResponse(status="ok", data=agents_data)
 
     except Exception as e:
@@ -897,6 +915,106 @@ async def execute_command(request: ExecuteCommandRequest) -> MCPResponse:
 
 
 # ============================================================================
+# SENTIMENT ANALYSIS - Analyze Text Sentiment
+# ============================================================================
+
+
+class AnalyzeSentimentRequest(BaseModel):
+    """Request model for sentiment analysis."""
+
+    text: str = Field(..., description="Text to analyze for sentiment")
+    detailed: bool = Field(
+        default=False, description="Return detailed analysis with keyword extraction"
+    )
+
+
+@router.post("/analyze_sentiment", response_model=MCPResponse)
+async def analyze_sentiment(request: AnalyzeSentimentRequest) -> MCPResponse:
+    """
+    Analyze text sentiment using SentimentAnalyzerAgent.
+
+    **Input**:
+    - `text`: Text to analyze for sentiment
+    - `detailed`: Return detailed analysis (default: false)
+
+    **Output**:
+    - `status`: "ok" or "error"
+    - `data`: Sentiment analysis results (sentiment, confidence, keywords if detailed)
+    - `error`: Error message if status="error"
+
+    **Example**:
+    ```json
+    POST /v1/mcp/tools/analyze_sentiment
+    {
+        "text": "This is an excellent product! I love it and it works perfectly.",
+        "detailed": true
+    }
+
+    Response:
+    {
+        "status": "ok",
+        "data": {
+            "sentiment": "positive",
+            "confidence": 0.85,
+            "keywords": ["excellent", "love", "perfectly"],
+            "language": "en",
+            "text_length": 65,
+            "timestamp": "2025-12-11T15:30:00.000000+00:00"
+        },
+        "error": null,
+        "timestamp": "2025-12-11T15:30:00.000000+00:00"
+    }
+    ```
+    """
+    try:
+        logger.info(f"🎭 Analyzing sentiment for text (length: {len(request.text)})")
+        start_time = time.time()
+
+        # Initialize agent
+        agent = SentimentAnalyzerAgent()
+
+        # Prepare context
+        context = {"detailed": request.detailed}
+
+        # Execute sentiment analysis
+        result = await agent.execute(task=request.text, context=context)
+
+        # Check if analysis succeeded
+        if result.get("status") == "error":
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Sentiment analysis failed: {result.get('error', 'Unknown error')}",
+            )
+
+        # Extract sentiment data
+        sentiment_data = {
+            "sentiment": result.get("sentiment", "unknown"),
+            "confidence": result.get("confidence", 0.0),
+            "text_length": len(request.text),
+            "timestamp": result.get("timestamp", datetime.now(timezone.utc).isoformat()),
+        }
+
+        # Add detailed data if requested
+        if request.detailed:
+            sentiment_data["keywords"] = result.get("keywords", [])
+            sentiment_data["positive_score"] = result.get("positive_score", 0.0)
+            sentiment_data["negative_score"] = result.get("negative_score", 0.0)
+
+        execution_time_ms = int((time.time() - start_time) * 1000)
+        logger.info(
+            f"✅ Sentiment analysis completed in {execution_time_ms}ms: {sentiment_data['sentiment']} ({sentiment_data['confidence']:.2f})"
+        )
+
+        return MCPResponse(status="ok", data=sentiment_data)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ analyze_sentiment failed: {e}", exc_info=True)
+        return MCPResponse(status="error", error=str(e))
+
+
+# ============================================================================
 # HEALTH CHECK - MCP Service Status
 # ============================================================================
 
@@ -912,7 +1030,7 @@ async def mcp_health() -> Dict[str, Any]:
     return {
         "status": "ok",
         "mode": "REAL",
-        "tools": 6,
+        "tools": 7,
         "tools_available": [
             "classify_ticket",
             "resolve_ticket",
@@ -920,6 +1038,7 @@ async def mcp_health() -> Dict[str, Any]:
             "create_backup",
             "sync_cache_db",
             "execute_command",
+            "analyze_sentiment",
         ],
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **SentimentAnalyzerAgent**: Production-ready sentiment analysis with multilingual support (EN, FR, ES, DE)
+  - Rule-based keyword matching algorithm
+  - Confidence scoring (0.0-1.0 range)
+  - Detailed analysis mode with keyword extraction
+  - Multi-framework schema export (Microsoft, LangChain, Semantic Kernel, OpenAI)
+  - Comprehensive test suite (14 test cases, 100% pass rate)
+  - MCP tool endpoint: `/analyze_sentiment`
+  - Full documentation: `docs/agents/SENTIMENT_ANALYZER.md`
 - Automated GitHub Secrets configuration script (`quick-setup-secrets.ps1`)
 - Comprehensive GitHub Secrets documentation (`docs/GITHUB_SECRETS_GUIDE.md`)
 - Security audit report (`rapport_audit_twisterlab.md`)

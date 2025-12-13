@@ -205,3 +205,31 @@ def register_with_app(app) -> None:
             return response
 
     app.add_middleware(MetricsMiddleware)
+
+
+def get_metric_values(metric_names: list[str] | None = None) -> dict[str, float | None]:
+    """Return current metric values for requested metric names.
+
+    If metric_names is None, return all standard metrics registered by this module.
+
+    Args:
+        metric_names: List of metric names to retrieve. If None, returns default metrics.
+
+    Returns:
+        Dictionary mapping metric names to their current values
+    """
+    from prometheus_client import REGISTRY
+
+    metrics: dict[str, float | None] = {}
+    if metric_names is None:
+        metric_names = ["agent_count_total", "agent_errors_total"]
+
+    for name in metric_names:
+        try:
+            # REGISTRY.get_sample_value returns the latest value for the metric name
+            value = REGISTRY.get_sample_value(name)
+            # If no value (not yet sampled), but metric exists, return 0
+            metrics[name] = float(value) if value is not None else 0.0
+        except Exception:
+            metrics[name] = None
+    return metrics

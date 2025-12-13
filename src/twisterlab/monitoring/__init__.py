@@ -11,6 +11,7 @@ from .metrics import (
     track_agent_execution,
     track_agent_error,
     update_agent_count,
+    get_metric_values,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "track_agent_execution",
     "track_agent_error",
     "update_agent_count",
+    "get_metric_values",
 ]

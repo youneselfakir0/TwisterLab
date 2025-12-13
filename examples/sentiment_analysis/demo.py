@@ -61,9 +61,16 @@ async def demo_detailed():
     print()
     print(f"Sentiment:       {result['sentiment'].upper()}")
     print(f"Confidence:      {result['confidence']:.2%}")
-    print(f"Positive Score:  {result['positive_score']:.2%}")
-    print(f"Negative Score:  {result['negative_score']:.2%}")
-    print(f"Keywords Found:  {', '.join(result['keywords'])}")
+    
+    # Extract details if available
+    details = result.get('details', {})
+    if details:
+        print(f"Positive Score:  {details.get('positive_score', 0):.2%}")
+        print(f"Negative Score:  {details.get('negative_score', 0):.2%}")
+        keywords = details.get('detected_keywords', {})
+        all_keywords = keywords.get('positive', []) + keywords.get('negative', [])
+        if all_keywords:
+            print(f"Keywords Found:  {', '.join(all_keywords)}")
     print()
 
 
@@ -87,9 +94,14 @@ async def demo_multilingual():
         
         flag = "🇬🇧" if language == "English" else "🇫🇷"
         
+        # Extract keywords from details
+        details = result.get('details', {})
+        keywords = details.get('detected_keywords', {})
+        all_keywords = keywords.get('positive', []) + keywords.get('negative', [])
+        
         print(f"{flag} {language}: \"{text}\"")
         print(f"   Sentiment: {result['sentiment'].upper()} ({result['confidence']:.2f})")
-        print(f"   Keywords: {', '.join(result['keywords'])}")
+        print(f"   Keywords: {', '.join(all_keywords) if all_keywords else 'none'}")
         print()
 
 
@@ -174,10 +186,14 @@ async def demo_interactive():
             print(f"   Confidence: {result['confidence']:.2%}")
             
             if detailed:
-                print(f"   Positive Score: {result['positive_score']:.2%}")
-                print(f"   Negative Score: {result['negative_score']:.2%}")
-                if result.get('keywords'):
-                    print(f"   Keywords: {', '.join(result['keywords'])}")
+                details = result.get('details', {})
+                if details:
+                    print(f"   Positive Score: {details.get('positive_score', 0):.2%}")
+                    print(f"   Negative Score: {details.get('negative_score', 0):.2%}")
+                    keywords = details.get('detected_keywords', {})
+                    all_keywords = keywords.get('positive', []) + keywords.get('negative', [])
+                    if all_keywords:
+                        print(f"   Keywords: {', '.join(all_keywords)}")
             
             print()
             

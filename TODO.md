@@ -111,15 +111,15 @@
 
 ## 🔜 Phase 3.3-3.5: Observability Stack (EN COURS)
 
-### Phase 3.3: Prometheus Alerting (NEXT)
+### Phase 3.3: Prometheus Alerting ✅
 **Objectifs**: Configurer alertes pour SentimentAnalyzer
-- [ ] Alert rules YAML:
+- [x] Alert rules YAML:
   - High error rate (>10% over 5min)
   - High latency (p95 >2s over 5min)
   - Low confidence (>20% <0.5 confidence over 10min)
   - Agent down (no requests in 5min)
-- [ ] Deploy to K8s
-- [ ] Test alert firing
+- [x] Deploy to K8s
+- [x] Test alert firing
 
 ### Phase 3.4: Load Testing
 **Objectifs**: Valider performance sous charge
@@ -127,12 +127,12 @@
 - [ ] Execute load test
 - [ ] Validate SLA (p95 <1s, error rate <1%)
 
-### Phase 3.5: Monitoring Stack K8s
+### Phase 3.5: Monitoring Stack K8s ✅
 **Objectifs**: Déployer Prometheus + Grafana
-- [ ] Prometheus deployment
-- [ ] Grafana deployment
-- [ ] Import dashboard
-- [ ] ServiceMonitor CRD
+- [x] Prometheus deployment
+- [x] Grafana deployment
+- [x] Import dashboard
+- [x] ServiceMonitor CRD
 
 ---
 

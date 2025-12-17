@@ -77,17 +77,75 @@
 
 ---
 
-## 🔜 Phase 3: Prochaines étapes (À PLANIFIER)
+## ✅ Phase 3: Observability with Prometheus (TERMINÉ - 17 Dec 2025)
 
-### Suggestions d'amélioration
-1. **Monitoring avancé**
-   - Ajouter métriques Prometheus pour SentimentAnalyzer
-   - Dashboard Grafana pour l'utilisation des agents
+### Phase 3.1: Metrics Implementation ✅
+**Objectifs**: Instrumenter SentimentAnalyzer avec Prometheus
+- ✅ 5 métriques custom:
+  - `sentiment_analysis_total` (Counter by sentiment/language)
+  - `sentiment_confidence_score` (Histogram 0.0-1.0)
+  - `sentiment_keyword_matches` (Histogram 0-20)
+  - `sentiment_text_length_chars` (Histogram 10-10000)
+  - `sentiment_analysis_errors_total` (Counter by error_type)
+- ✅ Tests: 7 tests métriques (21/21 total passés)
+- ✅ Dashboard Grafana JSON (11 panels)
+
+### Phase 3.2: Production Deployment ✅
+**Objectifs**: Déployer et valider en production
+- ✅ **Problème résolu**: Routing prefix `/v1/mcp/tools` → `/api/v1/mcp`
+- ✅ **Problème résolu**: Version inconsistency 3.1.0 → 3.2.0
+- ✅ **Problème résolu**: Port confusion 30001 → 30000 (NodePort)
+- ✅ Build Docker: v3.2.0 (265MB maintained)
+- ✅ K8s rollout: 2/2 pods Running, zero downtime
+- ✅ Tests production:
+  - Endpoint: `http://192.168.0.30:30000/api/v1/mcp/analyze_sentiment`
+  - Status: **200 OK**
+  - Métriques collectées: 6 analyses (3 positive, 2 negative, 1 neutral)
+  - Performance: 100% confidence, ~2 keywords/text, ~24 chars/text
+- ✅ Git: commit 37e5f88, tag v3.2.0 pushed
+
+### Versions déployées
+- `v3.2.0` - Prometheus metrics + routing fixes (265MB)
+
+---
+
+## 🔜 Phase 3.3-3.5: Observability Stack (EN COURS)
+
+### Phase 3.3: Prometheus Alerting (NEXT)
+**Objectifs**: Configurer alertes pour SentimentAnalyzer
+- [ ] Alert rules YAML:
+  - High error rate (>10% over 5min)
+  - High latency (p95 >2s over 5min)
+  - Low confidence (>20% <0.5 confidence over 10min)
+  - Agent down (no requests in 5min)
+- [ ] Deploy to K8s
+- [ ] Test alert firing
+
+### Phase 3.4: Load Testing
+**Objectifs**: Valider performance sous charge
+- [ ] k6 script (100 users, 5min)
+- [ ] Execute load test
+- [ ] Validate SLA (p95 <1s, error rate <1%)
+
+### Phase 3.5: Monitoring Stack K8s
+**Objectifs**: Déployer Prometheus + Grafana
+- [ ] Prometheus deployment
+- [ ] Grafana deployment
+- [ ] Import dashboard
+- [ ] ServiceMonitor CRD
+
+---
+
+## 🔜 Phase 4: Futures améliorations (À PLANIFIER)
+
+### Suggestions
+1. **Advanced monitoring**
+   - Multi-agent dashboard (all 9 agents)
    - Alerting sur les erreurs d'agents
+   - Distributed tracing (OpenTelemetry)
 
 2. **Tests E2E**
    - Suite de tests Playwright pour les endpoints MCP
-   - Tests de charge (k6) sur les 9 agents
    - Tests de régression automatisés
 
 3. **Documentation**
@@ -117,12 +175,20 @@
 ### Agents (Phase 1+2)
 - **Avant**: 7 agents (sans BrowserAgent fonctionnel)
 - **Après Phase 1**: 8 agents (BrowserAgent fixé)
-- **Après Phase 2**: 9 agents (+ SentimentAnalyzer)
+- **Après Phase 2+3**: 9 agents (+ SentimentAnalyzer + Prometheus)
 
 ### Tests
 - **Phase 1**: BrowserAgent tests passed
 - **Phase 2**: 14/14 SentimentAnalyzer tests passed
+- **Phase 3**: 21/21 tests (14 agent + 7 metrics)
 - **Coverage**: TBD
+
+### Production Metrics (Phase 3.2)
+- **Analyses effectuées**: 6 (3 positive, 2 negative, 1 neutral)
+- **Confidence moyenne**: 100%
+- **Keywords par analyse**: ~2
+- **Texte moyen**: ~24 caractères
+- **Latence**: <100ms (estimated)
 
 ---
 
@@ -131,6 +197,7 @@
 - `v2.30.0` - BrowserAgent fix (hérite TwisterAgent)
 - `v3.0-optimized` - Optimisation Docker multi-stage
 - `v3.1-sentiment` - Ajout SentimentAnalyzer (9 agents)
+- `v3.2.0` - Prometheus metrics + routing fixes ⭐ CURRENT
 
 ---
 
@@ -140,3 +207,4 @@
 - Image Docker maintenue à 265MB malgré ajout de fonctionnalités
 - Tests automatisés pour chaque changement
 - MCP endpoints documentés via Swagger/ReDoc
+- Prometheus metrics exposées à `/metrics` endpoint

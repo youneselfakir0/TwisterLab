@@ -1,14 +1,24 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from fastapi import APIRouter
+from twisterlab.agents.base import TwisterAgent
 
 router = APIRouter()
 
 
-class BrowserAgent:
+class BrowserAgent(TwisterAgent):
     def __init__(self, agent_id: Optional[str] = None):
-        # Minimal constructor for tests and scaffold; agent_id is optional
-        self.agent_id = agent_id
+        # Initialize with TwisterAgent to get proper base functionality
+        super().__init__(
+            name="browser",
+            display_name="Browser Agent",
+            description="Performs browser automation and web scraping tasks",
+            role="browser",
+            tools=[{"type": "function", "function": {"name": "create_browser_tool"}}],
+        )
+        # agent_id is optional for backward compatibility
+        if agent_id:
+            self.agent_id = agent_id
 
     def execute_tool(self, tool_name: str, args: dict) -> dict:
         # Minimal stub implementation for tests: respond to 'create_browser_tool'

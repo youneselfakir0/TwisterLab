@@ -2,10 +2,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: twisterlab-api
+  namespace: twisterlab
   labels:
     app: twisterlab
+    component: api
+    version: v1
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: twisterlab
@@ -17,32 +20,63 @@ spec:
         component: api
     spec:
       containers:
-        - name: twisterlab-api
-          image: twisterlab-api:latest
+        - name: api
+          image: localhost:5000/twisterlab-api:v2.30-final
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
+              name: http
           env:
-            - name: DATABASE_URL
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: twisterlab-config
+                  key: ENVIRONMENT
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: twisterlab-config
+                  key: LOG_LEVEL
+            - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: twisterlab-secrets
-                  key: database_url
-            - name: REDIS_URL
+                  key: SECRET_KEY
+            - name: JWT_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: twisterlab-secrets
-                  key: redis_url
+                  key: JWT_SECRET_KEY
+            - name: POSTGRES_HOST
+              value: "postgres.twisterlab.svc.cluster.local"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: twisterlab-secrets
+                  key: POSTGRES_PASSWORD
+            - name: REDIS_HOST
+              value: "redis.twisterlab.svc.cluster.local"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: twisterlab-secrets
+                  key: REDIS_PASSWORD
           readinessProbe:
             httpGet:
-              path: /health
+              path: /
               port: 8000
             initialDelaySeconds: 5
-            periodSeconds: 10
+            periodSeconds: 5
           livenessProbe:
             httpGet:
-              path: /health
+              path: /
               port: 8000
-            initialDelaySeconds: 15
-            periodSeconds: 20
-      imagePullSecrets:
-        - name: regcred
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"

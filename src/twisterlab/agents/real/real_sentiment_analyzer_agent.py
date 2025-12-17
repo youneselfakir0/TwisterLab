@@ -1,4 +1,4 @@
-"""
+﻿"""
 SentimentAnalyzerAgent - Analyzes text sentiment (positive/negative/neutral).
 
 Part of TwisterLab autonomous agent system.
@@ -44,13 +44,13 @@ Provide a confidence score (0.0-1.0) for your classification.""",
         self.positive_keywords = {
             "excellent", "great", "amazing", "wonderful", "fantastic",
             "love", "happy", "good", "best", "awesome", "perfect",
-            "génial", "super", "excellent", "formidable", "merveilleux"
+            "g├⌐nial", "super", "excellent", "formidable", "merveilleux"
         }
         
         self.negative_keywords = {
             "terrible", "awful", "bad", "worst", "hate", "horrible",
             "poor", "disappointing", "frustrating", "angry", "sad",
-            "mauvais", "horrible", "nul", "catastrophique", "déçu"
+            "mauvais", "horrible", "nul", "catastrophique", "d├⌐├ºu"
         }
 
     async def execute(self, task: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:

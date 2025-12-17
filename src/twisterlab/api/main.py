@@ -1,4 +1,10 @@
+import sys
 from pathlib import Path
+
+# Add /app to sys.path to ensure twisterlab package is found
+if '/app' not in sys.path:
+    sys.path.insert(0, '/app')
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -35,6 +41,23 @@ async def lifespan(app: FastAPI):
             import logging
 
             logging.getLogger(__name__).exception("Failed to initialize DB tables")
+        except Exception:
+            pass
+    
+    # Initialize Agent Registry with all agents
+    try:
+        from twisterlab.agents.registry import AgentRegistry
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        logger.info("Initializing AgentRegistry...")
+        registry = AgentRegistry()
+        registry.initialize_agents()
+        logger.info(f"AgentRegistry initialized with {len(registry._agents)} agents")
+    except Exception as e:
+        try:
+            import logging
+            logging.getLogger(__name__).exception(f"Failed to initialize AgentRegistry: {e}")
         except Exception:
             pass
     # Register monitoring metrics in a guarded way

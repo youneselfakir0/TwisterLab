@@ -1,7 +1,7 @@
 from typing import Dict
 
-from twisterlab.agents.base.unified_agent import UnifiedAgentBase
-from twisterlab.agents.real.browser_agent import BrowserAgent  # Nouvelle importation
+from twisterlab.agents.base.base_agent import BaseAgent
+from twisterlab.agents.real.browser_agent import BrowserAgent
 from twisterlab.agents.real.real_backup_agent import RealBackupAgent
 
 # Importe les classes d'agents v2 que nous avons refactorisées
@@ -25,7 +25,7 @@ class AgentRegistry:
     """
 
     _instance = None
-    _agents: Dict[str, UnifiedAgentBase] = {}
+    _agents: Dict[str, BaseAgent] = {}
 
     def __new__(cls):
         if cls._instance is None:
@@ -43,7 +43,7 @@ class AgentRegistry:
         sync = RealSyncAgent()
         desktop_commander = RealDesktopCommanderAgent()
         maestro = RealMaestroAgent(agent_registry=self)
-        browser = BrowserAgent()  # Nouvelle instanciation
+        browser = BrowserAgent()  # Browser agent with BaseAgent inheritance
         sentiment_analyzer = SentimentAnalyzerAgent()  # Sentiment analysis agent
 
         self._agents = {
@@ -59,7 +59,7 @@ class AgentRegistry:
         }
         print(f"Agent Registry initialized with {len(self._agents)} agents.")
 
-    def get_agent(self, name: str) -> UnifiedAgentBase:
+    def get_agent(self, name: str) -> BaseAgent:
         """Récupère une instance d'agent par son nom."""
         # Support multiple naming conventions for agent lookup to be forgiving
         if not name:

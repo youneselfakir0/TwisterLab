@@ -5,18 +5,57 @@ All notable changes to TwisterLab will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2025-12-17
+
+### Added
+
+- **SentimentAnalyzer Agent**: Restored sentiment analysis agent (9th agent)
+  - Multilingual sentiment analysis (English, French, Spanish, German)
+  - Rule-based keyword matching with confidence scoring
+  - Detailed analysis mode with keyword extraction
+  - MCP endpoint `/analyze_sentiment` ready for production
+  - Comprehensive test suite (14 test cases, 100% pass rate)
+- **Agent Registry**: Updated to 9 agents total
+  - classifier, resolver, monitoring, backup, sync, desktop-commander, maestro, browser, **sentiment-analyzer**
+
+### Changed
+
+- **Phase 2**: Completed restoration of SentimentAnalyzer from Git history (commit fc11fcd)
+
+## [2.30.0] - 2025-12-17
+
+### Fixed
+
+- **BrowserAgent Architecture**: Fixed BrowserAgent to properly inherit from `TwisterAgent` instead of `BaseAgent`
+  - Resolves `TypeError: Can't instantiate abstract class BrowserAgent with abstract method _process`
+  - Resolves `AttributeError: 'BrowserAgent' object has no attribute 'name'`
+  - Proper initialization with name, display_name, description, role, and tools
+  - Follows TwisterLab agent architecture pattern
+- **Agent Registry**: Removed non-existent SentimentAnalyzerAgent references
+  - Cleaned imports and registry dictionary
+  - Maintains 8 functional agents: classifier, resolver, monitoring, backup, sync, desktop_commander, maestro, browser
+- **Dependencies**: Added `aiosqlite>=0.19.0` for async SQLite support
+- **Imports**: Fixed registry.py import from `unified_agent` to `base_agent`
+- **Project Structure**: Cleaned root directory, moved build archives to `deploy/` folder
+- **Kubernetes Deployment**: Updated health check paths and environment variable configuration
+
+### Changed
+
+- Updated K8s deployment manifest to use v2.30-final as stable production version
+- Deployment now uses proper environment variables (POSTGRES_HOST, REDIS_HOST, etc.)
+- Health checks now use root path `/` for simplicity
+
+### Deployment
+
+- Image: `localhost:5000/twisterlab-api:v2.30-final`
+- Digest: `sha256:d118ecfce05cb6c98ded514d259efdd556cf04aec28f9399398a5c8cb28841b5`
+- All 8 agents successfully initialized
+- Zero errors in production logs
+
 ## [Unreleased]
 
 ### Added
 
-- **SentimentAnalyzerAgent**: Production-ready sentiment analysis with multilingual support (EN, FR, ES, DE)
-  - Rule-based keyword matching algorithm
-  - Confidence scoring (0.0-1.0 range)
-  - Detailed analysis mode with keyword extraction
-  - Multi-framework schema export (Microsoft, LangChain, Semantic Kernel, OpenAI)
-  - Comprehensive test suite (14 test cases, 100% pass rate)
-  - MCP tool endpoint: `/analyze_sentiment`
-  - Full documentation: `docs/agents/SENTIMENT_ANALYZER.md`
 - Automated GitHub Secrets configuration script (`quick-setup-secrets.ps1`)
 - Comprehensive GitHub Secrets documentation (`docs/GITHUB_SECRETS_GUIDE.md`)
 - Security audit report (`rapport_audit_twisterlab.md`)

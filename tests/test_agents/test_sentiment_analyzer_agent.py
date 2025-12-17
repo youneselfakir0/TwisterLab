@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unit tests for SentimentAnalyzerAgent.
 """
 
@@ -71,7 +71,7 @@ class TestSentimentAnalyzerAgent:
 
     async def test_french_text(self, agent):
         """Test sentiment analysis with French text."""
-        result = await agent.execute("C'est génial et super formidable!")
+        result = await agent.execute("C'est g├⌐nial et super formidable!")
         
         assert result["sentiment"] == "positive"
         assert result["confidence"] > 0

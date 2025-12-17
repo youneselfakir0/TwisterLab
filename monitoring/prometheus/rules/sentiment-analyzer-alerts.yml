@@ -1,0 +1,243 @@
+# Prometheus Alert Rules for SentimentAnalyzer
+# TwisterLab v3.2.0 - Phase 3.3
+# 
+# These rules monitor the health and performance of the SentimentAnalyzer agent
+# Deploy to Prometheus via ConfigMap in K8s
+
+groups:
+  - name: sentiment_analyzer_alerts
+    interval: 30s
+    rules:
+      # CRITICAL: Agent completely down or unresponsive
+      - alert: SentimentAnalyzerDown
+        expr: |
+          absent(agent_requests_total{agent_name="sentiment-analyzer"}) == 1
+          or
+          (time() - max(timestamp(agent_requests_total{agent_name="sentiment-analyzer"}))) > 300
+        for: 5m
+        labels:
+          severity: critical
+          component: sentiment-analyzer
+          team: ai-agents
+        annotations:
+          summary: "SentimentAnalyzer appears down or unresponsive"
+          description: |
+            The SentimentAnalyzer agent has not processed any requests in the last 5 minutes.
+            This could indicate:
+            - Pod crash or restart loop
+            - Network connectivity issues
+            - Agent initialization failure
+            
+            Check pod logs: kubectl logs -l app=twisterlab-api -n twisterlab --tail=100
+          runbook_url: "https://github.com/youneselfakir0/twisterlab/docs/OPERATIONS/sentiment-analyzer-down.md"
+
+      # WARNING: High error rate over 5 minutes
+      - alert: SentimentAnalyzerHighErrorRate
+        expr: |
+          (
+            sum(rate(agent_requests_total{agent_name="sentiment-analyzer",status="error"}[5m]))
+            /
+            sum(rate(agent_requests_total{agent_name="sentiment-analyzer"}[5m]))
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+          component: sentiment-analyzer
+          team: ai-agents
+        annotations:
+          summary: "High error rate for SentimentAnalyzer (>10%)"
+          description: |
+            Error rate is {{ $value | humanizePercentage }} over the last 5 minutes.
+            Threshold: 10%
+            
+            Common causes:
+            - Invalid input text (empty, too long, encoding issues)
+            - Missing language detection
+            - Keyword dictionary corruption
+            
+            Check recent errors: kubectl logs -l app=twisterlab-api -n twisterlab --tail=50 | grep "ERROR.*sentiment"
+          runbook_url: "https://github.com/youneselfakir0/twisterlab/docs/OPERATIONS/sentiment-analyzer-errors.md"
+
+      # WARNING: High latency (p95 >2 seconds)
+      - alert: SentimentAnalyzerHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(agent_execution_time_seconds_bucket{agent_name="sentiment-analyzer"}[5m])
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          component: sentiment-analyzer
+          team: ai-agents
+        annotations:
+          summary: "High p95 latency for SentimentAnalyzer (>2s)"
+          description: |
+            95th percentile latency is {{ $value | humanizeDuration }} over the last 5 minutes.
+            Threshold: 2 seconds
+            
+            Possible causes:
+            - CPU/memory resource constraints
+            - Large text input (>10000 chars)
+            - High concurrent load
+            - Slow regex pattern matching
+            
+            Check resource usage: kubectl top pods -l app=twisterlab-api -n twisterlab
+          runbook_url: "https://github.com/youneselfakir0/twisterlab/docs/OPERATIONS/sentiment-analyzer-performance.md"
+
+      # INFO: High rate of low confidence scores
+      - alert: SentimentAnalyzerLowConfidence
+        expr: |
+          (
+            sum(rate(sentiment_confidence_score_bucket{le="0.5"}[10m]))
+            /
+            sum(rate(sentiment_confidence_score_count[10m]))
+          ) > 0.20
+        for: 10m
+        labels:
+          severity: info
+          component: sentiment-analyzer
+          team: ai-agents
+        annotations:
+          summary: "High rate of low confidence scores (>20%)"
+          description: |
+            {{ $value | humanizePercentage }} of sentiment analyses have confidence <0.5 over the last 10 minutes.
+            Threshold: 20%
+            
+            This indicates:
+            - Ambiguous or neutral text (e.g., "It's okay")
+            - Mixed sentiment in single text
+            - Text in unsupported language
+            - Need for keyword dictionary expansion
+            
+            This is informational - no immediate action required unless sustained.
+          runbook_url: "https://github.com/youneselfakir0/twisterlab/docs/OPERATIONS/sentiment-analyzer-quality.md"
+
+      # WARNING: High rate of sentiment analysis errors
+      - alert: SentimentAnalyzerErrorSpike
+        expr: |
+          rate(sentiment_analysis_errors_total[5m]) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          component: sentiment-analyzer
+          team: ai-agents
+        annotations:
+          summary: "Spike in sentiment analysis errors (>0.5/s)"
+          description: |
+            Sentiment analysis errors are occurring at {{ $value | humanize }}/s over the last 5 minutes.
+            
+            Check error types:
+            - sentiment_analysis_errors_total{error_type="empty_text"}
+            - sentiment_analysis_errors_total{error_type="encoding_error"}
+            - sentiment_analysis_errors_total{error_type="unknown"}
+            
+            Query Prometheus: sentiment_analysis_errors_total
+          runbook_url: "https://github.com/youneselfakir0/twisterlab/docs/OPERATIONS/sentiment-analyzer-errors.md"
+
+      # INFO: Unusual text length distribution
+      - alert: SentimentAnalyzerUnusualTextLength
+        expr: |
+          (
+            sum(rate(sentiment_text_length_chars_bucket{le="10.0"}[10m]))
+            /
+            sum(rate(sentiment_text_length_chars_count[10m]))
+          ) > 0.30
+        for: 15m
+        labels:
+          severity: info
+          component: sentiment-analyzer
+          team: ai-agents
+        annotations:
+          summary: "High rate of very short text inputs (>30%)"
+          description: |
+            {{ $value | humanizePercentage }} of analyzed texts are ≤10 characters over the last 15 minutes.
+            
+            Very short texts may produce unreliable sentiment scores.
+            Consider:
+            - Input validation on client side
+            - Minimum text length requirement
+            - Different analysis for short vs long text
+            
+            This is informational - review usage patterns.
+
+      # WARNING: No keyword matches (potential dictionary issue)
+      - alert: SentimentAnalyzerNoKeywordMatches
+        expr: |
+          (
+            sum(rate(sentiment_keyword_matches_bucket{le="0.0"}[10m]))
+            /
+            sum(rate(sentiment_keyword_matches_count[10m]))
+          ) > 0.50
+        for: 10m
+        labels:
+          severity: warning
+          component: sentiment-analyzer
+          team: ai-agents
+        annotations:
+          summary: "High rate of zero keyword matches (>50%)"
+          description: |
+            {{ $value | humanizePercentage }} of analyses found 0 keywords over the last 10 minutes.
+            
+            This could indicate:
+            - Keyword dictionary not loaded
+            - Text in unsupported language
+            - Non-textual input (numbers, symbols)
+            - Dictionary needs expansion
+            
+            Verify: curl http://192.168.0.30:30000/api/v1/mcp/analyze_sentiment -d '{"text":"fantastic amazing terrible horrible"}'
+          runbook_url: "https://github.com/youneselfakir0/twisterlab/docs/OPERATIONS/sentiment-analyzer-quality.md"
+
+  # Multi-agent health monitoring (includes SentimentAnalyzer)
+  - name: agent_system_alerts
+    interval: 30s
+    rules:
+      # CRITICAL: Total agent failure rate too high
+      - alert: AgentSystemHighFailureRate
+        expr: |
+          (
+            sum(rate(agent_requests_total{status="error"}[5m]))
+            /
+            sum(rate(agent_requests_total[5m]))
+          ) > 0.15
+        for: 5m
+        labels:
+          severity: critical
+          component: agent-system
+          team: platform
+        annotations:
+          summary: "High failure rate across all agents (>15%)"
+          description: |
+            Overall agent failure rate is {{ $value | humanizePercentage }}.
+            
+            Breakdown by agent:
+            - classifier: {{ with query "rate(agent_requests_total{agent_name='classifier',status='error'}[5m])" }}{{ . | first | value | humanize }}{{ end }}/s
+            - resolver: {{ with query "rate(agent_requests_total{agent_name='resolver',status='error'}[5m])" }}{{ . | first | value | humanize }}{{ end }}/s
+            - sentiment-analyzer: {{ with query "rate(agent_requests_total{agent_name='sentiment-analyzer',status='error'}[5m])" }}{{ . | first | value | humanize }}{{ end }}/s
+            
+            Check system-wide issues: infrastructure, database, network
+          runbook_url: "https://github.com/youneselfakir0/twisterlab/docs/OPERATIONS/system-health.md"
+
+      # WARNING: Agent execution latency across all agents
+      - alert: AgentSystemHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(agent_execution_time_seconds_bucket[5m])) by (le)
+          ) > 5.0
+        for: 5m
+        labels:
+          severity: warning
+          component: agent-system
+          team: platform
+        annotations:
+          summary: "High overall agent latency (p95 >5s)"
+          description: |
+            System-wide p95 latency is {{ $value | humanizeDuration }}.
+            
+            Check per-agent latency:
+            Query: histogram_quantile(0.95, rate(agent_execution_time_seconds_bucket[5m])) by (agent_name)
+            
+            Possible causes:
+            - Database connection pool exhaustion
+            - Redis connection issues
+            - CPU throttling
+          runbook_url: "https://github.com/youneselfakir0/twisterlab/docs/OPERATIONS/performance-tuning.md"

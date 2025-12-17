@@ -1,0 +1,287 @@
+# Prometheus Deployment with SentimentAnalyzer Alert Rules
+# TwisterLab v3.2.0 - Phase 3.3
+# 
+# Deploy with: kubectl apply -f k8s/monitoring/prometheus-deployment.yaml
+# Access UI: http://192.168.0.30:30090
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+
+---
+# ConfigMap: Prometheus Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: twisterlab
+        environment: production
+
+    # Load alert rules
+    rule_files:
+      - /etc/prometheus/rules/sentiment-analyzer-alerts.yml
+
+    # Scrape configurations
+    scrape_configs:
+      # TwisterLab API - Direct pod scraping
+      - job_name: 'twisterlab-api'
+        static_configs:
+          - targets:
+              - '192.168.0.30:30000'  # NodePort service
+            labels:
+              service: twisterlab-api
+              namespace: twisterlab
+
+      # TwisterLab API - Kubernetes service discovery (alternative)
+      - job_name: 'twisterlab-api-k8s'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - twisterlab
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: twisterlab-api
+          - source_labels: [__meta_kubernetes_pod_ip]
+            target_label: __address__
+            replacement: ${1}:8000
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+        metrics_path: /metrics
+
+      # Prometheus self-monitoring
+      - job_name: 'prometheus'
+        static_configs:
+          - targets:
+              - 'localhost:9090'
+
+---
+# ConfigMap: Alert Rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentiment-analyzer-alerts
+  namespace: monitoring
+data:
+  sentiment-analyzer-alerts.yml: |
+    groups:
+      - name: sentiment_analyzer_alerts
+        interval: 30s
+        rules:
+          - alert: SentimentAnalyzerDown
+            expr: |
+              absent(agent_requests_total{agent_name="sentiment-analyzer"}) == 1
+              or
+              (time() - max(timestamp(agent_requests_total{agent_name="sentiment-analyzer"}))) > 300
+            for: 5m
+            labels:
+              severity: critical
+              component: sentiment-analyzer
+            annotations:
+              summary: "SentimentAnalyzer appears down or unresponsive"
+              description: "No requests processed in last 5 minutes"
+
+          - alert: SentimentAnalyzerHighErrorRate
+            expr: |
+              (
+                sum(rate(agent_requests_total{agent_name="sentiment-analyzer",status="error"}[5m]))
+                /
+                sum(rate(agent_requests_total{agent_name="sentiment-analyzer"}[5m]))
+              ) > 0.10
+            for: 5m
+            labels:
+              severity: warning
+              component: sentiment-analyzer
+            annotations:
+              summary: "High error rate for SentimentAnalyzer (>10%)"
+              description: "Error rate is {{ $value | humanizePercentage }}"
+
+          - alert: SentimentAnalyzerHighLatency
+            expr: |
+              histogram_quantile(0.95,
+                rate(agent_execution_time_seconds_bucket{agent_name="sentiment-analyzer"}[5m])
+              ) > 2.0
+            for: 5m
+            labels:
+              severity: warning
+              component: sentiment-analyzer
+            annotations:
+              summary: "High p95 latency for SentimentAnalyzer (>2s)"
+              description: "p95 latency is {{ $value }}s"
+
+          - alert: SentimentAnalyzerLowConfidence
+            expr: |
+              (
+                sum(rate(sentiment_confidence_score_bucket{le="0.5"}[10m]))
+                /
+                sum(rate(sentiment_confidence_score_count[10m]))
+              ) > 0.20
+            for: 10m
+            labels:
+              severity: info
+              component: sentiment-analyzer
+            annotations:
+              summary: "High rate of low confidence scores (>20%)"
+              description: "{{ $value | humanizePercentage }} of analyses have confidence <0.5"
+
+---
+# PersistentVolumeClaim: Prometheus Data Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-pvc
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  # storageClassName: local-path  # Uncomment for k3s/local-path provisioner
+
+---
+# ServiceAccount: Prometheus
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
+
+---
+# ClusterRole: Prometheus
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/proxy
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      - configmaps
+    verbs: ["get"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+
+---
+# ClusterRoleBinding: Prometheus
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: monitoring
+
+---
+# Deployment: Prometheus
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.48.0
+          args:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--storage.tsdb.retention.time=30d'
+            - '--web.enable-lifecycle'
+            - '--web.enable-admin-api'
+          ports:
+            - containerPort: 9090
+              name: http
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: alert-rules
+              mountPath: /etc/prometheus/rules
+            - name: storage
+              mountPath: /prometheus
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 30
+            periodSeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        - name: alert-rules
+          configMap:
+            name: sentiment-analyzer-alerts
+        - name: storage
+          persistentVolumeClaim:
+            claimName: prometheus-pvc
+
+---
+# Service: Prometheus (NodePort)
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+spec:
+  type: NodePort
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30090
+      protocol: TCP
+      name: http
+  selector:
+    app: prometheus

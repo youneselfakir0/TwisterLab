@@ -4,8 +4,24 @@ SentimentAnalyzerAgent - Analyzes text sentiment (positive/negative/neutral).
 Part of TwisterLab autonomous agent system.
 """
 
+import time
 from typing import Any, Dict, List, Optional
 from twisterlab.agents.base import TwisterAgent
+
+# Import Prometheus metrics
+try:
+    from twisterlab.agents.metrics import (
+        sentiment_analysis_total,
+        sentiment_confidence_score,
+        sentiment_keyword_matches,
+        sentiment_text_length,
+        sentiment_analysis_errors,
+        agent_requests_total,
+        agent_execution_time_seconds,
+    )
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
 
 
 class SentimentAnalyzerAgent(TwisterAgent):
@@ -72,23 +88,46 @@ Provide a confidence score (0.0-1.0) for your classification.""",
                 - analyzed_text: original text
         """
         context = context or {}
+        start_time = time.time()
+        language = context.get("language", "auto")
         
         try:
+            # Track request
+            if METRICS_AVAILABLE:
+                agent_requests_total.labels(agent_name="sentiment-analyzer", status="started").inc()
+            
             # Extract parameters
             text = task.strip()
-            threshold = context.get("threshold", 0.6)
             detailed = context.get("detailed", False)
             
             if not text:
+                if METRICS_AVAILABLE:
+                    agent_requests_total.labels(agent_name="sentiment-analyzer", status="error").inc()
+                    sentiment_analysis_errors.labels(error_type="empty_text").inc()
                 return {
                     "error": "No text provided for analysis",
                     "sentiment": "neutral",
                     "confidence": 0.0
                 }
             
+            # Track text length
+            if METRICS_AVAILABLE:
+                sentiment_text_length.observe(len(text))
+            
             # Perform simple rule-based analysis
             # In production, this would call an LLM or ML model
             sentiment, confidence, scores = self._analyze_simple(text)
+            
+            # Track metrics
+            if METRICS_AVAILABLE:
+                # Count by sentiment type and language
+                sentiment_analysis_total.labels(sentiment=sentiment, language=language).inc()
+                
+                # Track confidence distribution
+                sentiment_confidence_score.labels(sentiment=sentiment).observe(confidence)
+                
+                # Success request
+                agent_requests_total.labels(agent_name="sentiment-analyzer", status="success").inc()
             
             result = {
                 "sentiment": sentiment,
@@ -99,22 +138,37 @@ Provide a confidence score (0.0-1.0) for your classification.""",
             }
             
             if detailed:
+                detected_keywords = self._get_detected_keywords(text)
+                
+                # Track keyword matches
+                if METRICS_AVAILABLE:
+                    sentiment_keyword_matches.labels(sentiment=sentiment).observe(len(detected_keywords))
+                
                 result["details"] = {
                     "positive_score": round(scores["positive"], 3),
                     "negative_score": round(scores["negative"], 3),
                     "neutral_score": round(scores["neutral"], 3),
                     "word_count": len(text.split()),
-                    "detected_keywords": self._get_detected_keywords(text)
+                    "detected_keywords": detected_keywords
                 }
             
             return result
             
         except Exception as e:
+            if METRICS_AVAILABLE:
+                agent_requests_total.labels(agent_name="sentiment-analyzer", status="error").inc()
+                sentiment_analysis_errors.labels(error_type="exception").inc()
+            
             return {
                 "error": f"Sentiment analysis failed: {str(e)}",
                 "sentiment": "neutral",
                 "confidence": 0.0
             }
+        finally:
+            # Track execution time
+            if METRICS_AVAILABLE:
+                duration = time.time() - start_time
+                agent_execution_time_seconds.labels(agent_name="sentiment-analyzer").observe(duration)
 
     def _analyze_simple(self, text: str) -> tuple:
         """

@@ -1,0 +1,492 @@
+{
+  "dashboard": {
+    "title": "TwisterLab - SentimentAnalyzer Metrics",
+    "tags": ["twisterlab", "sentiment", "agents"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Sentiment Analyses",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(sentiment_analysis_total)",
+            "legendFormat": "Total Analyses",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "blue"},
+                {"value": 100, "color": "green"},
+                {"value": 1000, "color": "yellow"}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Success vs Error Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(agent_requests_total{agent_name=\"sentiment-analyzer\",status=\"success\"}[5m]) / rate(agent_requests_total{agent_name=\"sentiment-analyzer\"}[5m]) * 100",
+            "legendFormat": "Success Rate %",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 6,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 90, "color": "yellow"},
+                {"value": 99, "color": "green"}
+              ]
+            },
+            "unit": "percent",
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Average Execution Time",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(agent_execution_time_seconds_sum{agent_name=\"sentiment-analyzer\"}[5m]) / rate(agent_execution_time_seconds_count{agent_name=\"sentiment-analyzer\"}[5m])",
+            "legendFormat": "Avg Latency",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 0.5, "color": "yellow"},
+                {"value": 1.0, "color": "red"}
+              ]
+            },
+            "unit": "s",
+            "decimals": 3
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Current Error Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(sentiment_analysis_errors_total[5m]))",
+            "legendFormat": "Errors/sec",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 18,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 0.01, "color": "yellow"},
+                {"value": 0.1, "color": "red"}
+              ]
+            },
+            "unit": "ops",
+            "decimals": 4
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Sentiment Distribution (Pie Chart)",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (sentiment) (sentiment_analysis_total)",
+            "legendFormat": "{{sentiment}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 4,
+          "w": 8,
+          "h": 8
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right",
+            "values": ["value", "percent"]
+          },
+          "pieType": "pie",
+          "tooltip": {
+            "mode": "single"
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "tooltip": false,
+                "viz": false,
+                "legend": false
+              }
+            },
+            "mappings": [],
+            "unit": "short"
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "positive"},
+              "properties": [
+                {"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "negative"},
+              "properties": [
+                {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}
+              ]
+            },
+            {
+              "matcher": {"id": "byName", "options": "neutral"},
+              "properties": [
+                {"id": "color", "value": {"fixedColor": "blue", "mode": "fixed"}}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 6,
+        "title": "Confidence Score Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "sum by (le, sentiment) (rate(sentiment_confidence_score_bucket[5m]))",
+            "legendFormat": "{{sentiment}}",
+            "refId": "A",
+            "format": "heatmap"
+          }
+        ],
+        "gridPos": {
+          "x": 8,
+          "y": 4,
+          "w": 16,
+          "h": 8
+        },
+        "options": {
+          "calculate": true,
+          "color": {
+            "mode": "scheme",
+            "scheme": "Spectral",
+            "steps": 128
+          },
+          "yAxis": {
+            "axisLabel": "Confidence Score",
+            "decimals": 1,
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Request Rate (per minute)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(agent_requests_total{agent_name=\"sentiment-analyzer\",status=\"success\"}[1m])) * 60",
+            "legendFormat": "Success",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(agent_requests_total{agent_name=\"sentiment-analyzer\",status=\"error\"}[1m])) * 60",
+            "legendFormat": "Error",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 12,
+          "w": 12,
+          "h": 8
+        },
+        "yaxes": [
+          {
+            "format": "reqpm",
+            "label": "Requests/min",
+            "logBase": 1,
+            "min": "0"
+          },
+          {
+            "format": "short"
+          }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "points": false,
+        "pointradius": 5,
+        "bars": false,
+        "stack": false,
+        "legend": {
+          "show": true,
+          "values": true,
+          "min": true,
+          "max": true,
+          "current": true,
+          "total": false,
+          "avg": true,
+          "alignAsTable": true,
+          "rightSide": false
+        }
+      },
+      {
+        "id": 8,
+        "title": "Execution Time Percentiles",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(agent_execution_time_seconds_bucket{agent_name=\"sentiment-analyzer\"}[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(agent_execution_time_seconds_bucket{agent_name=\"sentiment-analyzer\"}[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(agent_execution_time_seconds_bucket{agent_name=\"sentiment-analyzer\"}[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 12,
+          "w": 12,
+          "h": 8
+        },
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Latency",
+            "logBase": 1,
+            "min": "0"
+          },
+          {
+            "format": "short"
+          }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "points": false,
+        "pointradius": 5,
+        "bars": false,
+        "stack": false,
+        "legend": {
+          "show": true,
+          "values": true,
+          "min": true,
+          "max": true,
+          "current": true,
+          "total": false,
+          "avg": true,
+          "alignAsTable": true,
+          "rightSide": false
+        }
+      },
+      {
+        "id": 9,
+        "title": "Sentiment Trend Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (sentiment) (rate(sentiment_analysis_total[5m])) * 60",
+            "legendFormat": "{{sentiment}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 20,
+          "w": 24,
+          "h": 8
+        },
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Analyses/min",
+            "logBase": 1,
+            "min": "0"
+          },
+          {
+            "format": "short"
+          }
+        ],
+        "lines": true,
+        "fill": 3,
+        "linewidth": 2,
+        "points": false,
+        "pointradius": 5,
+        "bars": false,
+        "stack": true,
+        "legend": {
+          "show": true,
+          "values": true,
+          "min": true,
+          "max": true,
+          "current": true,
+          "total": true,
+          "avg": true,
+          "alignAsTable": true,
+          "rightSide": true
+        },
+        "seriesOverrides": [
+          {
+            "alias": "positive",
+            "color": "#73BF69"
+          },
+          {
+            "alias": "negative",
+            "color": "#F2495C"
+          },
+          {
+            "alias": "neutral",
+            "color": "#5794F2"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Text Length Distribution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(sentiment_text_length_chars_bucket[5m]))",
+            "legendFormat": "Median Length",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(sentiment_text_length_chars_bucket[5m]))",
+            "legendFormat": "p95 Length",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 28,
+          "w": 12,
+          "h": 6
+        },
+        "yaxes": [
+          {
+            "format": "short",
+            "label": "Characters",
+            "logBase": 1,
+            "min": "0"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Error Types",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (error_type) (rate(sentiment_analysis_errors_total[5m])) * 60",
+            "legendFormat": "{{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 28,
+          "w": 12,
+          "h": 6
+        },
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Errors/min",
+            "logBase": 1,
+            "min": "0"
+          },
+          {
+            "format": "short"
+          }
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "stack": false
+      }
+    ],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h"]
+    }
+  }
+}

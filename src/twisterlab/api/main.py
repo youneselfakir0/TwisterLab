@@ -143,7 +143,7 @@ Currently, the API is open. Future versions will support API keys and OAuth.
 ### Rate Limiting
 No rate limits are currently enforced.
     """,
-    version="2.1.0",
+    version="3.2.0",
     openapi_tags=OPENAPI_TAGS,
     docs_url="/docs",
     redoc_url="/redoc",

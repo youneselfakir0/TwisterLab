@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "twisterlab"
-version = "3.1.0"
+version = "3.2.0"
 description = "TwisterLab: A multi-agent AI infrastructure."
 authors = ["Your Name <youremail@example.com>"]
 license = "MIT"

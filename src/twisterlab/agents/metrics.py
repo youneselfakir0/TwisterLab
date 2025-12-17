@@ -218,6 +218,47 @@ classifier_llm_error = _create_metric(
     ["error_type"],
 )
 
+
+# -------------------------------
+# SentimentAnalyzer metrics
+# -------------------------------
+sentiment_analysis_total = _create_metric(
+    Counter,
+    "sentiment_analysis_total",
+    "Total sentiment analyses performed",
+    ["sentiment", "language"],
+)
+
+sentiment_confidence_score = _create_metric(
+    Histogram,
+    "sentiment_confidence_score",
+    "Distribution of sentiment confidence scores",
+    ["sentiment"],
+    buckets=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+)
+
+sentiment_keyword_matches = _create_metric(
+    Histogram,
+    "sentiment_keyword_matches",
+    "Number of keywords matched per analysis",
+    ["sentiment"],
+    buckets=[0, 1, 2, 3, 5, 10, 15, 20],
+)
+
+sentiment_text_length = _create_metric(
+    Histogram,
+    "sentiment_text_length_chars",
+    "Length of analyzed text in characters",
+    buckets=[10, 50, 100, 200, 500, 1000, 2000, 5000, 10000],
+)
+
+sentiment_analysis_errors = _create_metric(
+    Counter,
+    "sentiment_analysis_errors_total",
+    "Number of sentiment analysis errors",
+    ["error_type"],
+)
+
 classifier_confidence = _create_metric(
     Gauge, "classifier_confidence", "Classification confidence score", ["category"]
 )

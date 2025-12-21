@@ -237,7 +237,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.${{ matrix.component }}
+          file: deploy/docker/Dockerfile.${{ matrix.component }}
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

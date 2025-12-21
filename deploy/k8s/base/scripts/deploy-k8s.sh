@@ -76,17 +76,17 @@ build_and_push_images() {
     log "Construction des images Docker..."
 
     # API Image
-    if [ -f "Dockerfile" ]; then
+    if [ -f "deploy/docker/Dockerfile.api" ]; then
         log "Construction de l'image API..."
-        docker build -t twisterlab-api:latest .
+        docker build -f deploy/docker/Dockerfile.api -t twisterlab-api:latest .
         docker tag twisterlab-api:latest twisterlab-api:v1
         success "Image API construite"
     fi
 
     # MCP Agents Image
-    if [ -f "mcp_agents/Dockerfile.mcp" ]; then
+    if [ -f "deploy/docker/Dockerfile.mcp-unified" ]; then
         log "Construction de l'image MCP..."
-        docker build -f mcp_agents/Dockerfile.mcp -t twisterlab-mcp:latest .
+        docker build -f deploy/docker/Dockerfile.mcp-unified -t twisterlab-mcp:latest .
         docker tag twisterlab-mcp:latest twisterlab-mcp:v1
         success "Image MCP construite"
     fi

@@ -4,7 +4,7 @@ services:
   twisterlab-api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: deploy/docker/Dockerfile.api
     ports:
       - "8000:8000"
     env_file:
@@ -16,9 +16,9 @@ services:
   twisterlab-mcp:
     build:
       context: .
-      dockerfile: Dockerfile.mcp
+      dockerfile: deploy/docker/Dockerfile.mcp-unified
     ports:
-      - "5000:5000"
+      - "8080:8080"
     environment:
       - MCP_SERVER_HOST=0.0.0.0
     depends_on:
